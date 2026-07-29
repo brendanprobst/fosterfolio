@@ -1,0 +1,65 @@
+# Node modules
+**/node_modules/
+# Root package-lock.json is committed for reproducible installs (npm ci).
+# Workspace packages must not carry their own lockfiles.
+apps/**/package-lock.json
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+.env
+# TypeScript build output
+**/dist/
+**/dist-lambda/
+
+# Turborepo
+**/.turbo/
+
+# Jest coverage (root tests; see package.json jest.coverageDirectory)
+test/coverage/
+*.lcov
+
+# Next.js (apps/web) — build/cache; env templates stay tracked via !**/.env.example above
+apps/web/.next/
+apps/web/out/
+apps/web/build
+apps/web/coverage
+apps/web/.vercel
+apps/web/*.tsbuildinfo
+apps/web/next-env.d.ts
+apps/web/*.pem
+
+# Playwright (paths aligned with test/web/playwright.config.ts outputDir)
+test/web/playwright-report/
+test/web/test-results/
+blob-report/
+
+# Debug logs (any package)
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Terraform (keep .terraform.lock.hcl committed)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.tfstate.lock.info
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

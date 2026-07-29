@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  repo-config:
+    runs-on: ubuntu-latest
+    outputs:
+      ci_enabled: ${{ steps.read.outputs.ci_enabled }}
+      job_test: ${{ steps.read.outputs.job_test }}
+      job_web_e2e: ${{ steps.read.outputs.job_web_e2e }}
+      job_terraform: ${{ steps.read.outputs.job_terraform }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Read config/repo-features.json
+        id: read
+        shell: bash
+        run: |
+          set -euo pipefail
+          F=config/repo-features.json
+          write_defaults() {
+            echo "ci_enabled=true" >> "$GITHUB_OUTPUT"
+            echo "job_test=true" >> "$GITHUB_OUTPUT"
+            echo "job_web_e2e=true" >> "$GITHUB_OUTPUT"
+            echo "job_terraform=true" >> "$GITHUB_OUTPUT"
+          }
+          if [ ! -f "$F" ]; then
+            write_defaults
+            exit 0
+          fi
+          jq empty "$F"
+          # jq's // treats false like null, so we must not use // for booleans (false would become default true).
+          echo "ci_enabled=$(jq -r 'if (.ci // {}) | has("enabled") then (if .ci.enabled == null then "true" else (.ci.enabled | tostring) end) else "true" end' "$F")" >> "$GITHUB_OUTPUT"
+          echo "job_test=$(jq -r 'if (.ci // {}) | has("test") then (if .ci.test == null then "true" else (.ci.test | tostring) end) else "true" end' "$F")" >> "$GITHUB_OUTPUT"
+          echo "job_web_e2e=$(jq -r 'if (.ci // {}) | has("webE2e") then (if .ci.webE2e == null then "true" else (.ci.webE2e | tostring) end) else "true" end' "$F")" >> "$GITHUB_OUTPUT"
+          echo "job_terraform=$(jq -r 'if (.ci // {}) | has("terraform") then (if .ci.terraform == null then "true" else (.ci.terraform | tostring) end) else "true" end' "$F")" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: repo-config
+    if: needs.repo-config.outputs.ci_enabled == 'true' && needs.repo-config.outputs.job_test == 'true'
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # Match root package.json engines (Node 22 only). Pin 22.x so CI never resolves to Node 23+.
+        node-version: ["22.x"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/web/.next/cache
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-turbo-${{ hashFiles('package.json', 'turbo.json', 'apps/api/package.json', 'apps/web/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ matrix.node-version }}-turbo-
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies (workspaces)
+        run: npm ci
+
+      - name: CI (Turbo build, lint, type-check, Jest coverage, web unit)
+        run: npm run ci
+
+  web-e2e:
+    needs: repo-config
+    if: needs.repo-config.outputs.ci_enabled == 'true' && needs.repo-config.outputs.job_web_e2e == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Install dependencies (workspaces)
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Playwright E2E (test/web/e2e)
+        run: npm run test:web:e2e
+
+  terraform:
+    needs: repo-config
+    if: needs.repo-config.outputs.ci_enabled == 'true' && needs.repo-config.outputs.job_terraform == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform format (check)
+        run: terraform fmt -check -recursive infra/terraform
+
+      - name: Terraform validate (dev stack)
+        working-directory: infra/terraform/envs/dev
+        run: terraform init -backend=false -input=false && terraform validate
