@@ -190,7 +190,7 @@ resource "aws_cloudfront_origin_access_control" "web" {
 resource "aws_cloudfront_function" "web_static_export_uri_rewrite" {
   name    = "${local.name_prefix}-web-static-export-uri"
   runtime = "cloudfront-js-2.0"
-  comment = "Rewrite extensionless paths to Next static export (*.html at bucket root)"
+  comment = "Rewrite extensionless paths + /pets/* sentinel for Next static export"
   publish = true
   code    = file("${path.module}/../../cloudfront/functions/viewer_request_next_static_export.js")
 }
