@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: cp3-post-search-star-inquiry
     content: "Checkpoint 3 — Post (general + pet_update), Search, Star, and Inquiry domains"
-    status: pending
+    status: completed
   - id: cp4-storage
     content: "Checkpoint 4 — Signed uploads, per-user storage cap, bucket policies, client-side downscaling contract"
     status: pending
@@ -32,7 +32,7 @@ isProject: true
 # Fosterfolio MVP
 
 Last updated: 2026-08-04
-Status: Checkpoint 2 complete — ready for Checkpoint 3 (Post, Search, Star, Inquiry)
+Status: Checkpoint 3 complete — ready for Checkpoint 4 (Storage)
 
 ---
 
