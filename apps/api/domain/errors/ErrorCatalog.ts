@@ -1,25 +1,27 @@
 import { ResultError } from '@api/domain/errors/ResultError';
 import { AuthErrors } from '@api/domain/errors/catalogs/AuthErrors';
 import { CommonErrors } from '@api/domain/errors/catalogs/CommonErrors';
-import { ThingErrors } from '@api/domain/errors/catalogs/ThingErrors';
+import { PetErrors } from '@api/domain/errors/catalogs/PetErrors';
+import { UserErrors } from '@api/domain/errors/catalogs/UserErrors';
 
 /**
  * Compatibility facade over per-domain error modules.
- *
- * New domains should add `domain/errors/catalogs/<Domain>Errors.ts` and re-export
- * stable aliases here only when call sites still need the flat catalog.
  */
 export class ErrorCatalog {
-  static readonly THING_NOT_FOUND = ThingErrors.NOT_FOUND;
-  static readonly THING_NAME_INVALID = ThingErrors.NAME_INVALID;
   static readonly INTERNAL_SERVER_ERROR = CommonErrors.INTERNAL_SERVER_ERROR;
   static readonly EMAIL_NOT_APPROVED = AuthErrors.EMAIL_NOT_APPROVED;
   static readonly ALLOWLIST_UNAVAILABLE = AuthErrors.ALLOWLIST_UNAVAILABLE;
 
-  /**
-   * Helper method to create a formatted error from a catalog error with metadata.
-   * Preserves the base error's HTTP status.
-   */
+  static readonly USER_NOT_FOUND = UserErrors.NOT_FOUND;
+  static readonly USER_FORBIDDEN = UserErrors.FORBIDDEN;
+  static readonly USER_INVALID_INPUT = UserErrors.INVALID_INPUT;
+
+  static readonly PET_NOT_FOUND = PetErrors.NOT_FOUND;
+  static readonly PET_FORBIDDEN = PetErrors.FORBIDDEN;
+  static readonly PET_INVALID_INPUT = PetErrors.INVALID_INPUT;
+  static readonly PET_NAME_REQUIRED = PetErrors.NAME_REQUIRED;
+  static readonly PET_SPECIES_INVALID = PetErrors.SPECIES_INVALID;
+
   static formatError(
     baseError: ResultError,
     metadata: Record<string, string | number>
@@ -33,4 +35,4 @@ export class ErrorCatalog {
   }
 }
 
-export { AuthErrors, CommonErrors, ThingErrors };
+export { AuthErrors, CommonErrors, PetErrors, UserErrors };
