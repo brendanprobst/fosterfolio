@@ -27,7 +27,8 @@ function allowlistRequiresSupabaseMiddleware(): RequestHandler {
 }
 
 /**
- * Auth middleware applied once per protected route prefix in `app.ts`.
+ * Auth middleware stack for protected routes.
+ * Prefer {@link createRequireAuth} and spread per-route (see `routes/registerRoutes.ts`).
  * Order: Supabase JWT → optional email allowlist (when `EMAIL_ALLOWLIST_ENABLED`).
  */
 export function createProtectedMiddlewareStack(container: Container): RequestHandler[] {

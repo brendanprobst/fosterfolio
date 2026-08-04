@@ -1,14 +1,6 @@
-import { IThingRepository } from '@api/domain/repositories/IThingRepository';
-import { IAllowedEmailRepository } from '@api/domain/repositories/IAllowedEmailRepository';
 import { SupabaseAdapter } from '@api/infrastructure/adapters/supabase/SupabaseAdapter';
-import { InMemoryThingRepository } from '@api/infrastructure/repositories/InMemoryThingRepository';
-import { ThingRepository } from '@api/infrastructure/repositories/ThingRepository';
-import { AllowedEmailRepository } from '@api/infrastructure/repositories/AllowedEmailRepository';
-import { CreateThingUseCase } from '@api/application/use-cases/CreateThingUseCase';
-import { GetThingByIdUseCase } from '@api/application/use-cases/GetThingByIdUseCase';
-import { ListThingsUseCase } from '@api/application/use-cases/ListThingsUseCase';
-import { UpdateThingUseCase } from '@api/application/use-cases/UpdateThingUseCase';
-import { DeleteThingUseCase } from '@api/application/use-cases/DeleteThingUseCase';
+import { createAllowlistModule } from '@api/infrastructure/composition/allowlist';
+import { createThingsModule } from '@api/infrastructure/composition/things';
 import { Logger } from '@api/utils/logger';
 
 function hasSupabaseEnv(): boolean {
@@ -19,70 +11,63 @@ function hasSupabaseEnv(): boolean {
 }
 
 /**
- * Service Container - Dependency injection container
+ * Service Container - composition root.
  *
- * Scale note: when this file grows past ~8 repository/use-case getters, prefer a
- * dedicated composition module or DI toolkit rather than expanding this class ad hoc.
- * See `apps/api/infrastructure/AGENTS.md`.
+ * Domain wiring lives in `infrastructure/composition/*`. Add a new module there
+ * and delegate getters from this class — do not grow ad-hoc fields here.
  */
 export class Container {
-  private thingRepository: IThingRepository;
-  private allowedEmailRepository?: IAllowedEmailRepository;
+  private readonly things: ReturnType<typeof createThingsModule>;
+  private readonly allowlist: ReturnType<typeof createAllowlistModule>;
 
   constructor() {
-    if (hasSupabaseEnv()) {
-      const dataAdapter = new SupabaseAdapter();
-      this.thingRepository = new ThingRepository(dataAdapter);
-      this.allowedEmailRepository = new AllowedEmailRepository(dataAdapter);
-      return;
-    }
+    let dataAdapter: SupabaseAdapter | null = null;
 
-    if (process.env.NODE_ENV === 'production') {
+    if (hasSupabaseEnv()) {
+      dataAdapter = new SupabaseAdapter();
+    } else if (process.env.NODE_ENV === 'production') {
       throw new Error(
         'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required when NODE_ENV=production',
       );
+    } else {
+      Logger.warning(
+        'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — using in-memory Thing storage (dev only). Data is lost on restart. Email allowlist requires Supabase. Copy apps/api/.env.example to apps/api/.env for Supabase.',
+      );
     }
 
-    Logger.warning(
-      'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — using in-memory Thing storage (dev only). Data is lost on restart. Email allowlist requires Supabase. Copy apps/api/.env.example to apps/api/.env for Supabase.',
-    );
-    this.thingRepository = new InMemoryThingRepository();
+    this.things = createThingsModule(dataAdapter);
+    this.allowlist = createAllowlistModule(dataAdapter);
   }
 
   isAllowlistConfigured(): boolean {
-    return this.allowedEmailRepository !== undefined;
+    return this.allowlist.isAllowlistConfigured();
   }
 
   getThingRepository() {
-    return this.thingRepository;
+    return this.things.thingRepository;
   }
 
-  getAllowedEmailRepository(): IAllowedEmailRepository {
-    if (!this.allowedEmailRepository) {
-      throw new Error(
-        'Email allowlist requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. In-memory dev mode does not implement allowlist storage.',
-      );
-    }
-    return this.allowedEmailRepository;
+  getAllowedEmailRepository() {
+    return this.allowlist.getAllowedEmailRepository();
   }
 
   getCreateThingUseCase() {
-    return new CreateThingUseCase(this.thingRepository);
+    return this.things.getCreateThingUseCase();
   }
 
   getGetThingByIdUseCase() {
-    return new GetThingByIdUseCase(this.thingRepository);
+    return this.things.getGetThingByIdUseCase();
   }
 
   getListThingsUseCase() {
-    return new ListThingsUseCase(this.thingRepository);
+    return this.things.getListThingsUseCase();
   }
 
   getUpdateThingUseCase() {
-    return new UpdateThingUseCase(this.thingRepository);
+    return this.things.getUpdateThingUseCase();
   }
 
   getDeleteThingUseCase() {
-    return new DeleteThingUseCase(this.thingRepository);
+    return this.things.getDeleteThingUseCase();
   }
 }

@@ -1,11 +1,19 @@
-import express, { Router } from 'express';
+import express, { Router, type RequestHandler } from 'express';
 import { Container } from '@api/infrastructure/container';
 import { RequestWithUser } from '@api/auth/types';
 
-export function createProfileRouter(_container: Container): Router {
-  const router = express.Router();
+export type ProfileRouterDeps = {
+  requireAuth: RequestHandler[];
+};
 
-  router.get('/', (req, res) => {
+export function createProfileRouter(
+  _container: Container,
+  deps: ProfileRouterDeps
+): Router {
+  const router = express.Router();
+  const { requireAuth } = deps;
+
+  router.get('/', ...requireAuth, (req, res) => {
     const authReq = req as RequestWithUser;
     res.json({
       id: authReq.user.id,

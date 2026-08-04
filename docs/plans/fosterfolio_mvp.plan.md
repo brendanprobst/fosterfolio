@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: cp1-foundation
     content: "Checkpoint 1 — Foundation: migrations, per-route auth, error/container/route restructure, DataAdapter extensions, public-vs-owner DTO convention"
-    status: pending
+    status: completed
   - id: cp2-user-pet
     content: "Checkpoint 2 — User and Pet domains end to end with ownership enforcement and soft delete"
     status: pending
@@ -32,7 +32,7 @@ isProject: true
 # Fosterfolio MVP
 
 Last updated: 2026-08-03
-Status: Checkpoint 0 complete — ready for Checkpoint 1 (foundation)
+Status: Checkpoint 1 complete — ready for Checkpoint 2 (User + Pet)
 
 ---
 
@@ -281,18 +281,18 @@ Lattice mounts auth at the router prefix. Fosterfolio needs public reads and aut
 
 Root `supabase/` layout with `config.toml` and timestamped migrations, `npm run supabase:*`, project linked, allowlist `platform_` migration applied, env files populated. MCP config is in `.cursor/mcp.json` (needs `SUPABASE_PROJECT_REF` + `SUPABASE_ACCESS_TOKEN` in the Cursor/shell env). Harvest bundle name: `supabase-cli-migrations`.
 
-### Checkpoint 1 — Foundation
+### Checkpoint 1 — Foundation ✅
 
-One agent, no parallelism. Nothing here changes behavior; everything here is what the next three checkpoints stand on.
+One agent, no parallelism. Nothing here changes product behavior; everything here is what the next three checkpoints stand on.
 
-- All migrations from §5, applied via the checkpoint 0 tooling.
-- Per-route `requireAuth` and `optionalAuth` middleware. The existing protected stack is retained so the allowlist still gates beta signups.
-- Errors restructured: each domain owns an error module, and `ResultError` carries its own HTTP status, retiring the central map in `utils/httpErrorMapper.ts`.
-- `Container` split into per-domain registration modules; routes moved to a registry. The container's own notes call for this past ~8 getters, and this build lands near 30.
-- `DataAdapter` extended for exact counts (`Prefer: count=exact` plus the `Content-Range` response header, which the adapter currently discards), RPC calls, and insert-returning.
-- The public-vs-owner DTO convention, with one worked example. `Thing.toPrimitives()` serializes the whole entity; `users` holds `email`, `zip_code`, `lat`, and `lng` behind a public endpoint, so entity-wide serialization is a leak by default.
+- All migrations from §5 applied (`20260804031454_app_create_core_schema.sql`).
+- Per-route `createRequireAuth` / `createOptionalAuth`; allowlist stack retained inside requireAuth.
+- Errors: per-domain catalogs + `ResultError.status`; `HttpErrorMapper` reads status from the error.
+- `Container` delegates to `infrastructure/composition/*`; routers mount via `routes/registerRoutes.ts`.
+- `DataAdapter`: `getWithCount`, `rpc`, `insertReturning`.
+- Public vs owner DTO convention on `Thing` (`toPublicDto` / `toOwnerDto`).
 
-**Exit:** `npm run ci` green. The `Things` slice untouched and still passing.
+**Exit:** `npm run ci` green. The `Things` slice still passing.
 
 ### Checkpoint 2 — User and Pet
 

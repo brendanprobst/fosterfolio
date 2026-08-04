@@ -3,14 +3,9 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import logger from 'morgan';
-import swaggerUi from 'swagger-ui-express';
 
-import { swaggerSpec } from '@api/config/swagger/index';
-import indexRouter from '@api/routes/index';
-import { createThingRouter } from '@api/routes/things';
-import { createProfileRouter } from '@api/routes/profile';
 import { Container } from '@api/infrastructure/container';
-import { createProtectedMiddlewareStack } from '@api/auth/createProtectedMiddlewareStack';
+import { registerRoutes } from '@api/routes/registerRoutes';
 import { Logger } from '@api/utils/logger';
 
 /**
@@ -21,7 +16,6 @@ export function createApp(container?: Container): Express {
   const appContainer = container || new Container();
 
   const app = express();
-  const protectedMiddleware = createProtectedMiddlewareStack(appContainer);
   const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3001,http://127.0.0.1:3001')
     .split(',')
     .map((origin) => origin.trim())
@@ -36,15 +30,7 @@ export function createApp(container?: Container): Express {
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());
 
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'Fosterfolio API · Documentation',
-  }));
-
-  app.use('/', indexRouter);
-  app.use('/profile', ...protectedMiddleware, createProfileRouter(appContainer));
-  app.use('/me', ...protectedMiddleware, createProfileRouter(appContainer));
-  app.use('/things', ...protectedMiddleware, createThingRouter(appContainer));
+  registerRoutes(app, appContainer);
 
   app.use(function(_req: Request, _res: Response, next: NextFunction) {
     next(createError(404));

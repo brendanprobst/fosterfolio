@@ -8,8 +8,8 @@
 
 - Implement interfaces from `apps/api/domain/repositories/`.
 - External service calls must go through infrastructure adapters (for example, `adapters/supabase/SupabaseAdapter.ts`) so repositories remain persistence-focused and client libraries stay swappable.
-- `Container` holds concrete singletons (or factories) and exposes getters used by controllers.
-- **Scale:** when `Container` grows past roughly **eight** repository/use-case getters, stop extending the class by hand — introduce a composition module or DI toolkit. Do not wing a full DI framework in a drive-by PR.
+- `Container` is a thin composition root. Domain wiring lives in `infrastructure/composition/*` modules; add a module and delegate getters rather than growing `container.ts` ad hoc.
+- External HTTP to PostgREST goes through `DataAdapter` (`getWithCount`, `rpc`, `insertReturning` included).
 
 ## Bootstrap
 
