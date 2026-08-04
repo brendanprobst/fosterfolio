@@ -1,4 +1,8 @@
-import type { DataAdapter, DataAdapterOptions } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
+import type {
+  CountResult,
+  DataAdapter,
+  DataAdapterOptions,
+} from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
 import { ThingRecord } from '@api/infrastructure/adapters/ThingDataAdapter';
 
 export class MockedThingDataAdapter implements DataAdapter {
@@ -56,6 +60,24 @@ export class MockedThingDataAdapter implements DataAdapter {
     }
     this.store.delete(id);
     return [{ id }] as T;
+  }
+
+  async getWithCount<T>(path: string, _options?: DataAdapterOptions): Promise<CountResult<T>> {
+    const data = await this.get<T>(path);
+    const rows = Array.isArray(data) ? data : [];
+    return { data, count: rows.length };
+  }
+
+  async rpc<T>(_functionName: string, _args?: Record<string, unknown>): Promise<T> {
+    throw new Error('rpc is not implemented on MockedThingDataAdapter');
+  }
+
+  async insertReturning<T>(
+    path: string,
+    body?: unknown,
+    options?: DataAdapterOptions
+  ): Promise<T> {
+    return this.post<T>(path, body, options);
   }
 
   private extractId(path: string): number {
