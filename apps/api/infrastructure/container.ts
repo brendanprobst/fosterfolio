@@ -2,7 +2,11 @@ import { SupabaseAdapter } from '@api/infrastructure/adapters/supabase/SupabaseA
 import { NoopGeoLookupAdapter } from '@api/infrastructure/adapters/geo/NoopGeoLookupAdapter';
 import { ZippopotamGeoLookupAdapter } from '@api/infrastructure/adapters/geo/ZippopotamGeoLookupAdapter';
 import { createAllowlistModule } from '@api/infrastructure/composition/allowlist';
+import { createInquiriesModule } from '@api/infrastructure/composition/inquiries';
 import { createPetsModule } from '@api/infrastructure/composition/pets';
+import { createPostsModule } from '@api/infrastructure/composition/posts';
+import { createSearchModule } from '@api/infrastructure/composition/search';
+import { createStarsModule } from '@api/infrastructure/composition/stars';
 import { createUsersModule } from '@api/infrastructure/composition/users';
 import { Logger } from '@api/utils/logger';
 
@@ -21,6 +25,10 @@ function hasSupabaseEnv(): boolean {
 export class Container {
   private readonly users: ReturnType<typeof createUsersModule>;
   private readonly pets: ReturnType<typeof createPetsModule>;
+  private readonly posts: ReturnType<typeof createPostsModule>;
+  private readonly stars: ReturnType<typeof createStarsModule>;
+  private readonly search: ReturnType<typeof createSearchModule>;
+  private readonly inquiries: ReturnType<typeof createInquiriesModule>;
   private readonly allowlist: ReturnType<typeof createAllowlistModule>;
 
   constructor() {
@@ -44,6 +52,22 @@ export class Container {
 
     this.users = createUsersModule(dataAdapter, geoLookup);
     this.pets = createPetsModule(dataAdapter, this.users.userRepository);
+    this.posts = createPostsModule(
+      dataAdapter,
+      this.pets.petRepository,
+      this.users.userRepository
+    );
+    this.stars = createStarsModule(dataAdapter, this.users.userRepository);
+    this.search = createSearchModule(
+      dataAdapter,
+      this.users.userRepository,
+      this.pets.petRepository
+    );
+    this.inquiries = createInquiriesModule(
+      dataAdapter,
+      this.users.userRepository,
+      this.pets.petRepository
+    );
     this.allowlist = createAllowlistModule(dataAdapter);
   }
 
@@ -93,5 +117,45 @@ export class Container {
 
   getGetPetUpdatesUseCase() {
     return this.pets.getGetPetUpdatesUseCase();
+  }
+
+  getCreatePostUseCase() {
+    return this.posts.getCreatePostUseCase();
+  }
+
+  getGetPostUseCase() {
+    return this.posts.getGetPostUseCase();
+  }
+
+  getUpdatePostUseCase() {
+    return this.posts.getUpdatePostUseCase();
+  }
+
+  getSoftDeletePostUseCase() {
+    return this.posts.getSoftDeletePostUseCase();
+  }
+
+  getListFeedUseCase() {
+    return this.posts.getListFeedUseCase();
+  }
+
+  getListPostsByAuthorUseCase() {
+    return this.posts.getListPostsByAuthorUseCase();
+  }
+
+  getAddStarUseCase() {
+    return this.stars.getAddStarUseCase();
+  }
+
+  getGetStarCountUseCase() {
+    return this.stars.getGetStarCountUseCase();
+  }
+
+  getSearchUseCase() {
+    return this.search.getSearchUseCase();
+  }
+
+  getCreateInquiryUseCase() {
+    return this.inquiries.getCreateInquiryUseCase();
   }
 }

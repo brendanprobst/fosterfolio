@@ -4,6 +4,7 @@ import { Container } from '@api/infrastructure/container';
 
 export type UserRouterDeps = {
   requireAuth: RequestHandler[];
+  optionalAuth: RequestHandler;
 };
 
 export function createUserRouter(
@@ -12,9 +13,12 @@ export function createUserRouter(
 ): Router {
   const router = express.Router({ mergeParams: true });
   const controller = new UserController(container);
-  const { requireAuth } = deps;
+  const { requireAuth, optionalAuth } = deps;
 
   router.get('/:id/pets', (req, res) => controller.listPets(req, res));
+  router.get('/:id/posts', (req, res) => controller.listPosts(req, res));
+  router.get('/:id/star-count', (req, res) => controller.getStarCount(req, res));
+  router.post('/:id/star', optionalAuth, (req, res) => controller.addStar(req, res));
   router.get('/:id', (req, res) => controller.getUser(req, res));
   router.put('/:id', ...requireAuth, (req, res) => controller.updateUser(req, res));
 

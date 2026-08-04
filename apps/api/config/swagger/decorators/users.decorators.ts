@@ -53,6 +53,53 @@
  *         description: Pet list
  *       404:
  *         description: User not found
+ * /users/{id}/posts:
+ *   get:
+ *     summary: List general posts for a user (excludes pet_update)
+ *     tags: [Users]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Post list
+ * /users/{id}/star:
+ *   post:
+ *     summary: Star a profile (session_token dedup)
+ *     tags: [Stars]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Already starred
+ *       201:
+ *         description: Star created
+ * /users/{id}/star-count:
+ *   get:
+ *     summary: Get star count for a profile
+ *     tags: [Stars]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: '{ starCount: number }'
  */
 
 export const usersSwaggerDoc = '';
