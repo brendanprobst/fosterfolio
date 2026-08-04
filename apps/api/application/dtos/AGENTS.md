@@ -9,4 +9,4 @@ Every domain entity that is returned over HTTP should expose two mappers:
 
 Controllers and use cases choose which projection to return. Do **not** call a catch-all `toPrimitives()` from a public route.
 
-`Thing` is the worked example: both projections are identical today (no private fields), but call sites use `toPublicDto()` / `toOwnerDto()` so later domains copy the pattern.
+`User` and `Pet` are the worked examples: public GETs use `toPublicDto()`; owner writes return `toOwnerDto()`. Never return private fields (`email`, `zipCode`, `lat`, `lng`) from public user endpoints.

@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: cp2-user-pet
     content: "Checkpoint 2 — User and Pet domains end to end with ownership enforcement and soft delete"
-    status: pending
+    status: completed
   - id: cp3-post-search-star-inquiry
     content: "Checkpoint 3 — Post (general + pet_update), Search, Star, and Inquiry domains"
     status: pending
@@ -31,8 +31,8 @@ isProject: true
 
 # Fosterfolio MVP
 
-Last updated: 2026-08-03
-Status: Checkpoint 1 complete — ready for Checkpoint 2 (User + Pet)
+Last updated: 2026-08-04
+Status: Checkpoint 2 complete — ready for Checkpoint 3 (Post, Search, Star, Inquiry)
 
 ---
 
