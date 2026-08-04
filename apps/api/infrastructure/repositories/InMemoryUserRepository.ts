@@ -27,4 +27,29 @@ export class InMemoryUserRepository implements IUserRepository {
   async countStars(userId: string): Promise<number> {
     return this.starCounts.get(userId) ?? 0;
   }
+
+  /** Test/search helper — not part of IUserRepository. */
+  async listAllForSearch(): Promise<
+    Array<{
+      id: string;
+      displayName: string | null;
+      avatarUrl: string | null;
+      city: string | null;
+      state: string | null;
+    }>
+  > {
+    return Array.from(this.users.values())
+      .filter((u) => !u.deletedAt)
+      .map((u) => {
+        const dto = u.toPublicDto();
+        return {
+          id: dto.id,
+          displayName: dto.displayName,
+          avatarUrl: dto.avatarUrl,
+          city: dto.city,
+          state: dto.state,
+        };
+      });
+  }
 }
+

@@ -67,4 +67,29 @@ export class InMemoryPetRepository implements IPetRepository {
   async listPetUpdates(petId: string): Promise<PetUpdateSummaryDto[]> {
     return this.updates.get(petId) ?? [];
   }
+
+  /** Test/search helper — not part of IPetRepository. */
+  async listAllForSearch(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      species: string;
+      primaryPhotoUrl: string | null;
+      ownerId: string;
+    }>
+  > {
+    return Array.from(this.pets.values())
+      .filter((p) => !p.deletedAt)
+      .map((p) => {
+        const dto = p.toListDto();
+        return {
+          id: dto.id,
+          name: dto.name,
+          species: dto.species,
+          primaryPhotoUrl: dto.primaryPhotoUrl,
+          ownerId: dto.ownerId,
+        };
+      });
+  }
 }
+
