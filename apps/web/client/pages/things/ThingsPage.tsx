@@ -1,7 +1,8 @@
 "use client";
 
-import { useAuth, useRequireAuth } from "@client/auth";
-import { Button, buttonVariants } from "@client/components/ui/button";
+import { useRequireAuth } from "@client/auth";
+import { AppShell } from "@client/components/layout";
+import { Button } from "@client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@client/components/ui/card";
 import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
@@ -11,12 +12,10 @@ import {
   useThingsList,
   useUpdateThingMutation,
 } from "@client/features/things";
-import Link from "next/link";
 import { type SubmitEvent, useMemo, useState } from "react";
 
 export function ThingsPage() {
   const { loading } = useRequireAuth();
-  const { signOut } = useAuth();
   const [newName, setNewName] = useState("");
 
   const {
@@ -85,18 +84,17 @@ export function ThingsPage() {
   }
 
   if (loading) {
-    return <main className="p-8">Loading things...</main>;
+    return (
+      <AppShell active="things">
+        <main className="p-8">Loading things...</main>
+      </AppShell>
+    );
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-4 px-4 py-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Things</h1>
-        <div className="flex gap-2">
-          <Link href="/profile" className={buttonVariants({ variant: "outline" })}>Profile</Link>
-          <Button onClick={() => signOut()}>Sign out</Button>
-        </div>
-      </header>
+    <AppShell active="things">
+    <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-8">
+      <h1 className="text-3xl font-semibold">Things</h1>
 
       <Card>
         <CardHeader>
@@ -186,5 +184,6 @@ export function ThingsPage() {
         ))}
       </section>
     </main>
+    </AppShell>
   );
 }

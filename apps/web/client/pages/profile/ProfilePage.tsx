@@ -1,10 +1,9 @@
 "use client";
 
 import { useAuth, useRequireAuth } from "@client/auth";
-import { Button, buttonVariants } from "@client/components/ui/button";
+import { AppShell } from "@client/components/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@client/components/ui/card";
 import { authenticatedApiRequest } from "@client/lib/authenticatedApi";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface ProfileResponse {
@@ -14,7 +13,7 @@ interface ProfileResponse {
 
 export function ProfilePage() {
   const { loading } = useRequireAuth();
-  const { getAccessToken, signOut, user } = useAuth();
+  const { getAccessToken, user } = useAuth();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +35,7 @@ export function ProfilePage() {
         return;
       }
 
-      const data = await response.json() as ProfileResponse;
+      const data = (await response.json()) as ProfileResponse;
       setProfile(data);
       setError(null);
     }
@@ -47,30 +46,38 @@ export function ProfilePage() {
   }, [getAccessToken, loading]);
 
   if (loading) {
-    return <main className="p-8">Loading profile...</main>;
+    return (
+      <AppShell active="profile">
+        <main className="p-8">Loading profile...</main>
+      </AppShell>
+    );
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 px-4 py-8">
-      <header className="flex items-center justify-between">
+    <AppShell active="profile">
+      <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-8">
         <h1 className="text-3xl font-semibold">Profile</h1>
-        <div className="flex gap-2">
-          <Link href="/things" className={buttonVariants({ variant: "outline" })}>Things</Link>
-          <Button onClick={() => signOut()}>Sign out</Button>
-        </div>
-      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Authenticated user</CardTitle>
-          <CardDescription>Email and id are from verified Supabase JWT claims.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p><strong>Email:</strong> {profile?.email || user?.email || "No email available"}</p>
-          <p><strong>User ID:</strong> {profile?.id || user?.id || "No id available"}</p>
-          {error ? <p className="text-destructive">{error}</p> : null}
-        </CardContent>
-      </Card>
-    </main>
+        <Card>
+          <CardHeader>
+            <CardTitle>Authenticated user</CardTitle>
+            <CardDescription>
+              Email and id are from verified Supabase JWT claims.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p>
+              <strong>Email:</strong>{" "}
+              {profile?.email || user?.email || "No email available"}
+            </p>
+            <p>
+              <strong>User ID:</strong>{" "}
+              {profile?.id || user?.id || "No id available"}
+            </p>
+            {error ? <p className="text-destructive">{error}</p> : null}
+          </CardContent>
+        </Card>
+      </main>
+    </AppShell>
   );
 }

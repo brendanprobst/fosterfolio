@@ -19,7 +19,7 @@ todos:
     status: completed
   - id: cp5-web-foundation
     content: "Checkpoint 5 — Web foundation: /pets/{id} sentinel route + CloudFront rewrite, feature conventions, markdown render, upload hook, nav"
-    status: pending
+    status: completed
   - id: cp6-web-features
     content: "Checkpoint 6 — Parallel web lanes: pet bio + QR, profile + stars, feed + composer, search, inquiry form"
     status: pending
@@ -32,7 +32,7 @@ isProject: true
 # Fosterfolio MVP
 
 Last updated: 2026-08-04
-Status: Checkpoint 4 complete — ready for Checkpoint 5 (Web foundation)
+Status: Checkpoint 5 complete — ready for Checkpoint 6 (parallel web features)
 
 ---
 
@@ -312,9 +312,9 @@ The signing endpoint, cap enforcement via `user_storage_bytes`, bucket policies,
 
 **Exit:** cap exceeded returns a structured error the client can render as "You've used up your storage. Remove a photo to upload more."
 
-### Checkpoint 5 — Web foundation
+### Checkpoint 5 — Web foundation ✅
 
-One agent. The `/pets/[id]` sentinel route and the CloudFront rewrite in Terraform (§4), feature-folder conventions extended from `client/features/things`, markdown rendering, the upload hook, navigation and layout. Everything in checkpoint 6 depends on these seams, so this is the last serial piece.
+One agent. The `/pets/[id]` sentinel route and the CloudFront rewrite in Terraform (§4), feature-folder conventions extended from `client/features/things` (`pets/`, `storage/`), markdown rendering, the upload hook (`useMediaUpload`), and shared `AppShell` nav. Everything in checkpoint 6 depends on these seams.
 
 ### Checkpoint 6 — Web features, parallel
 
