@@ -1,42 +1,36 @@
 import { ResultError } from '@api/domain/errors/ResultError';
+import { AuthErrors } from '@api/domain/errors/catalogs/AuthErrors';
+import { CommonErrors } from '@api/domain/errors/catalogs/CommonErrors';
+import { ThingErrors } from '@api/domain/errors/catalogs/ThingErrors';
 
 /**
- * ErrorCatalog - Centralized catalog of domain errors
- * Register new codes here and map them in HttpErrorMapper.
+ * Compatibility facade over per-domain error modules.
+ *
+ * New domains should add `domain/errors/catalogs/<Domain>Errors.ts` and re-export
+ * stable aliases here only when call sites still need the flat catalog.
  */
 export class ErrorCatalog {
-  static readonly THING_NOT_FOUND = ResultError.create(
-    'THING_NOT_FOUND',
-    'We couldn\'t find that thing. It may have been removed.'
-  );
-
-  static readonly THING_NAME_INVALID = ResultError.create(
-    'THING_NAME_INVALID',
-    'Please provide a non-empty name for the thing.'
-  );
-
-  static readonly INTERNAL_SERVER_ERROR = ResultError.create(
-    'INTERNAL_SERVER_ERROR',
-    'Something went wrong on our end. Please try again later.'
-  );
-
-  static readonly EMAIL_NOT_APPROVED = ResultError.create(
-    'EMAIL_NOT_APPROVED',
-    'Account email is not approved for access.',
-  );
-
-  static readonly ALLOWLIST_UNAVAILABLE = ResultError.create(
-    'ALLOWLIST_UNAVAILABLE',
-    'Access check temporarily unavailable.',
-  );
+  static readonly THING_NOT_FOUND = ThingErrors.NOT_FOUND;
+  static readonly THING_NAME_INVALID = ThingErrors.NAME_INVALID;
+  static readonly INTERNAL_SERVER_ERROR = CommonErrors.INTERNAL_SERVER_ERROR;
+  static readonly EMAIL_NOT_APPROVED = AuthErrors.EMAIL_NOT_APPROVED;
+  static readonly ALLOWLIST_UNAVAILABLE = AuthErrors.ALLOWLIST_UNAVAILABLE;
 
   /**
-   * Helper method to create a formatted error from a catalog error with metadata
+   * Helper method to create a formatted error from a catalog error with metadata.
+   * Preserves the base error's HTTP status.
    */
   static formatError(
     baseError: ResultError,
     metadata: Record<string, string | number>
   ): ResultError {
-    return ResultError.create(baseError.code, baseError.message, metadata);
+    return ResultError.create(
+      baseError.code,
+      baseError.message,
+      baseError.status,
+      metadata
+    );
   }
 }
+
+export { AuthErrors, CommonErrors, ThingErrors };

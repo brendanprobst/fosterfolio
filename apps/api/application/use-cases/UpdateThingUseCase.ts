@@ -21,7 +21,7 @@ export class UpdateThingUseCase {
       }
       thing.updateName(trimmed);
       await this.thingRepository.save(thing);
-      return Result.success(thing.toPrimitives());
+      return Result.success(thing.toOwnerDto());
     } catch {
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }

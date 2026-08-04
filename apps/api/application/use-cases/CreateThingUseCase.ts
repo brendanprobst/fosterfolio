@@ -17,7 +17,7 @@ export class CreateThingUseCase {
     try {
       const thing = new Thing(randomInt(1_000_000, 2_147_483_647), trimmed, new Date());
       await this.thingRepository.save(thing);
-      return Result.success(thing.toPrimitives());
+      return Result.success(thing.toOwnerDto());
     } catch {
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }

@@ -14,7 +14,7 @@ export class GetThingByIdUseCase {
           ErrorCatalog.formatError(ErrorCatalog.THING_NOT_FOUND, { id })
         );
       }
-      return Result.success(thing.toPrimitives());
+      return Result.success(thing.toPublicDto());
     } catch {
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }

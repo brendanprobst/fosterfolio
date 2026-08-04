@@ -9,7 +9,7 @@ export class ListThingsUseCase {
   async execute(): Promise<Result<ThingDto[]>> {
     try {
       const things = await this.thingRepository.findAll();
-      return Result.success(things.map((t) => t.toPrimitives()));
+      return Result.success(things.map((t) => t.toPublicDto()));
     } catch {
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }

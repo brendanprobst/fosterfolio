@@ -9,6 +9,8 @@ Pure business logic: **entities**, **value objects**, **domain services**, **rep
 - No imports from `application/`, `infrastructure/`, `controllers/`, or `routes/`.
 - Express and I/O types stay out of here.
 - Expose behavior on entities; keep use cases thin orchestrators.
+- Domain errors live in `domain/errors/catalogs/<Domain>Errors.ts` with HTTP status on each `ResultError`. `ErrorCatalog` re-exports for compatibility.
+- Entities that leave the API expose `toPublicDto()` / `toOwnerDto()` (see `application/dtos/AGENTS.md`).
 
 ## Reference implementation
 
