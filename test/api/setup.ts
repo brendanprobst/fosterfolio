@@ -16,6 +16,10 @@ import { ListPostsByAuthorUseCase } from '@api/application/use-cases/ListPostsBy
 import { SearchUseCase } from '@api/application/use-cases/SearchUseCase';
 import { SoftDeletePetUseCase } from '@api/application/use-cases/SoftDeletePetUseCase';
 import { SoftDeletePostUseCase } from '@api/application/use-cases/SoftDeletePostUseCase';
+import {
+  SignUploadUseCase,
+  resolveStorageCapBytes,
+} from '@api/application/use-cases/SignUploadUseCase';
 import { UpdatePetUseCase } from '@api/application/use-cases/UpdatePetUseCase';
 import { UpdatePostUseCase } from '@api/application/use-cases/UpdatePostUseCase';
 import { UpdateUserUseCase } from '@api/application/use-cases/UpdateUserUseCase';
@@ -25,6 +29,7 @@ import { NoopGeoLookupAdapter } from '@api/infrastructure/adapters/geo/NoopGeoLo
 import type { GeoLookupAdapter } from '@api/infrastructure/adapters/geo/GeoLookupAdapter';
 import type { EmailAdapter } from '@api/infrastructure/adapters/email/EmailAdapter';
 import { LoggingEmailAdapter } from '@api/infrastructure/adapters/email/LoggingEmailAdapter';
+import { InMemoryStorageAdapter } from '@api/infrastructure/adapters/storage/InMemoryStorageAdapter';
 import { Container } from '@api/infrastructure/container';
 import { InMemoryInquiryRepository } from '@api/infrastructure/repositories/InMemoryInquiryRepository';
 import { InMemoryPetRepository } from '@api/infrastructure/repositories/InMemoryPetRepository';
@@ -44,9 +49,11 @@ export class TestContainer {
     this.userRepository,
     this.petRepository
   );
+  readonly storageAdapter = new InMemoryStorageAdapter();
   private allowedEmailRepository = new StubAllowedEmailRepository();
   private geoLookup: GeoLookupAdapter = new NoopGeoLookupAdapter();
   private emailAdapter: EmailAdapter = new LoggingEmailAdapter();
+  private storageCapBytes = resolveStorageCapBytes();
 
   setGeoLookup(adapter: GeoLookupAdapter): void {
     this.geoLookup = adapter;
@@ -54,6 +61,10 @@ export class TestContainer {
 
   setEmailAdapter(adapter: EmailAdapter): void {
     this.emailAdapter = adapter;
+  }
+
+  setStorageCapBytes(bytes: number): void {
+    this.storageCapBytes = bytes;
   }
 
   seedUser(input: {
@@ -177,6 +188,10 @@ export class TestContainer {
       this.petRepository,
       this.emailAdapter
     );
+  }
+
+  getSignUploadUseCase() {
+    return new SignUploadUseCase(this.storageAdapter, this.storageCapBytes);
   }
 }
 

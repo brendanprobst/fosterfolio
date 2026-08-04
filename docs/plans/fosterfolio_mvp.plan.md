@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: cp4-storage
     content: "Checkpoint 4 — Signed uploads, per-user storage cap, bucket policies, client-side downscaling contract"
-    status: pending
+    status: completed
   - id: cp5-web-foundation
     content: "Checkpoint 5 — Web foundation: /pets/{id} sentinel route + CloudFront rewrite, feature conventions, markdown render, upload hook, nav"
     status: pending
@@ -32,7 +32,7 @@ isProject: true
 # Fosterfolio MVP
 
 Last updated: 2026-08-04
-Status: Checkpoint 3 complete — ready for Checkpoint 4 (Storage)
+Status: Checkpoint 4 complete — ready for Checkpoint 5 (Web foundation)
 
 ---
 
@@ -306,9 +306,9 @@ Unified `posts` with `post_type`, keyset feed pagination, and pet name and photo
 
 **Exit:** complete Swagger, every endpoint under test.
 
-### Checkpoint 4 — Storage
+### Checkpoint 4 — Storage ✅
 
-The signing endpoint, cap enforcement via `user_storage_bytes`, bucket policies, and a documented client contract for downscaling before upload. A phone photo is 3–5MB, so an un-resized client hits a 50MB cap in about a dozen uploads. Uploaded filenames get a random suffix so a second `photo.jpg` cannot silently overwrite the first or make another user's media enumerable.
+The signing endpoint, cap enforcement via `user_storage_bytes`, bucket policies, and a documented client contract for downscaling before upload (`docs/playbooks/media-upload.md`). Default cap is **50MB** (`STORAGE_CAP_BYTES=52428800`). Uploaded filenames get a random suffix so a second `photo.jpg` cannot silently overwrite the first or make another user's media enumerable.
 
 **Exit:** cap exceeded returns a structured error the client can render as "You've used up your storage. Remove a photo to upload more."
 
