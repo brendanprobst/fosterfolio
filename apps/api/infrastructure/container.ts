@@ -1,6 +1,9 @@
 import { SupabaseAdapter } from '@api/infrastructure/adapters/supabase/SupabaseAdapter';
+import { NoopGeoLookupAdapter } from '@api/infrastructure/adapters/geo/NoopGeoLookupAdapter';
+import { ZippopotamGeoLookupAdapter } from '@api/infrastructure/adapters/geo/ZippopotamGeoLookupAdapter';
 import { createAllowlistModule } from '@api/infrastructure/composition/allowlist';
-import { createThingsModule } from '@api/infrastructure/composition/things';
+import { createPetsModule } from '@api/infrastructure/composition/pets';
+import { createUsersModule } from '@api/infrastructure/composition/users';
 import { Logger } from '@api/utils/logger';
 
 function hasSupabaseEnv(): boolean {
@@ -13,11 +16,11 @@ function hasSupabaseEnv(): boolean {
 /**
  * Service Container - composition root.
  *
- * Domain wiring lives in `infrastructure/composition/*`. Add a new module there
- * and delegate getters from this class — do not grow ad-hoc fields here.
+ * Domain wiring lives in `infrastructure/composition/*`.
  */
 export class Container {
-  private readonly things: ReturnType<typeof createThingsModule>;
+  private readonly users: ReturnType<typeof createUsersModule>;
+  private readonly pets: ReturnType<typeof createPetsModule>;
   private readonly allowlist: ReturnType<typeof createAllowlistModule>;
 
   constructor() {
@@ -31,11 +34,16 @@ export class Container {
       );
     } else {
       Logger.warning(
-        'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — using in-memory Thing storage (dev only). Data is lost on restart. Email allowlist requires Supabase. Copy apps/api/.env.example to apps/api/.env for Supabase.',
+        'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — using in-memory repositories (dev only). Data is lost on restart. Email allowlist requires Supabase. Copy apps/api/.env.example to apps/api/.env for Supabase.',
       );
     }
 
-    this.things = createThingsModule(dataAdapter);
+    const geoLookup = dataAdapter
+      ? new ZippopotamGeoLookupAdapter()
+      : new NoopGeoLookupAdapter();
+
+    this.users = createUsersModule(dataAdapter, geoLookup);
+    this.pets = createPetsModule(dataAdapter, this.users.userRepository);
     this.allowlist = createAllowlistModule(dataAdapter);
   }
 
@@ -43,31 +51,47 @@ export class Container {
     return this.allowlist.isAllowlistConfigured();
   }
 
-  getThingRepository() {
-    return this.things.thingRepository;
-  }
-
   getAllowedEmailRepository() {
     return this.allowlist.getAllowedEmailRepository();
   }
 
-  getCreateThingUseCase() {
-    return this.things.getCreateThingUseCase();
+  getUserRepository() {
+    return this.users.userRepository;
   }
 
-  getGetThingByIdUseCase() {
-    return this.things.getGetThingByIdUseCase();
+  getGetUserUseCase() {
+    return this.users.getGetUserUseCase();
   }
 
-  getListThingsUseCase() {
-    return this.things.getListThingsUseCase();
+  getUpdateUserUseCase() {
+    return this.users.getUpdateUserUseCase();
   }
 
-  getUpdateThingUseCase() {
-    return this.things.getUpdateThingUseCase();
+  getPetRepository() {
+    return this.pets.petRepository;
   }
 
-  getDeleteThingUseCase() {
-    return this.things.getDeleteThingUseCase();
+  getCreatePetUseCase() {
+    return this.pets.getCreatePetUseCase();
+  }
+
+  getGetPetUseCase() {
+    return this.pets.getGetPetUseCase();
+  }
+
+  getUpdatePetUseCase() {
+    return this.pets.getUpdatePetUseCase();
+  }
+
+  getSoftDeletePetUseCase() {
+    return this.pets.getSoftDeletePetUseCase();
+  }
+
+  getListPetsByOwnerUseCase() {
+    return this.pets.getListPetsByOwnerUseCase();
+  }
+
+  getGetPetUpdatesUseCase() {
+    return this.pets.getGetPetUpdatesUseCase();
   }
 }

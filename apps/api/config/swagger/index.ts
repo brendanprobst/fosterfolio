@@ -49,7 +49,7 @@ Authentication:
                 code: {
                   type: 'string',
                   description: 'Error code for programmatic handling',
-                  example: 'THING_NOT_FOUND',
+                  example: 'PET_NOT_FOUND',
                 },
                 message: {
                   type: 'string',
@@ -64,27 +64,6 @@ Authentication:
             },
           },
         },
-        Thing: {
-          type: 'object',
-          properties: {
-            id: {
-              type: 'integer',
-              description: 'Thing ID',
-              example: 1001,
-            },
-            name: {
-              type: 'string',
-              description: 'Display name',
-              example: 'Example thing',
-            },
-            createdAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Creation time (ISO 8601)',
-            },
-          },
-          required: ['id', 'name', 'createdAt'],
-        },
       },
     },
     security: [
@@ -96,11 +75,12 @@ Authentication:
   apis: [
     './routes/*.ts',
     './routes/*.js',
-    './config/swagger/decorators/things.decorators.ts',
+    './config/swagger/decorators/users.decorators.ts',
+    './config/swagger/decorators/pets.decorators.ts',
     './config/swagger/decorators/profile.decorators.ts',
     './config/swagger/decorators/index.decorators.ts',
     './app.ts',
-    './app.js'
+    './app.js',
   ],
 };
 

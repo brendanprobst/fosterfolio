@@ -4,13 +4,13 @@ import { createRequireAuth } from '@api/auth/createAuthMiddleware';
 import { swaggerSpec } from '@api/config/swagger/index';
 import type { Container } from '@api/infrastructure/container';
 import indexRouter from '@api/routes/index';
+import { createPetRouter } from '@api/routes/pets';
 import { createProfileRouter } from '@api/routes/profile';
-import { createThingRouter } from '@api/routes/things';
+import { createUserRouter } from '@api/routes/users';
 
 /**
  * Mounts all HTTP routers. Auth is applied per-route inside each router via
- * `createRequireAuth` / `createOptionalAuth` — not at the prefix level — so
- * public reads and authenticated writes can share a path prefix later.
+ * `createRequireAuth` / `createOptionalAuth`.
  */
 export function registerRoutes(app: Express, container: Container): void {
   const requireAuth = createRequireAuth(container);
@@ -27,5 +27,6 @@ export function registerRoutes(app: Express, container: Container): void {
   app.use('/', indexRouter);
   app.use('/profile', createProfileRouter(container, { requireAuth }));
   app.use('/me', createProfileRouter(container, { requireAuth }));
-  app.use('/things', createThingRouter(container, { requireAuth }));
+  app.use('/users', createUserRouter(container, { requireAuth }));
+  app.use('/pets', createPetRouter(container, { requireAuth }));
 }

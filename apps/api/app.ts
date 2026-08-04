@@ -9,8 +9,8 @@ import { registerRoutes } from '@api/routes/registerRoutes';
 import { Logger } from '@api/utils/logger';
 
 /**
- * Creates an Express app instance with the given container
- * If no container is provided, creates a new one and loads seed data
+ * Creates an Express app instance with the given container.
+ * If no container is provided, creates a new one.
  */
 export function createApp(container?: Container): Express {
   const appContainer = container || new Container();

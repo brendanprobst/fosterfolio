@@ -6,7 +6,7 @@ import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Logger } from '@api/utils/logger';
 
 /**
- * One allowlist middleware instance per app (shared cache across /things, /profile, /me).
+ * One allowlist middleware instance per app (shared cache across protected routes).
  * Created when {@link createProtectedMiddlewareStack} runs inside {@link createApp}.
  */
 let allowlistMiddlewareForApp: RequestHandler | null = null;
