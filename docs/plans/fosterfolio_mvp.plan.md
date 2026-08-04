@@ -357,7 +357,118 @@ Content richness — rich text, galleries, video, drafts — is v2.5. It makes e
 
 ## 10. Open items
 
-- Confirm the Supabase project exists and its credentials are in SSM (checkpoint 0).
-- Decide the admin UID; hardcode as an env var for MVP.
-- SES domain verification and production-access request. Not blocking — beta stays in the sandbox — but the request takes days, so file it before checkpoint 7.
+- **Design spec** — user has one for Checkpoint 6 UI; paste/attach before lane work (or add as §11 / appendix when received).
+- Decide the admin UID; hardcode as an env var for MVP (moderation stays SQL/column updates for now).
+- SES domain verification and production-access request. Not blocking — beta stays in the sandbox / `EMAIL_PROVIDER=log` — but the request takes days, so file it before checkpoint 7.
 - Spam protection on the two unauthenticated write endpoints (`POST /inquiries`, `POST /users/:id/star`) is deliberately deferred with private beta. Per-IP limiting does not work in Lambda memory; the eventual answer is API Gateway throttling plus a honeypot field.
+- Push/sync: local `mvp` may be ahead of `origin/mvp`; push when ready. Never commit or push `.env` secrets.
+- CloudFront function update from CP5 needs `terraform apply` on the deploy environment before `/pets/{uuid}` deep links work in AWS (local `next dev` is fine without it).
+- Web `/things` demo UI still exists; API Things slice is gone. Replace home/demo links in CP6/CP7 cleanup when feed/profile are real.
+
+---
+
+## Appendix A — Session handoff (as of 2026-08-04)
+
+### A.1 Git / branch
+
+| Item | Value |
+|---|---|
+| Active branch | **`mvp`** |
+| `main` | Matches scaffold / `origin/main` (Initial Scaffold) — product commits live on `mvp` |
+| Tip (example) | `152c6b9` — AppShell + CP5 complete (verify with `git log -1`) |
+| Checkpoints done | 0–5 |
+| Next | Checkpoint 6 (parallel web), after design spec |
+
+### A.2 Supabase / env (local)
+
+| Item | Value |
+|---|---|
+| Project ref | `qrttmonymvsibqyryqpt` |
+| API env file | `apps/api/.env` (`dotenv` loads `.env`, not `.env.local`) |
+| Web env file | `apps/web/.env.local` |
+| CLI env | `supabase/.env.local` |
+| MCP | `.cursor/mcp.json` hardcodes `project_ref`; shell may need `SUPABASE_ACCESS_TOKEN` only |
+| DB URL gotcha | Free-tier `db.<ref>.supabase.co` may not resolve (IPv6). Use **session pooler**: `postgresql://postgres.<ref>:…@aws-1-us-west-2.pooler.supabase.com:5432/postgres` |
+| Migrations applied | Allowlist platform migration + `20260804031454_app_create_core_schema.sql` (users/pets/posts/stars/inquiries, storage bucket, `user_storage_bytes`, RLS) |
+
+**Never commit or push secrets** (`.env`, service role keys, tokens). User is sensitive to ambiguous “push these” wording.
+
+### A.3 Runtime
+
+- Node **22 only** (`engines`, `.nvmrc`, `engine-strict=true`). Local shells on Node 20 will fail `npm install`.
+- Dev: API **3000**, web **3001**. `npm run ci` from repo root.
+- Watchman can fail under sandbox; use `npx jest --watchman=false` or run CI with full permissions.
+
+### A.4 API surface (built)
+
+```
+GET/PUT    /users/:id
+GET        /users/:id/pets
+GET        /users/:id/posts          # general only
+POST       /users/:id/star           # body: session_token
+GET        /users/:id/star-count
+
+POST/GET/PUT/DELETE  /pets/:id
+GET        /pets/:id/updates
+
+POST/GET/PUT/DELETE  /posts
+GET        /posts                    # keyset ?cursor=&limit=
+
+GET        /search?q=
+POST       /inquiries
+POST       /storage/sign             # auth; ?filename&contentType&contentLength
+```
+
+Auth: per-route `createRequireAuth` / `createOptionalAuth`. Composition: `infrastructure/composition/*`. Errors: catalogs under `domain/errors/catalogs/` + `ResultError.status`.
+
+Storage cap: `STORAGE_CAP_BYTES` default **50MB** (was briefly 100MB; reverted to prove env-only change). Client contract: `docs/playbooks/media-upload.md`.
+
+Email: `EMAIL_PROVIDER=log|ses` (default log). Inquiries set `Reply-To: sender_email`.
+
+Zip → city/state: `ZippopotamGeoLookupAdapter`, fail soft.
+
+### A.5 Web foundation (built)
+
+| Piece | Location |
+|---|---|
+| Pet sentinel | `apps/web/app/pets/[id]/page.tsx` — `PET_BIO_SENTINEL_ID` = `00000000-0000-0000-0000-000000000000` |
+| Path helper | `apps/web/client/lib/petBioPath.ts` |
+| CloudFront rewrite | `infra/terraform/cloudfront/functions/viewer_request_next_static_export.js` |
+| Pets feature | `apps/web/client/features/pets/` |
+| Upload hook | `apps/web/client/features/storage/useMediaUpload.ts` |
+| Markdown | `apps/web/client/components/markdown/` |
+| Nav | `apps/web/client/components/layout/AppShell.tsx` |
+| Public fetch | `apps/web/client/lib/publicApiRequest.ts` |
+
+### A.6 Pitfalls already hit
+
+1. **JSDoc** — do not put `*/` inside block comments (breaks parsers); hit in DataAdapter.
+2. **`exactOptionalPropertyTypes`** — omit optional keys instead of assigning `undefined`.
+3. **Ownership** — must be in use cases; service role bypasses RLS.
+4. **Static export pets** — never `/pets?id=`; always `/pets/{uuid}` + sentinel + CF rewrite.
+5. **Things** — API removed; web `/things` demo remains until replaced.
+
+### A.7 Suggested new-session prompt
+
+```
+Continue Fosterfolio MVP on branch `mvp`.
+Read docs/plans/fosterfolio_mvp.plan.md end-to-end (esp. Checkpoint 6 + Appendix A).
+Checkpoints 0–5 are done. Next is Checkpoint 6.
+I will provide / have provided a design spec — follow it; do not invent a new visual language.
+Prefer lane branches off mvp; commit in chunks; do not push secrets; ask before push/PR.
+```
+
+Paste the design spec in the same message when you have it.
+
+---
+
+## Appendix B — Checkpoint commit map (local history)
+
+Useful for archaeology; tips move — prefer `git log --oneline mvp`.
+
+- CP0: plan, supabase CLI, MCP
+- CP1: core schema migration; ResultError catalogs; DataAdapter; per-route auth; composition
+- CP2: User/Pet domains; Things API removed; ownership/public DTO tests
+- CP3: Post/Star/Search/Inquiry
+- CP4: `/storage/sign`, 50MB cap, media-upload playbook
+- CP5: pets sentinel, CF rewrite, features, AppShell
