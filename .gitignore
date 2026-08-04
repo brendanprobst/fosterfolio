@@ -51,6 +51,14 @@ blob-report/
 .DS_Store
 Thumbs.db
 
+# Supabase CLI artifacts. `supabase/config.toml` and `supabase/migrations/` stay
+# tracked; link state, temp files and branch state are per-clone.
+# Credentials live in supabase/.env.local, already ignored by **/.env.* above.
+supabase/.branches/
+supabase/.temp/
+supabase/logs/
+supabase/.env.keys
+
 # Terraform (keep .terraform.lock.hcl committed)
 **/.terraform/
 *.tfstate

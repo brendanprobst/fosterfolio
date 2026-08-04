@@ -33,17 +33,17 @@ Confirm in **AWS Console → Lambda → your API function → Configuration → 
 - **Trigger**: `enforce_allowed_email` runs `BEFORE INSERT ON auth.users` and calls the public function.
 - **API middleware**: `requireAllowedEmail` runs after `requireSupabaseAuth` on every protected route. When `EMAIL_ALLOWLIST_ENABLED` is off, the factory returns a pass-through. When on, it consults `public.allowed_emails` (with a 60s in-process cache) and returns 403 `EMAIL_NOT_APPROVED` for emails not on the list.
 
-The trigger and table are defined in `apps/api/supabase/migrations/allowed_emails_signup_gate.sql`. The migration is fully idempotent — re-running it is safe.
+The trigger and table are defined in `supabase/migrations/20260728210711_platform_allowed_emails_signup_gate.sql`. The migration is fully idempotent — re-running it is safe.
 
 ### If the SQL Editor still rejects the trigger
 
 Supabase grants `USAGE` on the `auth` schema to the SQL Editor role but withholds `CREATE`, so the function-in-`public` pattern above works. If your project also withholds `TRIGGER` privilege on `auth.users`, the final `create trigger` line will fail with a similar `permission denied` error. Two fallbacks:
 
-1. **Run the migration via the Supabase CLI / direct psql as the `postgres` role.** See **[Supabase migrations playbook](supabase-migrations.md)**. Quick form:
+1. **Run the migration via the Supabase CLI as the `postgres` role.** This is the wired path — see **[Supabase migrations playbook](supabase-migrations.md)**. Quick form:
    ```bash
-   psql "postgresql://postgres:<password>@<host>:5432/postgres" \
-     -f apps/api/supabase/migrations/allowed_emails_signup_gate.sql
+   npm run supabase:push
    ```
+   `SUPABASE_DB_URL` in `supabase/.env.local` must be the **direct** connection (port 5432), not the transaction pooler; the pooler cannot create triggers on `auth.users`.
 2. **Skip the DB trigger entirely and rely on the API middleware.** The API gate already rejects every authenticated request from a non-approved email; the only loss is that orphan `auth.users` rows accumulate when someone tries to sign up. Comment out the final `drop trigger` / `create trigger` block and re-run.
 
 ## Enable the gate

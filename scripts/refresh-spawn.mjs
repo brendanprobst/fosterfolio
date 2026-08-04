@@ -77,7 +77,7 @@ Post-refresh checklist — from the spawn repo:
 
 Then if needed since your last deploy:
   • Supabase Auth redirect URLs (/auth/sign-in, etc.) — see docs/playbooks/supabase-migrations.md
-  • Apply new SQL under apps/api/supabase/migrations/
+  • Apply new SQL under supabase/migrations/ — npm run supabase:push
   • Merge terraform.tfvars.example → terraform.tfvars; npm run deploy:aws -- --auto-approve (or deploy:aws:web)
 
 Suggested commit message:

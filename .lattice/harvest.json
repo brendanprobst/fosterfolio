@@ -1,0 +1,13 @@
+{
+  "_comment": "Read by scripts/lattice-harvest-product-context.mjs during `npm run lattice:harvest-index` in lattice-app-template. productPathSegments are Fosterfolio's own domain and must never be proposed for upstream harvest; platformPathSegments are generic Lattice tooling that inference would otherwise mistake for product code. See docs/playbooks/upstream-harvest.md.",
+  "productPathSegments": [
+    "pets",
+    "posts",
+    "inquiries",
+    "stars",
+    "search",
+    "profiles"
+  ],
+  "platformPathSegments": ["supabase"],
+  "disableInference": false
+}
