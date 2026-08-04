@@ -6,6 +6,7 @@ import { PetErrors } from '@api/domain/errors/catalogs/PetErrors';
 import { PostErrors } from '@api/domain/errors/catalogs/PostErrors';
 import { SearchErrors } from '@api/domain/errors/catalogs/SearchErrors';
 import { StarErrors } from '@api/domain/errors/catalogs/StarErrors';
+import { StorageErrors } from '@api/domain/errors/catalogs/StorageErrors';
 import { UserErrors } from '@api/domain/errors/catalogs/UserErrors';
 
 /**
@@ -41,6 +42,10 @@ export class ErrorCatalog {
   static readonly INQUIRY_TARGET_NOT_FOUND = InquiryErrors.TARGET_NOT_FOUND;
   static readonly INQUIRY_EMAIL_FAILED = InquiryErrors.EMAIL_FAILED;
 
+  static readonly STORAGE_INVALID_INPUT = StorageErrors.INVALID_INPUT;
+  static readonly STORAGE_CONTENT_TYPE_INVALID = StorageErrors.CONTENT_TYPE_INVALID;
+  static readonly STORAGE_CAP_EXCEEDED = StorageErrors.CAP_EXCEEDED;
+
   static formatError(
     baseError: ResultError,
     metadata: Record<string, string | number>
@@ -62,5 +67,6 @@ export {
   PostErrors,
   SearchErrors,
   StarErrors,
+  StorageErrors,
   UserErrors,
 };
