@@ -7,6 +7,7 @@ import { createPetsModule } from '@api/infrastructure/composition/pets';
 import { createPostsModule } from '@api/infrastructure/composition/posts';
 import { createSearchModule } from '@api/infrastructure/composition/search';
 import { createStarsModule } from '@api/infrastructure/composition/stars';
+import { createStorageModule } from '@api/infrastructure/composition/storage';
 import { createUsersModule } from '@api/infrastructure/composition/users';
 import { Logger } from '@api/utils/logger';
 
@@ -29,6 +30,7 @@ export class Container {
   private readonly stars: ReturnType<typeof createStarsModule>;
   private readonly search: ReturnType<typeof createSearchModule>;
   private readonly inquiries: ReturnType<typeof createInquiriesModule>;
+  private readonly storage: ReturnType<typeof createStorageModule>;
   private readonly allowlist: ReturnType<typeof createAllowlistModule>;
 
   constructor() {
@@ -68,6 +70,7 @@ export class Container {
       this.users.userRepository,
       this.pets.petRepository
     );
+    this.storage = createStorageModule(dataAdapter);
     this.allowlist = createAllowlistModule(dataAdapter);
   }
 
@@ -158,4 +161,9 @@ export class Container {
   getCreateInquiryUseCase() {
     return this.inquiries.getCreateInquiryUseCase();
   }
+
+  getSignUploadUseCase() {
+    return this.storage.getSignUploadUseCase();
+  }
 }
+

@@ -12,6 +12,7 @@ import { createPetRouter } from '@api/routes/pets';
 import { createPostRouter } from '@api/routes/posts';
 import { createProfileRouter } from '@api/routes/profile';
 import { createSearchRouter } from '@api/routes/search';
+import { createStorageRouter } from '@api/routes/storage';
 import { createUserRouter } from '@api/routes/users';
 
 /**
@@ -39,4 +40,6 @@ export function registerRoutes(app: Express, container: Container): void {
   app.use('/posts', createPostRouter(container, { requireAuth }));
   app.use('/inquiries', createInquiryRouter(container));
   app.use('/search', createSearchRouter(container));
+  app.use('/storage', createStorageRouter(container, { requireAuth }));
 }
+
