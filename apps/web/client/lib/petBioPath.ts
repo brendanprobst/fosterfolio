@@ -1,6 +1,10 @@
 import { PET_BIO_SENTINEL_ID } from "@client/lib/constants/petBioSentinel";
 import { normalizeAppPathname } from "@client/lib/normalizeAppPathname";
 
+export function petBioHref(id: string): string {
+  return `/pets/${id}`;
+}
+
 /**
  * Extract the pet id from a `/pets/{id}` pathname (after static-export normalization).
  * Returns null for the sentinel placeholder or malformed paths.

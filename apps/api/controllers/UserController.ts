@@ -28,7 +28,10 @@ export class UserController {
         });
         return;
       }
-      const result = await this.container.getGetUserUseCase().execute(id);
+      const actorId = (req as RequestWithOptionalUser).user?.id ?? null;
+      const result = await this.container
+        .getGetUserUseCase()
+        .execute(id, actorId);
       ResponseHandler.handleResult(result, res);
     } catch (error) {
       ResponseHandler.handleError(error, res);

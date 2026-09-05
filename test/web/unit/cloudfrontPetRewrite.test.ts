@@ -34,6 +34,12 @@ describe("CloudFront pet bio rewrite", () => {
     );
   });
 
+  it("rewrites /users/{uuid} to the sentinel object", () => {
+    expect(rewrite("/users/11111111-1111-1111-1111-111111111111")).toBe(
+      `/users/${PET_BIO_SENTINEL_ID}.html`,
+    );
+  });
+
   it("still maps ordinary extensionless routes to .html", () => {
     expect(rewrite("/profile")).toBe("/profile.html");
   });

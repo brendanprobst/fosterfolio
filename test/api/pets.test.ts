@@ -28,7 +28,11 @@ describe('Pets API', () => {
 
   it('creates a pet and returns meta on public GET', async () => {
     const { app, container } = createTestAppWithContainer();
-    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      displayName: 'Alex Foster',
+    });
 
     const created = await createOwnedPet(app, ownerId);
     expect(created.id).toEqual(expect.any(String));
@@ -41,12 +45,19 @@ describe('Pets API', () => {
       name: 'Mochi',
       species: 'dog',
       updates: [],
+      owner: {
+        id: ownerId,
+        displayName: 'Alex Foster',
+        avatarUrl: null,
+      },
     });
     expect(res.body.meta).toMatchObject({
       title: 'Mochi · Fosterfolio',
       description: 'A very good boy',
       imageUrl: 'https://cdn.example.com/mochi.jpg',
     });
+    expect(res.body.owner).not.toHaveProperty('email');
+    expect(res.body.owner).not.toHaveProperty('zipCode');
   });
 
   it('forbids cross-owner update and delete', async () => {

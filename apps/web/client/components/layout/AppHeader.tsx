@@ -7,7 +7,7 @@ import Link from "next/link";
 
 type AppHeaderProps = {
   /** Highlight the active primary nav item. */
-  active?: "home" | "profile" | "things";
+  active?: "home" | "profile" | "search" | "things";
 };
 
 /**
@@ -31,27 +31,25 @@ export function AppHeader({ active }: AppHeaderProps) {
           >
             Fosterfolio
           </Link>
+          <Link
+            href="/search"
+            className={cn(
+              "text-muted-foreground hover:text-foreground",
+              active === "search" && "text-foreground",
+            )}
+          >
+            Search
+          </Link>
           {signedIn ? (
-            <>
-              <Link
-                href="/profile"
-                className={cn(
-                  "text-muted-foreground hover:text-foreground",
-                  active === "profile" && "text-foreground",
-                )}
-              >
-                Profile
-              </Link>
-              <Link
-                href="/things"
-                className={cn(
-                  "text-muted-foreground hover:text-foreground",
-                  active === "things" && "text-foreground",
-                )}
-              >
-                Things
-              </Link>
-            </>
+            <Link
+              href="/profile"
+              className={cn(
+                "text-muted-foreground hover:text-foreground",
+                active === "profile" && "text-foreground",
+              )}
+            >
+              Profile
+            </Link>
           ) : null}
         </nav>
         <div className="flex items-center gap-2">

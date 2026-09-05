@@ -19,7 +19,7 @@ export function createUserRouter(
   router.get('/:id/posts', (req, res) => controller.listPosts(req, res));
   router.get('/:id/star-count', (req, res) => controller.getStarCount(req, res));
   router.post('/:id/star', optionalAuth, (req, res) => controller.addStar(req, res));
-  router.get('/:id', (req, res) => controller.getUser(req, res));
+  router.get('/:id', optionalAuth, (req, res) => controller.getUser(req, res));
   router.put('/:id', ...requireAuth, (req, res) => controller.updateUser(req, res));
 
   return router;

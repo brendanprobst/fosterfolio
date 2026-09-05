@@ -123,7 +123,7 @@ export class TestContainer {
   }
 
   getGetPetUseCase() {
-    return new GetPetUseCase(this.petRepository);
+    return new GetPetUseCase(this.petRepository, this.userRepository);
   }
 
   getUpdatePetUseCase() {

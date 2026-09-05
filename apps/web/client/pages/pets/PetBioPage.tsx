@@ -1,9 +1,15 @@
 "use client";
 
-import { Markdown } from "@client/components/markdown";
+import { UserAvatar } from "@client/components/UserAvatar";
 import { AppShell } from "@client/components/layout";
+import { Markdown } from "@client/components/markdown";
+import { InquiryForm } from "@client/features/inquiries";
 import { usePet } from "@client/features/pets";
+import { humanizeToken } from "@client/lib/humanizeToken";
 import { petIdFromPathname } from "@client/lib/petBioPath";
+import { userProfileHref } from "@client/lib/userProfilePath";
+import { PetQrDownload } from "./PetQrDownload";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
@@ -24,9 +30,23 @@ export function PetBioPage() {
     document.title = "Fosterfolio";
   }, [pet?.meta?.title]);
 
+  const details = pet
+    ? [
+        pet.species,
+        pet.breed,
+        pet.ageValue != null
+          ? `${pet.ageValue} ${pet.ageUnit ?? "years"}`
+          : null,
+        pet.sex,
+        pet.size,
+        pet.status ? humanizeToken(pet.status) : null,
+        pet.subStatus ? humanizeToken(pet.subStatus) : null,
+      ].filter((item): item is string => !!item)
+    : [];
+
   return (
     <AppShell>
-      <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-8">
+      <main className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-8">
         {!petId ? (
           <p className="text-muted-foreground text-sm">Pet not found.</p>
         ) : null}
@@ -40,7 +60,7 @@ export function PetBioPage() {
         ) : null}
         {pet ? (
           <>
-            <header className="space-y-2">
+            <header className="space-y-3">
               {pet.primaryPhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- static export; absolute Supabase URLs
                 <img
@@ -50,13 +70,71 @@ export function PetBioPage() {
                 />
               ) : null}
               <h1 className="text-3xl font-semibold tracking-tight">{pet.name}</h1>
-              <p className="text-muted-foreground text-sm capitalize">
-                {pet.species}
-                {pet.breed ? ` · ${pet.breed}` : ""}
-                {pet.status ? ` · ${pet.status.replaceAll("_", " ")}` : ""}
-              </p>
+              {details.length > 0 ? (
+                <p className="text-muted-foreground text-sm capitalize">
+                  {details.join(" · ")}
+                </p>
+              ) : null}
+              {pet.shelterLinkUrl ? (
+                <p className="text-sm">
+                  Shelter:{" "}
+                  <a
+                    href={pet.shelterLinkUrl}
+                    className="text-primary hover:underline"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {pet.shelterLinkName || pet.shelterLinkUrl}
+                  </a>
+                </p>
+              ) : null}
             </header>
+
+            {pet.owner ? (
+              <section className="flex items-center gap-3" aria-label="Foster">
+                <UserAvatar
+                  name={pet.owner.displayName}
+                  url={pet.owner.avatarUrl}
+                  size="sm"
+                />
+                <div className="min-w-0">
+                  <p className="text-muted-foreground text-xs">Fostered by</p>
+                  <Link
+                    href={userProfileHref(pet.owner.id)}
+                    className="text-primary text-sm font-medium hover:underline"
+                  >
+                    {pet.owner.displayName || "Foster profile"}
+                  </Link>
+                </div>
+              </section>
+            ) : null}
+
             {pet.bioMarkdown ? <Markdown>{pet.bioMarkdown}</Markdown> : null}
+
+            {pet.importantLinks.length > 0 ? (
+              <section className="space-y-2" aria-label="Links">
+                <h2 className="text-lg font-medium">Links</h2>
+                <ul className="list-disc space-y-1 pl-5 text-sm">
+                  {pet.importantLinks.map((link) => (
+                    <li key={`${link.label}-${link.url}`}>
+                      <a
+                        href={link.url}
+                        className="text-primary hover:underline"
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            <PetQrDownload petId={pet.id} petName={pet.name} />
+
+            <InquiryForm targetUserId={pet.ownerId} targetPetId={pet.id} />
+
             {pet.updates.length > 0 ? (
               <section className="space-y-3" aria-label="Pet updates">
                 <h2 className="text-lg font-medium">Updates</h2>

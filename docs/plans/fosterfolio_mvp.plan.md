@@ -22,7 +22,7 @@ todos:
     status: completed
   - id: cp6-web-features
     content: "Checkpoint 6 — Parallel web lanes: pet bio + QR, profile + stars, feed + composer, search, inquiry form"
-    status: pending
+    status: completed
   - id: cp7-beta
     content: "Checkpoint 7 — Private beta: Terraform apply, SSM, allowlist enabled, Playwright specs, smoke test"
     status: pending
@@ -31,8 +31,8 @@ isProject: true
 
 # Fosterfolio MVP
 
-Last updated: 2026-08-04
-Status: Checkpoint 5 complete — ready for Checkpoint 6 (parallel web features)
+Last updated: 2026-08-21
+Status: Checkpoint 6 complete — ready for Checkpoint 7 (private beta)
 
 ---
 
@@ -251,7 +251,7 @@ GET    /users/:id/pets         public   excludes soft-deleted
 GET    /users/:id/posts        public   excludes pet_updates
 
 POST   /pets                   auth
-GET    /pets/:id               public   includes nested updates + computed meta block
+GET    /pets/:id               public   includes nested updates + owner display + computed meta
 PUT    /pets/:id               auth     own pet
 DELETE /pets/:id               auth     own pet, soft delete
 GET    /pets/:id/updates       public
@@ -316,21 +316,19 @@ The signing endpoint, cap enforcement via `user_storage_bytes`, bucket policies,
 
 One agent. The `/pets/[id]` sentinel route and the CloudFront rewrite in Terraform (§4), feature-folder conventions extended from `client/features/things` (`pets/`, `storage/`), markdown rendering, the upload hook (`useMediaUpload`), and shared `AppShell` nav. Everything in checkpoint 6 depends on these seams.
 
-### Checkpoint 6 — Web features, parallel
+### Checkpoint 6 — Web features, parallel ✅
 
-Five lanes, separate branches off `mvp`, parent agent resolves merges. **A design spec is incoming** — do not invent visual direction until it is pasted into this plan or attached in chat. Until then, use `AppShell`, theme tokens (`bg-background`, `text-foreground`, etc.), and existing shadcn primitives.
+Five product surfaces on the CP5 foundation. Visual language is AppShell + theme tokens + shadcn (no separate design spec was attached).
 
-| Lane | Branch suggestion | Depends on | Deliverable |
-|---|---|---|---|
-| A — Pet bio + QR | `mvp-cp6-pet-bio` | CP5 sentinel, `usePet`, `Markdown` | Polish `PetBioPage`; client QR + PNG download; inquiry CTA; set `document.title` from `meta` |
-| B — Profile + stars | `mvp-cp6-profile` | `/users`, star endpoints | Public profile page, edit own profile (zip/geo fail-soft already on API), star button + count |
-| C — Feed + composer | `mvp-cp6-feed` | `/posts`, `useMediaUpload` | Chronological feed (keyset), composer for general + pet_update |
-| D — Search | `mvp-cp6-search` | `GET /search` | Search UI over pets + users |
-| E — Inquiry form | `mvp-cp6-inquiry` | `POST /inquiries` | Form on bio/profile; show API errors; email is logging unless `EMAIL_PROVIDER=ses` |
+| Lane | Deliverable |
+|---|---|
+| A — Pet bio + QR | Polished `PetBioPage`; nested `owner` on `GET /pets/:id`; client QR + PNG download; inquiry CTA; `document.title` from `meta` |
+| B — Profile + stars | Public `/users/{id}` (sentinel + CloudFront rewrite); `/profile` editor (zip/geo fail-soft); star button + count; pet CRUD on the editor |
+| C — Feed + composer | `/` chronological keyset feed; composer for general + pet_update (`useMediaUpload`) |
+| D — Search | `/search?q=` over pets + users |
+| E — Inquiry form | Shared `InquiryForm` on bio + public profile; API `error.message` shown as-is |
 
-**Lane A gets the closest review — it is the product.** API for these lanes is already done (CP2–4); this checkpoint is web-only unless a gap is found.
-
-**Known API gap for Lane A:** `GET /pets/:id` returns pet + `updates` + `meta`, but **not** nested owner display fields yet. If the bio needs foster name/avatar in one round-trip (plan §4), extend `GetPetUseCase` / public DTO before or as part of Lane A — do not add a second fetch if you can avoid it.
+**API gaps closed with this checkpoint:** nested owner display fields on `GET /pets/:id`; `GET /users/:id` returns the owner DTO when the caller is that user (so `/profile` can load zip).
 
 ### Checkpoint 7 — Private beta
 
@@ -371,13 +369,13 @@ Content richness — rich text, galleries, video, drafts — is v2.5. It makes e
 
 ## 10. Open items
 
-- **Design spec** — user has one for Checkpoint 6 UI; paste/attach before lane work (or add as §11 / appendix when received).
+- **Design spec** — not attached for CP6; UI uses AppShell + semantic theme tokens + existing shadcn primitives. Paste a spec later if visual direction should change.
 - Decide the admin UID; hardcode as an env var for MVP (moderation stays SQL/column updates for now).
 - SES domain verification and production-access request. Not blocking — beta stays in the sandbox / `EMAIL_PROVIDER=log` — but the request takes days, so file it before checkpoint 7.
 - Spam protection on the two unauthenticated write endpoints (`POST /inquiries`, `POST /users/:id/star`) is deliberately deferred with private beta. Per-IP limiting does not work in Lambda memory; the eventual answer is API Gateway throttling plus a honeypot field.
 - Push/sync: local `mvp` may be ahead of `origin/mvp`; push when ready. Never commit or push `.env` secrets.
 - CloudFront function update from CP5 needs `terraform apply` on the deploy environment before `/pets/{uuid}` deep links work in AWS (local `next dev` is fine without it).
-- Web `/things` demo UI still exists; API Things slice is gone. Replace home/demo links in CP6/CP7 cleanup when feed/profile are real.
+- Web `/things` demo UI still exists; home/profile/search/pet bio are the product surfaces.
 
 ---
 
@@ -389,9 +387,9 @@ Content richness — rich text, galleries, video, drafts — is v2.5. It makes e
 |---|---|
 | Active branch | **`mvp`** |
 | `main` | Matches scaffold / `origin/main` (Initial Scaffold) — product commits live on `mvp` |
-| Tip (example) | `152c6b9` — AppShell + CP5 complete (verify with `git log -1`) |
-| Checkpoints done | 0–5 |
-| Next | Checkpoint 6 (parallel web), after design spec |
+| Tip (example) | verify with `git log -1` |
+| Checkpoints done | 0–6 |
+| Next | Checkpoint 7 (private beta: Terraform apply, allowlist, Playwright/smoke) |
 
 ### A.2 Supabase / env (local)
 
@@ -441,38 +439,38 @@ Email: `EMAIL_PROVIDER=log|ses` (default log). Inquiries set `Reply-To: sender_e
 
 Zip → city/state: `ZippopotamGeoLookupAdapter`, fail soft.
 
-### A.5 Web foundation (built)
+### A.5 Web product surfaces (CP5–6)
 
 | Piece | Location |
 |---|---|
-| Pet sentinel | `apps/web/app/pets/[id]/page.tsx` — `PET_BIO_SENTINEL_ID` = `00000000-0000-0000-0000-000000000000` |
-| Path helper | `apps/web/client/lib/petBioPath.ts` |
-| CloudFront rewrite | `infra/terraform/cloudfront/functions/viewer_request_next_static_export.js` |
-| Pets feature | `apps/web/client/features/pets/` |
-| Upload hook | `apps/web/client/features/storage/useMediaUpload.ts` |
-| Markdown | `apps/web/client/components/markdown/` |
-| Nav | `apps/web/client/components/layout/AppShell.tsx` |
-| Public fetch | `apps/web/client/lib/publicApiRequest.ts` |
+| Pet sentinel | `apps/web/app/pets/[id]/page.tsx` — `PET_BIO_SENTINEL_ID` |
+| User sentinel | `apps/web/app/users/[id]/page.tsx` — same nil UUID |
+| Path helpers | `petBioPath.ts`, `userProfilePath.ts` |
+| CloudFront rewrite | `/pets/{id}` and `/users/{id}` → sentinel HTML |
+| Feed | `/` — `pages/home` |
+| Search | `/search` — `pages/search` |
+| Public profile | `/users/[id]` — `pages/users` |
+| Profile editor | `/profile` — `pages/profile` (auth) |
+| Pet bio | `/pets/[id]` — QR, inquiry, nested owner |
+| Features | `pets/`, `users/`, `posts/`, `search/`, `stars/`, `inquiries/`, `storage/` |
+| Nav | `AppShell` / `AppHeader` (Feed, Search, Profile) |
 
 ### A.6 Pitfalls already hit
 
 1. **JSDoc** — do not put `*/` inside block comments (breaks parsers); hit in DataAdapter.
 2. **`exactOptionalPropertyTypes`** — omit optional keys instead of assigning `undefined`.
 3. **Ownership** — must be in use cases; service role bypasses RLS.
-4. **Static export pets** — never `/pets?id=`; always `/pets/{uuid}` + sentinel + CF rewrite.
-5. **Things** — API removed; web `/things` demo remains until replaced.
+4. **Static export pets/users** — never query-string ids; always `/pets/{uuid}` and `/users/{uuid}` + sentinel + CF rewrite.
+5. **Things** — API removed; web `/things` demo remains off the primary nav.
 
 ### A.7 Suggested new-session prompt
 
 ```
 Continue Fosterfolio MVP on branch `mvp`.
-Read docs/plans/fosterfolio_mvp.plan.md end-to-end (esp. Checkpoint 6 + Appendix A).
-Checkpoints 0–5 are done. Next is Checkpoint 6.
-I will provide / have provided a design spec — follow it; do not invent a new visual language.
-Prefer lane branches off mvp; commit in chunks; do not push secrets; ask before push/PR.
+Read docs/plans/fosterfolio_mvp.plan.md end-to-end (esp. Checkpoint 7 + Appendix A).
+Checkpoints 0–6 are done. Next is Checkpoint 7 (private beta).
+Do not push secrets; ask before push/PR.
 ```
-
-Paste the design spec in the same message when you have it.
 
 ---
 
@@ -485,4 +483,4 @@ Useful for archaeology; tips move — prefer `git log --oneline mvp`.
 - CP2: User/Pet domains; Things API removed; ownership/public DTO tests
 - CP3: Post/Star/Search/Inquiry
 - CP4: `/storage/sign`, 50MB cap, media-upload playbook
-- CP5: pets sentinel, CF rewrite, features, AppShell
+- CP6: web feed/search/profile/bio/QR/inquiry; nested pet owner; self GET user owner DTO

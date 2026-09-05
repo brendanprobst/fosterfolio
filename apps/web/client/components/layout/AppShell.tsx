@@ -5,7 +5,7 @@ import { AppHeader } from "./AppHeader";
 
 type AppShellProps = {
   children: ReactNode;
-  active?: "home" | "profile" | "things";
+  active?: "home" | "profile" | "search" | "things";
 };
 
 export function AppShell({ children, active }: AppShellProps) {

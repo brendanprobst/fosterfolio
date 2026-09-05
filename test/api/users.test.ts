@@ -41,6 +41,29 @@ describe('Users API', () => {
     expect(res.body).not.toHaveProperty('lng');
   });
 
+  it('GET /users/:id returns owner fields when the caller is the user', async () => {
+    const { app, container } = createTestAppWithContainer();
+    const user = container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      displayName: 'Owner',
+    });
+    user.applyProfileUpdate({ zipCode: '94107' });
+    await container.userRepository.save(user);
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const res = await request(app)
+      .get(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(res.body).toMatchObject({
+      id: ownerId,
+      email: 'owner@example.com',
+      zipCode: '94107',
+    });
+  });
+
   it('PUT /users/:id forbids cross-owner updates', async () => {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'owner@example.com' });

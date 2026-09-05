@@ -1,76 +1,79 @@
-import type { AuthContextValue } from "@client/auth/authTypes";
 import { useAuth } from "@client/auth";
-import { HomePage, HOME_LANDING_HERO_TITLE } from "@client/pages/home";
+import { HomePage } from "@client/pages/home";
+import { useFeed } from "@client/features/posts";
 import { render, screen } from "@testing-library/react";
-import type { User } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { authLoggedOut, authSignedIn } from "./support/renderWithProviders";
 
 vi.mock("@client/auth", () => ({
   useAuth: vi.fn(),
 }));
 
-const mockUser = { id: "u1", email: "you@example.com" } as User;
-
-function authLoggedOut(): AuthContextValue {
+vi.mock("@client/features/posts", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@client/features/posts")>();
   return {
-    user: null,
-    session: null,
-    loading: false,
-    apiAuthAccepted: false,
-    configError: null,
-    signInWithPassword: vi.fn(),
-    signUpWithPassword: vi.fn(),
-    requestPasswordReset: vi.fn(),
-    updatePassword: vi.fn(),
-    signInWithOAuth: vi.fn(),
-    signOut: vi.fn(),
-    getAccessToken: vi.fn(),
+    ...actual,
+    useFeed: vi.fn(),
+    useCreatePostMutation: () => ({
+      mutate: vi.fn(),
+      isPending: false,
+      isError: false,
+      error: null,
+    }),
   };
-}
+});
 
-function authSignedIn(user: User = mockUser): AuthContextValue {
+vi.mock("@client/features/pets", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@client/features/pets")>();
   return {
-    ...authLoggedOut(),
-    user,
-    session: {} as AuthContextValue["session"],
-    apiAuthAccepted: true,
+    ...actual,
+    useOwnerPets: () => ({ data: [], isLoading: false }),
+  };
+});
+
+vi.mock("@client/features/storage", () => ({
+  useMediaUpload: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+    error: null,
+  }),
+}));
+
+function emptyFeed() {
+  return {
+    data: { pages: [{ items: [], nextCursor: null }], pageParams: [undefined] },
+    isLoading: false,
+    isError: false,
+    error: null,
+    hasNextPage: false,
+    fetchNextPage: vi.fn(),
+    isFetchingNextPage: false,
   };
 }
 
 describe("HomePage", () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());
+    vi.mocked(useFeed).mockReturnValue(emptyFeed() as ReturnType<typeof useFeed>);
   });
 
-  it("renders template hero and API URL from env", () => {
+  it("renders the public feed heading", () => {
     render(<HomePage />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: HOME_LANDING_HERO_TITLE }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("http://127.0.0.1:3000")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Feed" })).toBeInTheDocument();
+    expect(screen.getByText(/no posts yet/i)).toBeInTheDocument();
   });
 
-  it("links to the UI gallery", () => {
+  it("prompts signed-out visitors to sign in to post", () => {
     render(<HomePage />);
-    expect(screen.getByRole("link", { name: /UI component gallery/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /sign in to post/i })).toHaveAttribute(
       "href",
-      "/ui",
+      "/auth/sign-in?next=%2F",
     );
   });
 
-  it("links to the login flow demo", () => {
-    render(<HomePage />);
-    expect(screen.getByRole("link", { name: /login demo/i })).toHaveAttribute(
-      "href",
-      "/auth/sign-in?next=%2Fthings",
-    );
-  });
-
-  it("shows CRUD demo when signed in", () => {
+  it("shows the composer when signed in", () => {
     vi.mocked(useAuth).mockReturnValue(authSignedIn());
     render(<HomePage />);
-    expect(screen.getByRole("heading", { name: "CRUD demo" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /open things/i })).toHaveAttribute("href", "/things");
-    expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile");
+    expect(screen.getByRole("form", { name: "Compose post" })).toBeInTheDocument();
   });
 });

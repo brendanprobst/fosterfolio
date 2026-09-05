@@ -31,7 +31,7 @@ export function createPetsModule(
   return {
     petRepository,
     getCreatePetUseCase: () => new CreatePetUseCase(petRepository),
-    getGetPetUseCase: () => new GetPetUseCase(petRepository),
+    getGetPetUseCase: () => new GetPetUseCase(petRepository, userRepository),
     getUpdatePetUseCase: () => new UpdatePetUseCase(petRepository),
     getSoftDeletePetUseCase: () => new SoftDeletePetUseCase(petRepository),
     getListPetsByOwnerUseCase: () =>

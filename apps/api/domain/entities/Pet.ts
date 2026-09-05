@@ -17,9 +17,17 @@ export type PetUpdateSummaryDto = {
   updatedAt: string;
 };
 
+/** Nested on GET /pets/:id so the bio page is one round-trip (plan §4). */
+export type PetOwnerSummaryDto = {
+  id: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
 export type PetPublicDto = {
   id: string;
   ownerId: string;
+  owner: PetOwnerSummaryDto | null;
   name: string;
   species: PetSpecies;
   breed: string | null;
@@ -171,10 +179,14 @@ export class Pet {
     this.props.updatedAt = new Date();
   }
 
-  toPublicDto(updates: PetUpdateSummaryDto[] = []): PetPublicDto {
+  toPublicDto(
+    updates: PetUpdateSummaryDto[] = [],
+    owner: PetOwnerSummaryDto | null = null
+  ): PetPublicDto {
     return {
       id: this.props.id,
       ownerId: this.props.ownerId,
+      owner,
       name: this.props.name,
       species: this.props.species,
       breed: this.props.breed,
@@ -196,8 +208,11 @@ export class Pet {
     };
   }
 
-  toOwnerDto(updates: PetUpdateSummaryDto[] = []): PetOwnerDto {
-    return this.toPublicDto(updates);
+  toOwnerDto(
+    updates: PetUpdateSummaryDto[] = [],
+    owner: PetOwnerSummaryDto | null = null
+  ): PetOwnerDto {
+    return this.toPublicDto(updates, owner);
   }
 
   /** List card without nested updates/meta bulk. */
