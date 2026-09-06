@@ -25,14 +25,14 @@ todos:
     status: completed
   - id: cp7-beta
     content: "Checkpoint 7 — Private beta: Terraform apply, SSM, allowlist enabled, Playwright specs, smoke test"
-    status: pending
+    status: completed
 isProject: true
 ---
 
 # Fosterfolio MVP
 
-Last updated: 2026-08-21
-Status: Checkpoint 6 complete — ready for Checkpoint 7 (private beta)
+Last updated: 2026-09-05
+Status: Checkpoint 7 complete in-repo — Playwright product specs green; operator apply/SQL still required on live AWS + Supabase
 
 ---
 
@@ -330,9 +330,19 @@ Five product surfaces on the CP5 foundation. Visual language is AppShell + theme
 
 **API gaps closed with this checkpoint:** nested owner display fields on `GET /pets/:id`; `GET /users/:id` returns the owner DTO when the caller is that user (so `/profile` can load zip).
 
-### Checkpoint 7 — Private beta
+### Checkpoint 7 — Private beta ✅
 
-Terraform apply, SSM wiring, allowlist enabled with tester emails via `select public.set_allowlist_enabled(true)` plus `EMAIL_ALLOWLIST_ENABLED=true`, Playwright specs, smoke test. CloudFront pet rewrite from CP5 must be **applied** (`terraform apply`) before production deep links work — local Next dev serves `[id]` directly.
+In-repo:
+
+- Playwright **`product.spec.ts`** against an in-memory `LATTICE_E2E=1` seed (feed, search, bio, public profile, inquiry, profile editor). `next.config.ts` sets `output: "export"` only in production so `next dev` / Playwright can load `/pets/{uuid}` and `/users/{uuid}` without CloudFront.
+- **`npm run smoke`** (`scripts/smoke.mjs`) for a deployed or local API.
+- Terraform **`email_allowlist_enabled` defaults to `true`** (Lambda `EMAIL_ALLOWLIST_ENABLED`). SSM parameter names were already wired on the API Lambda.
+- Operator runbook: **[`docs/playbooks/private-beta.md`](../playbooks/private-beta.md)**.
+
+Still operator-only (live systems, not run from this checkpoint):
+
+- `terraform apply` / `npm run deploy:aws` so CloudFront serves the pet/user sentinel rewrite and Lambda gets allowlist + SSM.
+- `select public.set_allowlist_enabled(true);` plus `insert into public.allowed_emails …` for tester emails.
 
 ---
 
@@ -374,7 +384,7 @@ Content richness — rich text, galleries, video, drafts — is v2.5. It makes e
 - SES domain verification and production-access request. Not blocking — beta stays in the sandbox / `EMAIL_PROVIDER=log` — but the request takes days, so file it before checkpoint 7.
 - Spam protection on the two unauthenticated write endpoints (`POST /inquiries`, `POST /users/:id/star`) is deliberately deferred with private beta. Per-IP limiting does not work in Lambda memory; the eventual answer is API Gateway throttling plus a honeypot field.
 - Push/sync: local `mvp` may be ahead of `origin/mvp`; push when ready. Never commit or push `.env` secrets.
-- CloudFront function update from CP5 needs `terraform apply` on the deploy environment before `/pets/{uuid}` deep links work in AWS (local `next dev` is fine without it).
+- CloudFront pet/user rewrite still needs **`terraform apply`** on the deploy environment before `/pets/{uuid}` and `/users/{uuid}` deep links work in AWS (local `next dev` is fine). See [`docs/playbooks/private-beta.md`](../playbooks/private-beta.md).
 - Web `/things` demo UI still exists; home/profile/search/pet bio are the product surfaces.
 
 ---
@@ -388,8 +398,8 @@ Content richness — rich text, galleries, video, drafts — is v2.5. It makes e
 | Active branch | **`mvp`** |
 | `main` | Matches scaffold / `origin/main` (Initial Scaffold) — product commits live on `mvp` |
 | Tip (example) | verify with `git log -1` |
-| Checkpoints done | 0–6 |
-| Next | Checkpoint 7 (private beta: Terraform apply, allowlist, Playwright/smoke) |
+| Checkpoints done | 0–7 (apply/SQL on live AWS + Supabase are operator steps) |
+| Next | Deploy when ready: `docs/playbooks/private-beta.md` |
 
 ### A.2 Supabase / env (local)
 
@@ -466,9 +476,8 @@ Zip → city/state: `ZippopotamGeoLookupAdapter`, fail soft.
 ### A.7 Suggested new-session prompt
 
 ```
-Continue Fosterfolio MVP on branch `mvp`.
-Read docs/plans/fosterfolio_mvp.plan.md end-to-end (esp. Checkpoint 7 + Appendix A).
-Checkpoints 0–6 are done. Next is Checkpoint 7 (private beta).
+Fosterfolio MVP checkpoints 0–7 are in-repo on branch `mvp`.
+Operator deploy/allowlist SQL: docs/playbooks/private-beta.md.
 Do not push secrets; ask before push/PR.
 ```
 
@@ -484,3 +493,4 @@ Useful for archaeology; tips move — prefer `git log --oneline mvp`.
 - CP3: Post/Star/Search/Inquiry
 - CP4: `/storage/sign`, 50MB cap, media-upload playbook
 - CP6: web feed/search/profile/bio/QR/inquiry; nested pet owner; self GET user owner DTO
+- CP7: private-beta playbook; allowlist default on; E2E seed + product Playwright; `npm run smoke`

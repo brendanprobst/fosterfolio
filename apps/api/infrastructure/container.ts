@@ -9,6 +9,7 @@ import { createSearchModule } from '@api/infrastructure/composition/search';
 import { createStarsModule } from '@api/infrastructure/composition/stars';
 import { createStorageModule } from '@api/infrastructure/composition/storage';
 import { createUsersModule } from '@api/infrastructure/composition/users';
+import { isE2eSeedEnabled, seedFosterfolioE2eData } from '@api/infrastructure/e2eSeed';
 import { Logger } from '@api/utils/logger';
 
 function hasSupabaseEnv(): boolean {
@@ -72,6 +73,14 @@ export class Container {
     );
     this.storage = createStorageModule(dataAdapter);
     this.allowlist = createAllowlistModule(dataAdapter);
+
+    if (isE2eSeedEnabled()) {
+      seedFosterfolioE2eData({
+        userRepository: this.users.userRepository,
+        petRepository: this.pets.petRepository,
+        postRepository: this.posts.postRepository,
+      });
+    }
   }
 
   isAllowlistConfigured(): boolean {

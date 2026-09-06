@@ -14,8 +14,9 @@
   - **`@lattice/api`** on **3000** — in-memory Things + HS256 JWT (`test/web/e2e/support/e2eAuthConstants.ts`).
   - **`@lattice/web`** on **3001** — `NEXT_PUBLIC_LATTICE_E2E=1` and a pre-minted `NEXT_PUBLIC_LATTICE_E2E_ACCESS_TOKEN` (synthetic session; no real Supabase).
 - **Specs**
-  - **`auth-guard.spec.ts`** — signs out, then asserts `/things` and `/profile` redirect to `/auth/sign-in` (same as manual “logged out” behavior).
-  - **`full-stack.spec.ts`** — profile claims + Things CRUD (matches manual smoke minus real Supabase login UI).
+  - **`product.spec.ts`** — Fosterfolio surfaces against the in-memory `LATTICE_E2E` seed (feed, search, pet bio, public profile, inquiry, profile editor).
+  - **`auth-guard.spec.ts`** — signs out, then asserts `/things` and `/profile` redirect to `/auth/sign-in`.
+  - **`full-stack.spec.ts`** — profile claims + seeded pet on `/profile`.
   - **`home.spec.ts`**, **`ui-gallery.spec.ts`** — public routes.
 - **Run:** `npm run test:web:e2e` (install browsers once: `npx playwright install`).
 - **Artifacts:** traces, videos, and test output go under **`test/web/test-results/`** (gitignored; **`outputDir`** in `playwright.config.ts`). **`npm run clean`** removes that folder (and caches).

@@ -41,6 +41,7 @@ export default defineConfig({
         SUPABASE_JWT_ISSUER: E2E_JWT_ISSUER,
         SUPABASE_JWT_AUDIENCE: "authenticated",
         CORS_ORIGINS: "http://127.0.0.1:3001,http://localhost:3001",
+        LATTICE_E2E: "1",
       },
     },
     {

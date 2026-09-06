@@ -1,11 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { E2E_USER_EMAIL, E2E_USER_ID } from "./support/e2eAuthConstants";
+import { E2E_SEED } from "./support/e2eSeedConstants";
 
 /**
  * Full-stack checks (same Playwright config as auth-guard: API + web, synthetic JWT).
- *
- * Things CRUD was removed with Checkpoint 2; profile remains the smoke surface until
- * pet UI lands in later checkpoints.
+ * Product coverage lives in `product.spec.ts`; this file keeps the original profile smoke.
  */
 test.describe("full stack (profile)", () => {
   test.beforeEach(async ({ page }) => {
@@ -20,5 +19,6 @@ test.describe("full stack (profile)", () => {
     await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
     await expect(page.getByText(E2E_USER_EMAIL)).toBeVisible();
     await expect(page.getByText(E2E_USER_ID)).toBeVisible();
+    await expect(page.getByText(E2E_SEED.petName)).toBeVisible();
   });
 });
