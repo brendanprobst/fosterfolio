@@ -7,7 +7,7 @@ import Link from "next/link";
 
 type AppHeaderProps = {
   /** Highlight the active primary nav item. */
-  active?: "home" | "profile" | "search" | "things";
+  active?: "home" | "profile" | "search";
 };
 
 /**

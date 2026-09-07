@@ -107,12 +107,6 @@ variable "api_cors_extra_origins" {
   default     = ""
 }
 
-variable "things_table_name" {
-  description = "Supabase table name used by the API repository."
-  type        = string
-  default     = "things"
-}
-
 variable "email_allowlist_enabled" {
   description = <<-EOT
     When true, sets EMAIL_ALLOWLIST_ENABLED on the API Lambda so requireAllowedEmail

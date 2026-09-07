@@ -13,5 +13,5 @@ import { Button } from "@client/components/ui/button";
 
 ## Scaling
 
-- **Feature-specific composed widgets** (e.g. a “Thing list” used on multiple routes): prefer **`client/features/<name>/`** when you introduce it; keep **`components/ui/`** generic.
+- **Feature-specific composed widgets** (e.g. the pet list used on multiple routes): prefer **`client/features/<name>/`** when you introduce it; keep **`components/ui/`** generic.
 - **Icons:** `lucide-react` next to components that use them.

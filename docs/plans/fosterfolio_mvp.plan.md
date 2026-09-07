@@ -314,7 +314,7 @@ The signing endpoint, cap enforcement via `user_storage_bytes`, bucket policies,
 
 ### Checkpoint 5 — Web foundation ✅
 
-One agent. The `/pets/[id]` sentinel route and the CloudFront rewrite in Terraform (§4), feature-folder conventions extended from `client/features/things` (`pets/`, `storage/`), markdown rendering, the upload hook (`useMediaUpload`), and shared `AppShell` nav. Everything in checkpoint 6 depends on these seams.
+One agent. The `/pets/[id]` sentinel route and the CloudFront rewrite in Terraform (§4), feature-folder conventions (`pets/`, `storage/`) extended from the template's since-removed `client/features/things`, markdown rendering, the upload hook (`useMediaUpload`), and shared `AppShell` nav. Everything in checkpoint 6 depends on these seams.
 
 ### Checkpoint 6 — Web features, parallel ✅
 
@@ -385,7 +385,7 @@ Content richness — rich text, galleries, video, drafts — is v2.5. It makes e
 - Spam protection on the two unauthenticated write endpoints (`POST /inquiries`, `POST /users/:id/star`) is deliberately deferred with private beta. Per-IP limiting does not work in Lambda memory; the eventual answer is API Gateway throttling plus a honeypot field.
 - Push/sync: local `mvp` may be ahead of `origin/mvp`; push when ready. Never commit or push `.env` secrets.
 - CloudFront pet/user rewrite still needs **`terraform apply`** on the deploy environment before `/pets/{uuid}` and `/users/{uuid}` deep links work in AWS (local `next dev` is fine). See [`docs/playbooks/private-beta.md`](../playbooks/private-beta.md).
-- Web `/things` demo UI still exists; home/profile/search/pet bio are the product surfaces.
+- ~~Web `/things` demo UI still exists~~ — removed; home/profile/search/pet bio are the product surfaces. `DEFAULT_POST_LOGIN_PATH` is now `/` (was `/things`).
 
 ---
 
@@ -471,7 +471,7 @@ Zip → city/state: `ZippopotamGeoLookupAdapter`, fail soft.
 2. **`exactOptionalPropertyTypes`** — omit optional keys instead of assigning `undefined`.
 3. **Ownership** — must be in use cases; service role bypasses RLS.
 4. **Static export pets/users** — never query-string ids; always `/pets/{uuid}` and `/users/{uuid}` + sentinel + CF rewrite.
-5. **Things** — API removed; web `/things` demo remains off the primary nav.
+5. **Things** — the template's demo slice is fully removed (API in CP2, web afterwards). `Pet` is the reference vertical slice.
 
 ### A.7 Suggested new-session prompt
 

@@ -8,7 +8,7 @@ const repoRoot = process.cwd();
 const e2eToken = createE2eAccessToken();
 
 /**
- * One stack for all E2E: API (in-memory Things + HS256 JWT) + Next.js (synthetic E2E session).
+ * One stack for all E2E: API (in-memory repositories + HS256 JWT) + Next.js (synthetic E2E session).
  * Auth-guard tests sign out first, then assert redirects (see `auth-guard.spec.ts`).
  */
 export default defineConfig({
@@ -34,7 +34,7 @@ export default defineConfig({
       env: {
         ...process.env,
         PORT: "3000",
-        // Force in-memory Things repo (see `Container`): do not inherit a dev machine's Supabase from `.env`.
+        // Force in-memory repositories (see `Container`): do not inherit a dev machine's Supabase from `.env`.
         SUPABASE_URL: "",
         SUPABASE_SERVICE_ROLE_KEY: "",
         SUPABASE_JWT_SECRET: E2E_JWT_SECRET,

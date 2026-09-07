@@ -1,5 +1,5 @@
 /** Default post-login route when `next` is missing or unsafe (open-redirect guard). */
-export const DEFAULT_POST_LOGIN_PATH = "/things";
+export const DEFAULT_POST_LOGIN_PATH = "/";
 
 /**
  * Allow only same-origin relative paths for `?next=` — rejects protocol-relative and

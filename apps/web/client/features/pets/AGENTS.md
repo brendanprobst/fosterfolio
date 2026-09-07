@@ -14,4 +14,4 @@
 ## Conventions
 
 - The bio page is **one unauthenticated call** (`fetchPetById`). Do not assemble the page from multiple endpoints.
-- Follow the same shape as **`client/features/things/`** for new entities.
+- This folder is the reference shape for new entities (API helpers + query keys + hooks).

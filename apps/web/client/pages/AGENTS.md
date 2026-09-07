@@ -12,14 +12,13 @@
 | **`pets/`**   | `/pets/[id]` | Public pet bio; id from pathname (static-export sentinel + CloudFront rewrite). |
 | **`users/`**  | `/users/[id]` | Public foster profile; same sentinel + CloudFront rewrite pattern as pets. |
 | **`search/`** | `/search` | Name search across pets and users (`?q=`). |
-| **`things/`** | `/things` | Example CRUD page; composes **`@client/features/things`** + **`@client/stores/thingsStore`**. |
 | **`ui-gallery/`** | `/ui` | Design-system smoke / QA (not product UI). |
 | **`auth/`** | `/auth/*` | Supabase sign-in, sign-up, forgot-password, reset-password (wired from **`app/auth/`**). |
 | **`profile/`** | `/profile` | Auth-only editor (profile + pets). Public view is **`/users/[id]`**. |
 
 - **Do not** put shadcn primitives here — those stay in **`client/components/ui/`** (see [`../components/AGENTS.md`](../components/AGENTS.md)).
 - **Splitting:** As a page grows, add colocated modules under the same folder (e.g. `home/StepCards.tsx`, `home/constants.ts`) and keep **`HomePage.tsx`** as the thin composer.
-- **Features:** Reusable domain modules live under **`client/features/<entity>/`** (API helpers, query keys, hooks). **Zustand** holds entity **UI state** (pagination, selection); **TanStack Query** holds **server** state (see **`client/features/things/`**).
+- **Features:** Reusable domain modules live under **`client/features/<entity>/`** (API helpers, query keys, hooks). **Zustand** holds entity **UI state** (pagination, selection); **TanStack Query** holds **server** state (see **`client/features/pets/`**).
 
 ## Imports
 

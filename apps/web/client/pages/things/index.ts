@@ -1,1 +1,0 @@
-export { ThingsPage } from "./ThingsPage";

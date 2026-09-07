@@ -13,7 +13,7 @@ export function useRequireAuth() {
   useLayoutEffect(() => {
     if (!loading && (!user || !apiAuthAccepted)) {
       const raw = pathname?.trim() ?? "";
-      const base = raw === "" ? "/things" : raw;
+      const base = raw === "" ? "/" : raw;
       const next = normalizeAppPathname(base);
       // Full navigation so sessionStorage / auth edge cases behave like a fresh load (matches E2E + manual hard refresh).
       window.location.replace(`${authPaths.signIn}?next=${encodeURIComponent(next)}`);
