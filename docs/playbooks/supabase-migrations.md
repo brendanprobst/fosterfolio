@@ -28,8 +28,14 @@ supabase/
   migrations/
     YYYYMMDDHHMMSS_platform_<name>.sql
     YYYYMMDDHHMMSS_app_<name>.sql
+  seed/                 # data, not schema — never applied by `db push`
+    dev_seed.sql
+    dev_seed_down.sql
 scripts/supabase-cli.mjs
+scripts/supabase-seed.mjs
 ```
+
+`supabase/seed/` holds **data** for local and dev projects — see [development seed data](dev-seed-data.md). It lives outside `migrations/` so `db push` cannot ship seed rows to production.
 
 ---
 
@@ -161,6 +167,7 @@ Gate on `main` or a deploy workflow — not required for local dev.
 
 ## Related
 
+- [Development seed data](dev-seed-data.md) — `npm run supabase:seed` after the schema is applied
 - [Email allowlist](email-allowlist.md) — first `platform_` migration; needs privileges that the session pooler or direct Postgres role can grant on `auth.users`
 - [Smoke test deployment guide](../plans/smoke_test_deployment_guide.plan.md) — Supabase project + env before AWS deploy
 - [Scaffold workflow](../scaffold-workflow.md) — greenfield spawn and refresh checklist

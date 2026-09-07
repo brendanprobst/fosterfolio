@@ -13,6 +13,7 @@
 - **[Google SSO](playbooks/google-sso.md)** — Supabase OAuth provider, Google Cloud client, redirect URLs, allowlist interaction.
 - **[Private beta](playbooks/private-beta.md)** — Fosterfolio Checkpoint 7: allowlist SQL, Terraform/SSM/CloudFront apply, Playwright + `npm run smoke`.
 - **[Supabase migrations](playbooks/supabase-migrations.md)** — CLI / psql workflow; one Supabase project per spawn repo (planned `supabase/` layout).
+- **[Development seed data](playbooks/dev-seed-data.md)** — `npm run supabase:seed`: sign-in-ready fosters, pets, and a pageable feed in `supabase/seed/` (not a migration).
 - **[Upstream harvest](playbooks/upstream-harvest.md)** — Pull platform work from a **child app** into the template (`npm run lattice:harvest-index`); harvest reports live in ecosystem `cursor/research/harvests/`.
 - **[Scaffold vs adapters](research/scaffold-agents-and-adapters.md)** — Why `npm run scaffold` does not generate adapters; how agent rules scope to API infra vs web analytics.
 - **`research/`** — Exploratory notes (not ADRs), e.g. [Supabase access patterns](research/supabase-access-patterns.md) (client SDK vs API vs ORM) and the canonical [security-first Supabase Auth default](research/supabase-auth-security-first.md) for API/client separation.

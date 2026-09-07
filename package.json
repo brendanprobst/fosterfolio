@@ -47,6 +47,8 @@
     "supabase:push": "node scripts/supabase-cli.mjs push",
     "supabase:list": "node scripts/supabase-cli.mjs list",
     "supabase:handshake": "node scripts/supabase-cli.mjs handshake",
+    "supabase:seed": "node scripts/supabase-seed.mjs up",
+    "supabase:seed:down": "node scripts/supabase-seed.mjs down",
     "deploy:aws": "node scripts/deploy-aws.mjs",
     "deploy:aws:web": "node scripts/deploy-aws-web.mjs",
     "deploy:aws:plan": "node scripts/deploy-aws.mjs --plan-only",

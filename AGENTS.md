@@ -13,6 +13,7 @@
 - **Deploy** — **`npm run deploy:aws`** and **[`docs/deploy-aws.md`](docs/deploy-aws.md)** (Terraform + Lambda + static web + S3); optional GitHub Actions workflow **Deploy (AWS)**.
 - **`docs/`** — Architecture decision records (ADRs).
 - **`infra/terraform/`** — AWS Terraform; Supabase URL/keys from **`terraform.tfvars`** → optional **SSM** (see [`infra/AGENTS.md`](infra/AGENTS.md)).
+- **`supabase/`** — Schema migrations (**`npm run supabase:push`**) and dev seed data (**`npm run supabase:seed`**); see [`supabase/AGENTS.md`](supabase/AGENTS.md).
 
 ## Documentation files in subfolders
 
