@@ -16,7 +16,6 @@ type ProfileEditFormProps = {
 export function ProfileEditForm({ user }: ProfileEditFormProps) {
   const mutation = useUpdateUserMutation();
   const [displayName, setDisplayName] = useState(user.displayName ?? "");
-  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
   const [bio, setBio] = useState(user.bio ?? "");
   const [zipCode, setZipCode] = useState(user.zipCode ?? "");
   const [sheltersText, setSheltersText] = useState(user.sheltersText ?? "");
@@ -30,7 +29,6 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
       id: user.id,
       payload: {
         displayName: displayName.trim() || null,
-        avatarUrl: avatarUrl.trim() || null,
         bio: bio.trim() || null,
         zipCode: zipCode.trim() || null,
         sheltersText: sheltersText.trim() || null,
@@ -67,15 +65,6 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
           id="profile-name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="profile-avatar">Avatar URL</Label>
-        <Input
-          id="profile-avatar"
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
-          placeholder="https://"
         />
       </div>
       <div className="space-y-1.5">

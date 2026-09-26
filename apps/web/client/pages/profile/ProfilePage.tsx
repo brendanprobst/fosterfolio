@@ -15,6 +15,7 @@ import { useOwnUser } from "@client/features/users";
 import { petBioHref } from "@client/lib/petBioPath";
 import { cn } from "@client/lib/utils";
 import { userProfileHref } from "@client/lib/userProfilePath";
+import { AvatarEditor } from "./AvatarEditor";
 import { PetEditor } from "./PetEditor";
 import { ProfileEditForm } from "./ProfileEditForm";
 import Link from "next/link";
@@ -74,6 +75,8 @@ export function ProfilePage() {
             ) : null}
           </CardContent>
         </Card>
+
+        {own.data ? <AvatarEditor user={own.data} /> : null}
 
         {own.data ? <ProfileEditForm user={own.data} /> : null}
 

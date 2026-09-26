@@ -14,7 +14,7 @@
 | **`search/`** | `/search` | Name search across pets and users (`?q=`). |
 | **`ui-gallery/`** | `/ui` | Design-system smoke / QA (not product UI). |
 | **`auth/`** | `/auth/*` | Supabase sign-in, sign-up, forgot-password, reset-password (wired from **`app/auth/`**). |
-| **`profile/`** | `/profile` | Auth-only editor (profile + pets). Public view is **`/users/[id]`**. |
+| **`profile/`** | `/profile` | Auth-only editor (picture + profile + pets). Public view is **`/users/[id]`** and stays read-only. |
 
 - **Do not** put shadcn primitives here — those stay in **`client/components/ui/`** (see [`../components/AGENTS.md`](../components/AGENTS.md)).
 - **Splitting:** As a page grows, add colocated modules under the same folder (e.g. `home/StepCards.tsx`, `home/constants.ts`) and keep **`HomePage.tsx`** as the thin composer.
