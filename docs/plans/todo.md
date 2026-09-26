@@ -1,8 +1,10 @@
 # Open TODO — road to private beta
 
-State as of commit `7a63a84` (Things scaffold removed). Checkpoints 0–6 of the [MVP plan](fosterfolio_mvp.plan.md) are done and the repo-side work for Checkpoint 7 is committed. **Everything below is operator work against live systems** — Supabase SQL and `terraform apply` — plus two small cleanups.
+State as of commit `9cd1da2`. Checkpoints 0–6 of the [MVP plan](fosterfolio_mvp.plan.md) are done and the repo-side work for Checkpoint 7 is committed. Items 1 and 2 below are **pre-go-live operator work against live systems** — Supabase SQL and `terraform apply`.
 
 The authoritative runbook is [`docs/playbooks/private-beta.md`](../playbooks/private-beta.md); this file only tracks what is still outstanding and what each item is blocked on.
+
+**Product work is tracked separately.** The site still needs work before go-live matters — see [user handles (vanity URLs)](vanity_urls.plan.md) for the next scoped slice.
 
 ---
 
@@ -61,7 +63,12 @@ Three things depend on this apply:
 
 Verify afterwards in **Lambda → Configuration → Environment variables**, then walk the browser checklist in [private-beta.md §5](../playbooks/private-beta.md).
 
-## 3. Loose ends
+## 3. Product work (not blocking, but ahead of go-live)
+
+- **User handles / vanity URLs.** Scoped and researched, not started — see [the plan](vanity_urls.plan.md). A unique `handle` so profiles resolve at `/users/{handle}`, as a full slice from migration to edit dialog. The routes and the CloudFront rewrite already pass arbitrary segments through, so no edge work is needed. Four product questions need answers first (required or optional, renameable, redirects, reserved list).
+- **Profile picture editor in a modal.** `AvatarEditor`'s floating panel causes layout shift. The `components/ui/dialog.tsx` primitive now exists and `ProfileEditDialog.tsx` is a working example, so moving the editing state into a dialog is small. The 8 tests in `test/web/unit/AvatarEditor.test.tsx` mostly survive by opening the dialog instead of toggling the panel.
+
+## 4. Loose ends
 
 - **Run the rewritten auth-guard E2E spec.** `test/web/e2e/auth-guard.spec.ts` was retargeted from the deleted `/things` to `/profile` and has not been executed. It needs ports 3000 and 3001 free — Playwright starts its own stack with a synthetic session rather than reusing a `npm run dev` pointed at real Supabase. Stop the dev server, then `npx playwright test --config test/web/playwright.config.ts auth-guard`.
 - **Decide on `zustand`.** Still in `apps/web/package.json` but with no consumers since `thingsStore.ts` was deleted. Kept for now because it is part of the documented state stack in [`apps/web/client/stores/AGENTS.md`](../../apps/web/client/stores/AGENTS.md); drop it if no screen needs client UI state.
@@ -71,6 +78,7 @@ Verify afterwards in **Lambda → Configuration → Environment variables**, the
 ## Related
 
 - [Private beta playbook](../playbooks/private-beta.md) — the operator runbook for items 1 and 2
+- [User handles (vanity URLs)](vanity_urls.plan.md) — the handles slice in item 3
 - [Fosterfolio MVP plan](fosterfolio_mvp.plan.md) — checkpoint status and scope boundary
 - [Development seed data](../playbooks/dev-seed-data.md) — `npm run supabase:seed` for a populated dev project
 - [Deploy to AWS](../deploy-aws.md) — what `npm run deploy:aws` actually does
