@@ -17,18 +17,18 @@ type ProfileEditDialogProps = {
 };
 
 /**
- * Everything except the picture is read-only on the page and edited here, so the
- * profile stays scannable. Closing unmounts the form, which resets any unsaved edits.
+ * Name and bio only — the two fields tightly coupled with the avatar in the header.
+ * Location/shelters and social links have their own editors. Closing unmounts the
+ * form, which resets any unsaved edits.
  */
 export function ProfileEditDialog({ user, open, onOpenChange }: ProfileEditDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit profile</DialogTitle>
+          <DialogTitle>Edit name & bio</DialogTitle>
           <DialogDescription>
-            Name, bio, location, shelters, and links. Your picture is edited from the
-            header.
+            Shown at the top of your profile, next to your picture.
           </DialogDescription>
         </DialogHeader>
         <ProfileEditForm user={user} onSaved={() => onOpenChange(false)} />

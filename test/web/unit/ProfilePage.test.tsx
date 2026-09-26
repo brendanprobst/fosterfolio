@@ -75,6 +75,7 @@ describe("ProfilePage", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Alex Foster" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Fostering since 2019")).toBeInTheDocument();
     expect(screen.getByLabelText("Profile picture")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /view public profile/i })).toHaveAttribute(
       "href",
@@ -82,24 +83,66 @@ describe("ProfilePage", () => {
     );
   });
 
-  it("summarizes location, shelters, and links without form fields", () => {
+  it("shows location and shelters read-only, without a key/value list", () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(screen.getByText("Austin, TX")).toBeInTheDocument();
     expect(screen.getByText("Austin Pets Alive")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Instagram" })).toBeInTheDocument();
+    expect(screen.queryByRole("term")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("ZIP code")).not.toBeInTheDocument();
+  });
+
+  it("lists connected sites by label beside the location card and manages them from there", async () => {
+    renderWithQueryClient(<ProfilePage />);
+
+    expect(screen.getByText("Connected sites")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
+      "href",
+      "https://example.com/alex",
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Manage connected sites" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Instagram")).toBeInTheDocument();
+    // Location/shelters and the name/bio dialog stay closed.
     expect(screen.queryByLabelText("Display name")).not.toBeInTheDocument();
   });
 
-  it("opens the edit dialog on demand", async () => {
+  it("shows a placeholder when no sites are connected", () => {
+    vi.mocked(useOwnUser).mockReturnValue({
+      data: { ...profile, socialLinks: [] },
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useOwnUser>);
+
+    renderWithQueryClient(<ProfilePage />);
+
+    expect(screen.getByText("No sites connected yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Instagram" })).not.toBeInTheDocument();
+  });
+
+  it("opens the name/bio dialog with only those two fields", async () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Edit profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit name and bio" }));
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(screen.getByLabelText("Display name")).toHaveValue("Alex Foster");
+    expect(screen.getByLabelText("Bio (markdown)")).toHaveValue("Fostering since 2019");
+    expect(screen.queryByLabelText("ZIP code")).not.toBeInTheDocument();
+  });
+
+  it("expands the location card in place, not a dialog", () => {
+    renderWithQueryClient(<ProfilePage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit location and shelters" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByLabelText("ZIP code")).toHaveValue("78701");
   });
 

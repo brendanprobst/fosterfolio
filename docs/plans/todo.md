@@ -67,6 +67,7 @@ Verify afterwards in **Lambda → Configuration → Environment variables**, the
 
 - **User handles / vanity URLs.** Scoped and researched, not started — see [the plan](vanity_urls.plan.md). A unique `handle` so profiles resolve at `/users/{handle}`, as a full slice from migration to edit dialog. The routes and the CloudFront rewrite already pass arbitrary segments through, so no edge work is needed. Four product questions need answers first (required or optional, renameable, redirects, reserved list).
 - **Profile picture editor in a modal.** `AvatarEditor`'s floating panel causes layout shift. The `components/ui/dialog.tsx` primitive now exists and `ProfileEditDialog.tsx` is a working example, so moving the editing state into a dialog is small. The 8 tests in `test/web/unit/AvatarEditor.test.tsx` mostly survive by opening the dialog instead of toggling the panel.
+- **Warn before opening a connected-site link.** Not implemented yet — deliberately deferred. `SocialLinksDialog`'s links and the "Connected sites" sidebar card on `/profile` (plus the public profile's own link list) currently open `link.url` directly via a plain `<a target="_blank">`. Since these are user-entered URLs, clicking one should first show a confirmation modal warning that the destination is unverified, with the plain URL rendered underneath the label (not just the label) so the visitor can see exactly where they're headed before continuing.
 
 ## 4. Loose ends
 

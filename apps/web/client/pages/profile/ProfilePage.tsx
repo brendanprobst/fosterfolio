@@ -11,20 +11,23 @@ import {
   CardTitle,
 } from "@client/components/ui/card";
 import { Button, buttonVariants } from "@client/components/ui/button";
+import { Separator } from "@client/components/ui/separator";
 import { useOwnerPets, type PetPublic } from "@client/features/pets";
 import { useOwnUser } from "@client/features/users";
 import { humanizeToken } from "@client/lib/humanizeToken";
 import { petBioHref } from "@client/lib/petBioPath";
 import { cn } from "@client/lib/utils";
 import { userProfileHref } from "@client/lib/userProfilePath";
-import { ExternalLink, Eye, Pencil, Plus } from "lucide-react";
+import { ExternalLink, Eye, Info, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { AvatarEditor } from "./AvatarEditor";
+import { ConnectedSitesCard } from "./ConnectedSitesCard";
 import { PetEditor } from "./PetEditor";
 import { PetsEmptyState } from "./PetsEmptyState";
-import { ProfileDetails } from "./ProfileDetails";
 import { ProfileEditDialog } from "./ProfileEditDialog";
+import { ProfileLocationCard } from "./ProfileLocationCard";
+import { SocialLinksDialog } from "./SocialLinksDialog";
 
 export function ProfilePage() {
   const { loading } = useRequireAuth();
@@ -33,6 +36,7 @@ export function ProfilePage() {
   const pets = useOwnerPets(user?.id ?? null);
   const [editorPet, setEditorPet] = useState<PetPublic | null | "new">(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
 
   if (loading || !user) {
     return (
@@ -48,26 +52,74 @@ export function ProfilePage() {
   return (
     <AppShell active="profile">
       <main className="mx-auto w-full max-w-5xl px-4 py-8">
+        {/*
+          `aside` comes first in the DOM (and `lg:order-2` pushes it back to the right
+          column only at `lg`) so that on narrow screens — where this collapses to one
+          column — it stacks above the profile in both visual and reading/tab order,
+          rather than only visually via a CSS reorder.
+        */}
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
-          <div className="min-w-0 space-y-8">
-            <header className="flex flex-wrap items-center gap-4">
-              {profile ? <AvatarEditor user={profile} /> : null}
-              {/* Location and the rest of the profile live in `ProfileDetails`. */}
-              <h1 className="min-w-0 flex-1 truncate text-2xl font-semibold tracking-tight">
-                {profile?.displayName || "Add your name"}
-              </h1>
-              {profile ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setEditOpen(true)}
+          <aside className="lg:order-2 lg:sticky lg:top-20">
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-1.5">
+                  <Info aria-hidden className="size-4" />
+                  Private editor
+                </CardTitle>
+                <CardDescription>
+                  Only you can see this page. The public page is what everyone else
+                  sees.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link
+                  href={userProfileHref(user.id)}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "w-full",
+                  )}
                 >
-                  <Pencil aria-hidden />
-                  Edit profile
-                </Button>
-              ) : null}
+                  <ExternalLink aria-hidden />
+                  View public profile
+                </Link>
+              </CardContent>
+            </Card>
+          </aside>
+
+          <div className="min-w-0 space-y-6">
+            {/* Just picture, name, and bio; location and connected sites are below. */}
+            <header className="flex items-start gap-4">
+              {profile ? <AvatarEditor user={profile} /> : null}
+              <div className="min-w-0 flex-1 space-y-1 pt-1">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="truncate text-2xl font-semibold tracking-tight">
+                    {profile?.displayName || "Add your name"}
+                  </h1>
+                  {profile ? (
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label="Edit name and bio"
+                      onClick={() => setEditOpen(true)}
+                    >
+                      <Pencil aria-hidden />
+                    </Button>
+                  ) : null}
+                </div>
+                {profile?.bio ? (
+                  <Markdown className="text-muted-foreground [&_p]:mb-0 text-sm leading-snug [&_a]:text-primary [&_a]:underline-offset-4 [&_a]:hover:underline">
+                    {profile.bio}
+                  </Markdown>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    Add a bio to tell people about your fostering.
+                  </p>
+                )}
+              </div>
             </header>
+
+            <Separator />
 
             {own.isError ? (
               <p className="text-destructive text-sm">
@@ -77,14 +129,11 @@ export function ProfilePage() {
               </p>
             ) : null}
 
-            {profile?.bio ? (
-              <section aria-label="Bio">
-                <Markdown>{profile.bio}</Markdown>
-              </section>
-            ) : null}
-
             {profile ? (
-              <ProfileDetails user={profile} onEdit={() => setEditOpen(true)} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <ProfileLocationCard user={profile} />
+                <ConnectedSitesCard user={profile} onManage={() => setSocialOpen(true)} />
+              </div>
             ) : null}
 
             <section className="space-y-3" aria-label="Your pets">
@@ -154,38 +203,17 @@ export function ProfilePage() {
               </ul>
             </section>
           </div>
-
-          <aside className="lg:sticky lg:top-20">
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle>Private editor</CardTitle>
-                <CardDescription>
-                  Only you can see this page. The public page is what everyone else
-                  sees.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link
-                  href={userProfileHref(user.id)}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "w-full",
-                  )}
-                >
-                  <ExternalLink aria-hidden />
-                  View public profile
-                </Link>
-              </CardContent>
-            </Card>
-          </aside>
         </div>
       </main>
       {profile ? (
-        <ProfileEditDialog
-          user={profile}
-          open={editOpen}
-          onOpenChange={setEditOpen}
-        />
+        <>
+          <ProfileEditDialog user={profile} open={editOpen} onOpenChange={setEditOpen} />
+          <SocialLinksDialog
+            user={profile}
+            open={socialOpen}
+            onOpenChange={setSocialOpen}
+          />
+        </>
       ) : null}
     </AppShell>
   );
