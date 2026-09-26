@@ -5,25 +5,28 @@ import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert
 import { Button } from "@client/components/ui/button";
 import { useMediaUpload } from "@client/features/storage";
 import { useUpdateUserMutation, type UserOwner } from "@client/features/users";
-import { Pencil } from "lucide-react";
-import { useRef } from "react";
+import { Check, Pencil, Trash2, Upload } from "lucide-react";
+import { useRef, useState } from "react";
 
 type AvatarEditorProps = {
   user: UserOwner;
 };
 
 /**
- * Owner-only picture control for `/profile`. The public profile renders `UserAvatar`
- * directly so it has no edit affordance.
+ * Owner-only picture control for `/profile`, in two states: viewing shows just the
+ * picture and its edit toggle; editing reveals the options and helper text. The public
+ * profile renders `UserAvatar` directly so it has no edit affordance at all.
  *
  * Saves on its own rather than through `ProfileEditForm`: the payload carries only
  * `avatarUrl`, and the API applies just the keys present in the body.
  */
 export function AvatarEditor({ user }: AvatarEditorProps) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const [editing, setEditing] = useState(false);
   const upload = useMediaUpload();
   const updateUser = useUpdateUserMutation();
 
+  const hasPicture = Boolean(user.avatarUrl);
   const pending = upload.isPending || updateUser.isPending;
   const error = upload.error ?? updateUser.error;
 
@@ -47,31 +50,31 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
 
   return (
     <section className="space-y-3" aria-label="Profile picture">
-      {error instanceof Error ? (
+      {editing && error instanceof Error ? (
         <Alert variant="destructive">
           <AlertTitle>Could not update your picture</AlertTitle>
           <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="flex items-center gap-4">
-        <div className="relative">
+      <div className="flex items-start gap-4">
+        <div className="relative shrink-0">
           <UserAvatar name={user.displayName} url={user.avatarUrl} size="xl" />
           <Button
             type="button"
             size="icon-sm"
             variant="secondary"
-            aria-label="Change profile picture"
-            disabled={pending}
-            onClick={() => fileInput.current?.click()}
+            aria-label={editing ? "Done editing profile picture" : "Edit profile picture"}
+            aria-expanded={editing}
+            onClick={() => setEditing((open) => !open)}
             className="border-background absolute -right-1 -bottom-1 rounded-full border-2 shadow-sm"
           >
-            <Pencil aria-hidden />
+            {editing ? <Check aria-hidden /> : <Pencil aria-hidden />}
           </Button>
           <input
             ref={fileInput}
             type="file"
             accept="image/*"
-            // `hidden`, not `sr-only`: the button above is the accessible control, so an
+            // `hidden`, not `sr-only`: the buttons are the accessible controls, so an
             // unlabeled file input should stay out of the accessibility tree.
             className="hidden"
             onChange={(event) => {
@@ -82,23 +85,42 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
             }}
           />
         </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium">Profile picture</p>
-          <p className="text-muted-foreground text-sm">
-            {pending ? "Uploading…" : "JPEG, PNG, WebP, or GIF."}
-          </p>
-          {user.avatarUrl ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={pending}
-              onClick={() => void save(null)}
-            >
-              Remove
-            </Button>
-          ) : null}
-        </div>
+        {editing ? (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">
+              {hasPicture ? "Profile picture set" : "No profile picture yet"}
+            </p>
+            <p className="text-muted-foreground text-sm">
+              {pending
+                ? "Uploading…"
+                : "JPEG, PNG, WebP, or GIF. Large images are resized for you."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() => fileInput.current?.click()}
+              >
+                <Upload aria-hidden />
+                {hasPicture ? "Replace image" : "Add image"}
+              </Button>
+              {hasPicture ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={pending}
+                  onClick={() => void save(null)}
+                >
+                  <Trash2 aria-hidden />
+                  Clear profile picture
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );

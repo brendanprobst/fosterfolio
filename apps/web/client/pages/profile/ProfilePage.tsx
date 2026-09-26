@@ -41,40 +41,18 @@ export function ProfilePage() {
       <main className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-8">
         <header className="space-y-2">
           <h1 className="text-3xl font-semibold">Profile</h1>
-          <p className="text-muted-foreground text-sm">
-            This is your private editor. The public page is what others see.
-          </p>
-          <Link
-            href={userProfileHref(user.id)}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            View public profile
-          </Link>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-muted-foreground text-sm">
+              This is your private editor. The public page is what others see.
+            </p>
+            <Link
+              href={userProfileHref(user.id)}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            > 
+              View public profile 
+            </Link>
+          </div>
         </header>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Authenticated user</CardTitle>
-            <CardDescription>
-              Email and id are from verified Supabase JWT claims.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p>
-              <strong>Email:</strong> {own.data?.email || user.email || "No email available"}
-            </p>
-            <p>
-              <strong>User ID:</strong> {own.data?.id || user.id || "No id available"}
-            </p>
-            {own.isError ? (
-              <p className="text-destructive">
-                {own.error instanceof Error
-                  ? own.error.message
-                  : "Unable to load profile from API."}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
 
         {own.data ? <AvatarEditor user={own.data} /> : null}
 
