@@ -1,8 +1,27 @@
 "use client";
 
 import { useAuth } from "@client/auth";
+import { UserAvatar } from "@client/components/UserAvatar";
 import { Button, buttonVariants } from "@client/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@client/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@client/components/ui/sheet";
 import { cn } from "@client/lib/utils";
+import { LogOut, Menu, PawPrint, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 
 type AppHeaderProps = {
@@ -10,61 +29,150 @@ type AppHeaderProps = {
   active?: "home" | "profile" | "search";
 };
 
+const navItems = [{ href: "/", id: "home" as const, label: "Feed" }];
+
+function navLinkClass(isActive: boolean) {
+  return cn(
+    "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+    isActive
+      ? "bg-muted text-foreground"
+      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+  );
+}
+
 /**
  * Shared top nav for product surfaces (not the marketing home hero).
- * Checkpoint 6 pages should compose inside this shell.
  */
 export function AppHeader({ active }: AppHeaderProps) {
   const { user, signOut, loading } = useAuth();
   const signedIn = !!user && !loading;
+  const accountLabel = user?.email ?? "Account";
 
   return (
-    <header className="border-border bg-background/90 sticky top-0 z-40 border-b backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
-        <nav className="flex items-center gap-3 text-sm font-medium">
-          <Link
-            href="/"
-            className={cn(
-              "text-foreground hover:text-primary",
-              active === "home" && "text-primary",
-            )}
-          >
+    <header className="border-border bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+        <Link
+          href="/"
+          aria-label="Fosterfolio"
+          className="text-foreground flex shrink-0 items-center gap-2 font-semibold tracking-tight"
+        >
+          <span className="bg-primary text-primary-foreground inline-flex size-8 items-center justify-center rounded-lg">
+            <PawPrint aria-hidden className="size-4" />
+          </span>
+          <span aria-hidden className="hidden sm:inline">
             Fosterfolio
-          </Link>
+          </span>
+        </Link>
+
+        <nav
+          aria-label="Primary"
+          className="hidden items-center gap-1 md:flex"
+        >
+          {navItems.map((item) => {
+            const isActive = active === item.id;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={navLinkClass(isActive)}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2">
           <Link
             href="/search"
+            aria-label="Search"
             className={cn(
-              "text-muted-foreground hover:text-foreground",
-              active === "search" && "text-foreground",
+              "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground inline-flex h-9 items-center gap-2 rounded-lg border px-2.5 text-sm transition-colors sm:w-52 sm:px-3",
+              active === "search" && "border-foreground/20 text-foreground",
             )}
           >
-            Search
+            <Search aria-hidden className="size-4 shrink-0" />
+            <span aria-hidden className="hidden truncate sm:inline">
+              Search
+            </span>
           </Link>
+
           {signedIn ? (
-            <Link
-              href="/profile"
-              className={cn(
-                "text-muted-foreground hover:text-foreground",
-                active === "profile" && "text-foreground",
-              )}
-            >
-              Profile
-            </Link>
-          ) : null}
-        </nav>
-        <div className="flex items-center gap-2">
-          {signedIn ? (
-            <Button type="button" variant="outline" size="sm" onClick={() => signOut()}>
-              Sign out
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "rounded-full",
+                )}
+                aria-label="Account menu"
+              >
+                <UserAvatar name={accountLabel} url={null} size="sm" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-56 w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="truncate font-normal">
+                    {accountLabel}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem nativeButton={false} render={<Link href="/profile" />}>
+                    <UserRound aria-hidden />
+                    Your profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void signOut()}>
+                    <LogOut aria-hidden />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            <Link
-              href="/auth/sign-in"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
+            <Link href="/auth/sign-in" className={buttonVariants({ size: "sm" })}>
               Sign in
             </Link>
           )}
+
+          <Sheet>
+            <SheetTrigger
+              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "md:hidden")}
+              aria-label="Open menu"
+            >
+              <Menu aria-hidden />
+            </SheetTrigger>
+            <SheetContent side="right" className="w-72">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <nav aria-label="Mobile" className="flex flex-col gap-1 px-4">
+                <SheetClose
+                  nativeButton={false}
+                  render={
+                    <Link
+                      href="/"
+                      className={navLinkClass(active === "home")}
+                      aria-current={active === "home" ? "page" : undefined}
+                    />
+                  }
+                >
+                  Feed
+                </SheetClose>
+                {signedIn ? (
+                  <SheetClose
+                    nativeButton={false}
+                    render={
+                      <Link
+                        href="/profile"
+                        className={navLinkClass(active === "profile")}
+                        aria-current={active === "profile" ? "page" : undefined}
+                      />
+                    }
+                  >
+                    Your profile
+                  </SheetClose>
+                ) : null}
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

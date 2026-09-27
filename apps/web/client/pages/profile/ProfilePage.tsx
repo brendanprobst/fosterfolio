@@ -17,11 +17,7 @@ import { useOwnUser } from "@client/features/users";
 import { humanizeToken } from "@client/lib/humanizeToken";
 import { petHref } from "@client/lib/petBioPath";
 import { cn } from "@client/lib/utils";
-import {
-  fosterMeHref,
-  publicHandle,
-  userProfileHref,
-} from "@client/lib/userProfilePath";
+import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
 import { ExternalLink, Eye, Info, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

@@ -88,22 +88,18 @@ describe("ProfilePage", () => {
       "href",
       "/@u1",
     );
-    expect(screen.getByRole("link", { name: /current foster/i })).toHaveAttribute(
-      "href",
-      "/@u1/foster-me",
-    );
     expect(
       screen.getByText(/no handle yet — public links use your id/i),
     ).toBeInTheDocument();
     expect(screen.getByText("/@u1")).toBeInTheDocument();
     expect(screen.getByText("/@u1/foster-me")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Foster me" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Profile Link" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: '"Foster Me" Link' })).toBeInTheDocument();
     expect(
       screen.getByText(/always opens whoever you’re fostering now/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/pet bio QR stays locked on that one animal/i),
+      screen.getByText(/pet-specific share link on the pet bio page/i),
     ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /QR code/i })).not.toBeInTheDocument();
@@ -112,7 +108,7 @@ describe("ProfilePage", () => {
   it("opens a download-only QR modal from the share card", async () => {
     renderWithQueryClient(<ProfilePage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Profile QR code" }));
+    fireEvent.click(screen.getByRole("button", { name: "Profile Link QR code" }));
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
@@ -133,10 +129,6 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("link", { name: /view public profile/i })).toHaveAttribute(
       "href",
       "/@alex",
-    );
-    expect(screen.getByRole("link", { name: /current foster/i })).toHaveAttribute(
-      "href",
-      "/@alex/foster-me",
     );
     expect(screen.getByText("/@alex/foster-me")).toBeInTheDocument();
   });
