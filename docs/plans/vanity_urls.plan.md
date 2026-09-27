@@ -1,6 +1,7 @@
 ---
 name: User handles (vanity URLs)
 overview: Add a unique `handle` to users and a root-level `/@handle` route family — profile, a stable "current foster" pointer at `/@handle/foster-me`, and pet bios at `/@handle/pet/{id}` — replacing `/users/{id}` and `/pets/{id}`. Written from research done on 2026-09-26; extended twice more the same day, first with the routing design and then with user-confirmed decisions on all of it. The implementing agent should not need to re-derive any of the three passes.
+status: in_progress
 todos:
   - id: handle-messaging
     content: "foster-me needs a visible disclaimer when it falls back to a non-actively_fostering pet, and a browse/profile CTA on the true empty state — see \"Messaging for the fallback and empty-state cases\""
@@ -35,11 +36,43 @@ todos:
   - id: handle-tests
     content: "Tests: API coverage for lookup/rename/conflict/invalid; a CloudFront-rewrite unit test mirroring `cloudfrontPetRewrite.test.ts`; updated web fixtures"
     status: completed
+  - id: followup-search-feed
+    content: "Do now — search and feed links still use raw ids; thread handle through SearchUserHit / SearchPetHit / PostPublic and call publicHandle at those hrefs"
+    status: pending
+  - id: followup-unique-409
+    content: "Do now — map users_handle_unique violations in UpdateUserUseCase/save to HANDLE_TAKEN 409 instead of a 500"
+    status: pending
+  - id: followup-handle-type
+    content: "Defer — reject non-string handle in UserController (trim on a number 500s)"
+    status: pending
+  - id: followup-blocklist-copy
+    content: "Defer — blocklisted handles should not reuse the format-error message"
+    status: pending
+  - id: followup-rename-clear
+    content: "Defer — decide unclaim/rename UX; don't send handle unless dirty; confirm before releasing a live slug"
+    status: pending
+  - id: followup-foster-me-entry
+    content: "Defer — foster-me has no in-app link, e2e, or private-beta checklist row"
+    status: pending
+  - id: followup-foster-me-qr
+    content: "Defer — FosterMePage reuses PetBioView QR, which encodes the pet permalink instead of /@handle/foster-me"
+    status: pending
+  - id: followup-foster-me-errors
+    content: "Defer — foster-me treats a failed pets list as empty roster and has no usePet error branch"
+    status: pending
+  - id: followup-cloudfront-apply
+    content: "Defer — terraform apply still required before /@… works on the live distribution; confirm sentinel @ encoding after first export"
+    status: pending
+  - id: followup-docs-tests
+    content: "Defer — swagger still says uuid on nested user routes; PUT-by-handle untested; profile e2e still facelift-era; private-beta.md still says [id]"
+    status: pending
 ---
 
 # User handles (vanity URLs)
 
-State as of commit `9cd1da2`, before any of this was implemented. This document was written in two passes: the original handle/lookup slice on 2026-09-26, then extended the same day after a design discussion about the actual URL structure. Both passes are folded in below as one plan.
+**Status: in progress.** Checkpoint 1 (first implementation) is committed on `mvp` as `957668e`. Adversarial review the same night found follow-ups — pickup list is [Follows Up For Next Session](#follows-up-for-next-session). The original research and confirmed decisions below are still the source of truth for *why* the feature looks like this.
+
+This document was written in two passes: the original handle/lookup slice on 2026-09-26, then extended the same day after a design discussion about the actual URL structure. Both passes are folded in below as one plan.
 
 ## Decision
 
@@ -166,6 +199,33 @@ Retiring `/pets/{id}`, the `foster-me` selection rule, and the pet URL's `/pet/`
 - A CloudFront-rewrite unit test mirroring the existing `test/web/unit/cloudfrontPetRewrite.test.ts` pattern, covering the new `@`-prefix branch (handle-only, handle + `foster-me`, handle + `pet/{id}`) and confirming plain static routes (`/search`, `/profile`) pass through untouched.
 - The `foster-me` route's three outcomes, since each renders different content: an `actively_fostering` pet with no extra messaging; a fallback pet with the disclaimer visible; zero pets with the empty state and its two links.
 - Web unit fixtures gain the new field / new hrefs: `test/web/unit/ProfilePage.test.tsx`, `PublicProfilePage.test.tsx`, `AvatarEditor.test.tsx`, `userProfilePath.test.ts`, `petBioPath.test.ts`.
+
+## Follows Up For Next Session
+
+Written 2026-09-26 after an adversarial self-review of checkpoint 1. **Do not treat the implementation todos above as “the feature is done.”** Profile + API lookup + `/@handle` routes work; discovery links, foster-me as a product surface, and a few write-path error cases do not.
+
+**Do now** = wrong on a path this change already ships (claim a handle, hit `/@…`, save). **Defer** = still fix before release, but it can be a follow-up PR.
+
+| Issue title | What’s wrong | What solving it entails | Do now / Defer |
+| --- | --- | --- | --- |
+| Search & feed ignore claimed handles | Profile and pet-bio pages use `publicHandle()`, so `/@brendan` works once you’re already there. Search and the feed never get a handle to use. `SearchUserHit` / `SearchPetHit` have no `handle` field; `SearchRepository` doesn’t select it (`users?select=id,display_name,…`, pets only `owner_id`). `PostPublic` only has `authorId`. So after someone claims `brendan`, search still renders `/@<uuid>` and `/@<uuid>/pet/<id>`, and `PostCard` does the same. Those URLs *resolve* (uuid fallback is intentional) but the vanity slug never appears on the two surfaces people actually click. Claiming a handle is mostly cosmetic. | Thread handle through search and posts, then use `publicHandle` at the link sites. API: add `handle: string \| null` to `SearchUserHit`; add `ownerHandle: string \| null` to `SearchPetHit` (PostgREST embed or `users!inner(handle)` on the pets query — `handle` is not on `pets`). Mirror that in `InMemorySearchRepository` / `listAllForSearch`. Web: same fields on `apps/web/client/features/search/types.ts`; `SearchPage` becomes `userProfileHref(publicHandle(user))` and `petHref(pet.ownerHandle \|\| pet.ownerId, pet.id)`. Feed: add `authorHandle` on `PostPublicDto` (join author when listing the feed / author posts), then `PostCard` uses `publicHandle({ id: post.authorId, handle: post.authorHandle })`. Update search/e2e href assertions. | **Do now** |
+| Unique-index race returns 500 | `UpdateUserUseCase` does `isHandleTaken` then `save`. Two concurrent claims of the same slug both pass the check; Postgres `users_handle_unique` rejects the second. The use case `catch` maps every throw to `INTERNAL_SERVER_ERROR`, so the loser sees a 500 instead of `HANDLE_TAKEN` 409. Data stays correct; the API contract does not. | In the `catch` (or in `UserRepository.save`), detect the PostgREST/Postgres unique-violation (23505 / message containing `users_handle_unique`) and `return Result.failure(ErrorCatalog.HANDLE_TAKEN)`. Keep the unique index as the real lock; `isHandleTaken` stays the fast path. Add a test that seeds a taken handle and simulates save throwing that error if you don’t want a live-DB race test. | **Do now** |
+| Non-string `handle` 500s | `socialLinks` is type-guarded in `UserController`. `handle` is copied through raw. `UpdateUserUseCase` then does `nextHandle.trim()`. A body like `{ "handle": 1 }` throws and becomes a 500. | In the controller, reject unless `handle` is `string \| null` (same pattern as `socialLinks`). Optionally `typeof nextHandle === 'string'` before `.trim()` in the use case. Expect 400 / `HANDLE_INVALID` or `USER_INVALID_INPUT`. | **Defer** |
+| Blocklist uses the format error | `UserHandle.parse` returns `reason: 'blocklisted'` for `admin` / `support` / etc. The use case ignores `reason` and always returns `HANDLE_INVALID`. The message is “3–30 characters, start/end alphanumeric…” which is false for `admin`. Tests assert `HANDLE_INVALID` for `Admin`, so this is currently specified-wrong. | Either a `HANDLE_BLOCKLISTED` catalog entry (400) with copy like “That handle is reserved,” or reuse `HANDLE_INVALID` with a reason-specific message. Branch on `parsed.reason`. Update the blocklist test. | **Defer** |
+| Clearing/renaming a handle is silent and permanent | The name/bio form always sends `handle: handle.trim() \|\| null`. Empty field unclaims. Rename has no redirect table. Soft-deleted accounts still reserve the slug; a living user who clears the field does not. Printed `/@old` 404s. Easy to do while editing bio if they empty the field. Plan said no backwards-compat, so this is a footgun, not a missed redirect requirement. | Product: confirm whether unclaim is allowed. If yes, don’t send `handle` unless it changed; confirm on clear/rename (“`/@old` will stop working”). If no unclaim, reject null when a handle already exists. Redirects (old slug → new) are a later table if you ever need them. | **Defer** |
+| Foster-me has no in-app entry | `fosterMeHref` exists only in unit tests. Nothing on `/profile`, the public profile, or pet bio links to `/@handle/foster-me`. No e2e. Private-beta checklist doesn’t mention it. The stable “current foster” URL is typed-in-only. | Add a “Foster me” / “QR for current foster” control on the private profile (and maybe public). `href={fosterMeHref(publicHandle(user))}`. Add an e2e that opens it and sees the empty / fallback / active copy. Add the URL to the private-beta browser checklist. | **Defer** |
+| Foster-me page QR is the pet permalink | Plan: print `/@handle/foster-me` so next year’s scan shows whoever they’re fostering then. `FosterMePage` renders `PetBioView`, which always mounts `PetQrDownload` with `petHref(owner, petId)`. The QR on that page encodes a *specific pet*, which will not follow the next foster. Anyone who treats foster-me as the flyer page prints the wrong URL. | Don’t reuse the pet QR on foster-me. Either pass a `qrHref` into `PetBioView` (`fosterMeHref(...)` vs `petHref(...)`) and hide/replace the pet QR on the foster-me branch, or extract a share/QR block that the two pages configure separately. Copy should say it always opens the current foster. | **Defer** |
+| Foster-me hides load errors | `petsQuery.data ?? []` on error looks like an empty roster, so you get “isn’t listed as fostering anyone” when the list call failed. If list succeeds and `usePet(selectedId)` 404s, there is no `petQuery.isError` UI (unlike `PetBioPage`) — loading, then a blank main. | Same pattern as `PetBioPage` / `PublicProfilePage`: if `petsQuery.isError` or `petQuery.isError`, show the error string. Only run `selectFosterMePet` when `petsQuery.isSuccess`. Empty-state copy only when the list succeeded and is empty. | **Defer** |
+| CloudFront apply is still required | Viewer-request now only rewrites `/@…`. `/pets/{id}` and `/users/{id}` rewrites are gone. Local `next dev` serves `[handle]` live; the live distribution still has the old function until `terraform apply`. After apply, any leftover `/pets/…` link is a hard 404. | Ops, not more app code: `npm run deploy:aws` (or apply the function) before calling vanity URLs live. After the first export, `HEAD` `/@00000000-0000-0000-0000-000000000000.html` (and the foster-me / pet sentinel objects) and confirm they match `HANDLE_SENTINEL_SEGMENT`. Keep `/pets` rewrites only if you decide you need a compat shim (nothing is live). | **Defer** |
+| Sentinel `@` encoding unverified in a real export | Unit tests eval the CloudFront JS. They do not run `next build` and assert the file on disk is `@<nil-uuid>.html` vs `%40…`. If Next ever percent-encodes `@`, the rewrite target and the S3 key diverge → 403/404 on every vanity URL in AWS. | One build assertion or a manual check of `apps/web/out/` after `next build`: sentinel filenames contain a literal `@`. If they don’t, either change `generateStaticParams` / CF target to the encoded form, or stop putting `@` in the param (e.g. sentinel folder without the sigil, CF still rewrites browser `/@handle` to that object). | **Defer** |
+| Root `[handle]` catch-all in `next dev` | `app/[handle]/page.tsx` matches any first segment that isn’t a static route. `/foo`, `/foo/foster-me`, `/foo/pet/id` render these pages locally. Path helpers require `/@`, so you get “not found” shells. Production static export only emits the sentinel, so AWS 404s those. You’ve also spent the only root dynamic segment — a future `app/[x]` collides. | Optional: in the page, if `params.handle` doesn’t start with `@`, `notFound()`. Or a proxy-only `/@handle` tree if Next will let you. Document that new top-level routes must be static folders. Don’t block on this. | **Defer** |
+| Handle preview isn’t normalized | `ProfileEditForm` shows `Public URL: /@{handle.trim()}`. API stores `UserHandle.normalize` (strip `@`, lowercase). User types `Brendan`, preview says `/@Brendan`, saved slug is `brendan`. | Preview with the same normalize: `UserHandle.normalize` on the client (extract a tiny shared helper or duplicate the trim/strip/@/lower). Optionally `pattern` / `maxLength={30}` on the input so they see format errors before submit. | **Defer** |
+| Swagger still says uuid on nested user routes | GET/PUT `/users/{id}` mention uuid or handle. `/users/{id}/pets`, `/posts`, `/star`, `/star-count` still `format: uuid` even though those use cases go through `resolveUser`. | Same parameter description as GET/PUT on those four operations. Drop `format: uuid`. | **Defer** |
+| PUT-by-handle untested | GET `/users/brendan` and PUT-by-uuid-claim are covered. The ownership fix (`actorId === user.id` after resolve) is untested for `PUT /users/brendan`. A regression there is a 403 when updating via handle. | One API test: seed handle, `PUT /users/brendan` with the owner JWT, expect 200. Optional: other user `PUT /users/brendan` still 403. | **Defer** |
+| Profile e2e still expects the old editor | `product.spec.ts` vanity URLs were updated. The signed-in profile test still wants a `Profile` heading, raw email/user id on the page, and a `Save profile` button — leftover from the facelift, not this URL change. If `web-e2e` is required, the job stays red. | Retarget the test at what’s on `/profile` now (display name, handle field in the edit dialog, pet row, view-public-profile href). Not vanity-specific except you were already in this file. | **Defer** |
+| Private-beta docs are stale | Checklist says local `next dev` serves `[id]`. No foster-me row. Easy to QA the wrong shape after apply. | Change `[id]` → `[handle]` / `/@handle`. Add a foster-me step once that URL is a real surface. | **Defer** |
+
+Start next session on the two **Do now** rows (`followup-search-feed`, `followup-unique-409`). Foster-me deferrals are one bundle (entry + QR + errors + checklist), not three unrelated chores.
 
 ## Related
 
