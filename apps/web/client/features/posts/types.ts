@@ -3,6 +3,7 @@ export type PostType = "general" | "pet_update";
 export type PostPublic = {
   id: string;
   authorId: string;
+  authorHandle: string | null;
   postType: PostType;
   petId: string | null;
   bodyText: string | null;

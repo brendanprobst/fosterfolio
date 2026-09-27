@@ -15,16 +15,22 @@ export class InMemorySearchRepository implements ISearchRepository {
   async searchPets(query: string, limit: number): Promise<SearchPetHit[]> {
     const q = query.toLowerCase();
     const pets = await this.petRepository.listAllForSearch();
-    return pets
+    const hits = pets
       .filter((p) => p.name.toLowerCase().includes(q))
-      .slice(0, limit)
-      .map((p) => ({
-        id: p.id,
-        name: p.name,
-        species: p.species,
-        primaryPhotoUrl: p.primaryPhotoUrl,
-        ownerId: p.ownerId,
-      }));
+      .slice(0, limit);
+    return Promise.all(
+      hits.map(async (p) => {
+        const owner = await this.userRepository.findById(p.ownerId);
+        return {
+          id: p.id,
+          name: p.name,
+          species: p.species,
+          primaryPhotoUrl: p.primaryPhotoUrl,
+          ownerId: p.ownerId,
+          ownerHandle: owner?.handle ?? null,
+        };
+      })
+    );
   }
 
   async searchUsers(query: string, limit: number): Promise<SearchUserHit[]> {
@@ -35,6 +41,7 @@ export class InMemorySearchRepository implements ISearchRepository {
       .slice(0, limit)
       .map((u) => ({
         id: u.id,
+        handle: u.handle,
         displayName: u.displayName,
         avatarUrl: u.avatarUrl,
         city: u.city,

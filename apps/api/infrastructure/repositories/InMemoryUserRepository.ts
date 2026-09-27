@@ -49,6 +49,7 @@ export class InMemoryUserRepository implements IUserRepository {
   async listAllForSearch(): Promise<
     Array<{
       id: string;
+      handle: string | null;
       displayName: string | null;
       avatarUrl: string | null;
       city: string | null;
@@ -61,6 +62,7 @@ export class InMemoryUserRepository implements IUserRepository {
         const dto = u.toPublicDto();
         return {
           id: dto.id,
+          handle: dto.handle,
           displayName: dto.displayName,
           avatarUrl: dto.avatarUrl,
           city: dto.city,

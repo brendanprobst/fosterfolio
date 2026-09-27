@@ -37,11 +37,13 @@ describe("SearchPage", () => {
             species: "dog",
             primaryPhotoUrl: null,
             ownerId: "owner-1",
+            ownerHandle: "alex",
           },
         ],
         users: [
           {
             id: "owner-1",
+            handle: "alex",
             displayName: "Alex",
             avatarUrl: null,
             city: "Austin",
@@ -60,8 +62,53 @@ describe("SearchPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Search" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Mochi/i })).toHaveAttribute(
       "href",
+      "/@alex/pet/pet-1",
+    );
+    expect(screen.getByRole("link", { name: /Alex/i })).toHaveAttribute(
+      "href",
+      "/@alex",
+    );
+  });
+
+  it("falls back to the owner id when no handle is claimed", () => {
+    vi.mocked(useSearch).mockReturnValue({
+      data: {
+        pets: [
+          {
+            id: "pet-1",
+            name: "Mochi",
+            species: "dog",
+            primaryPhotoUrl: null,
+            ownerId: "owner-1",
+            ownerHandle: null,
+          },
+        ],
+        users: [
+          {
+            id: "owner-1",
+            handle: null,
+            displayName: "Alex",
+            avatarUrl: null,
+            city: "Austin",
+            state: "TX",
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+      error: null,
+    } as ReturnType<typeof useSearch>);
+
+    render(<SearchPage />);
+
+    expect(screen.getByRole("link", { name: /Mochi/i })).toHaveAttribute(
+      "href",
       "/@owner-1/pet/pet-1",
     );
-    expect(screen.getByRole("link", { name: /Alex/i })).toHaveAttribute("href", "/@owner-1");
+    expect(screen.getByRole("link", { name: /Alex/i })).toHaveAttribute(
+      "href",
+      "/@owner-1",
+    );
   });
 });

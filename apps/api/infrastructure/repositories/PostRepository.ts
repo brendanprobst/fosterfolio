@@ -8,6 +8,7 @@ import type {
   FeedCursor,
   FeedPage,
   IPostRepository,
+  PostListRow,
 } from '@api/domain/repositories/IPostRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
 
@@ -15,6 +16,8 @@ type PetEmbed = {
   name: string | null;
   primary_photo_url: string | null;
 } | null;
+
+type HandleEmbed = { handle: string | null } | { handle: string | null }[] | null;
 
 type PostRecord = {
   id: string;
@@ -28,15 +31,23 @@ type PostRecord = {
   updated_at: string;
   deleted_at: string | null;
   pet?: PetEmbed;
+  author?: HandleEmbed;
 };
 
 const POST_SELECT =
-  'id,author_id,post_type,pet_id,body_text,image_url,geo_lock,created_at,updated_at,deleted_at,pet:pets(name,primary_photo_url)';
+  'id,author_id,post_type,pet_id,body_text,image_url,geo_lock,created_at,updated_at,deleted_at,pet:pets(name,primary_photo_url),author:users!author_id(handle)';
+
+function embedHandle(value: HandleEmbed | undefined): string | null {
+  if (!value) return null;
+  const row = Array.isArray(value) ? value[0] : value;
+  return row?.handle ?? null;
+}
 
 function toStored(row: PostRecord): {
   post: Post;
   petName: string | null;
   petPrimaryPhotoUrl: string | null;
+  authorHandle: string | null;
 } {
   const postType: PostType = isPostType(row.post_type)
     ? row.post_type
@@ -57,6 +68,7 @@ function toStored(row: PostRecord): {
     post,
     petName: row.pet?.name ?? null,
     petPrimaryPhotoUrl: row.pet?.primary_photo_url ?? null,
+    authorHandle: embedHandle(row.author),
   };
 }
 
@@ -67,11 +79,7 @@ export class PostRepository implements IPostRepository {
     this.table = process.env.SUPABASE_POSTS_TABLE?.trim() || 'posts';
   }
 
-  async findById(id: string): Promise<{
-    post: Post;
-    petName: string | null;
-    petPrimaryPhotoUrl: string | null;
-  } | null> {
+  async findById(id: string): Promise<PostListRow | null> {
     const rows = await this.dataAdapter.get<PostRecord[]>(
       `${this.table}?select=${POST_SELECT}&id=eq.${encodeURIComponent(id)}&deleted_at=is.null&limit=1`
     );
@@ -141,13 +149,7 @@ export class PostRepository implements IPostRepository {
   async listByAuthorId(
     authorId: string,
     options?: { excludePetUpdates?: boolean }
-  ): Promise<
-    Array<{
-      post: Post;
-      petName: string | null;
-      petPrimaryPhotoUrl: string | null;
-    }>
-  > {
+  ): Promise<PostListRow[]> {
     let path = `${this.table}?select=${POST_SELECT}&author_id=eq.${encodeURIComponent(authorId)}&deleted_at=is.null&order=created_at.desc`;
     if (options?.excludePetUpdates) {
       path += `&post_type=neq.pet_update`;

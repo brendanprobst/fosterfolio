@@ -8,7 +8,7 @@ import { Label } from "@client/components/ui/label";
 import { useSearch } from "@client/features/search";
 import { humanizeToken } from "@client/lib/humanizeToken";
 import { petHref } from "@client/lib/petBioPath";
-import { userProfileHref } from "@client/lib/userProfilePath";
+import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
@@ -77,7 +77,7 @@ function SearchPageInner() {
               {pets.map((pet) => (
                 <li key={pet.id}>
                   <Link
-                    href={petHref(pet.ownerId, pet.id)}
+                    href={petHref(pet.ownerHandle || pet.ownerId, pet.id)}
                     className="hover:bg-muted/50 flex items-center gap-3 rounded-lg p-1"
                   >
                     {pet.primaryPhotoUrl ? (
@@ -109,7 +109,7 @@ function SearchPageInner() {
               {users.map((user) => (
                 <li key={user.id}>
                   <Link
-                    href={userProfileHref(user.id)}
+                    href={userProfileHref(publicHandle(user))}
                     className="hover:bg-muted/50 flex items-center gap-3 rounded-lg p-1"
                   >
                     <UserAvatar

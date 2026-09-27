@@ -38,7 +38,7 @@ todos:
     status: completed
   - id: followup-search-feed
     content: "Do now — search and feed links still use raw ids; thread handle through SearchUserHit / SearchPetHit / PostPublic and call publicHandle at those hrefs"
-    status: pending
+    status: completed
   - id: followup-unique-409
     content: "Do now — map users_handle_unique violations in UpdateUserUseCase/save to HANDLE_TAKEN 409 instead of a 500"
     status: pending

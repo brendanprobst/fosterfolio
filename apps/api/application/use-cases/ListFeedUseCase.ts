@@ -48,6 +48,7 @@ export class ListFeedUseCase {
         row.post.toPublicDto({
           name: row.petName,
           primaryPhotoUrl: row.petPrimaryPhotoUrl,
+          authorHandle: row.authorHandle,
         })
       );
       let nextCursor: string | null = null;

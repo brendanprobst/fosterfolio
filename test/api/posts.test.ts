@@ -20,7 +20,11 @@ describe('Posts API', () => {
 
   it('creates general and pet_update posts; feed includes pet denorm fields', async () => {
     const { app, container } = createTestAppWithContainer();
-    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      handle: 'alex',
+    });
     const petId = await createPet(app);
     const token = await createAuthToken(ownerId, 'owner@example.com');
 
@@ -55,6 +59,7 @@ describe('Posts API', () => {
     expect(updateCard).toMatchObject({
       petName: 'Mochi',
       petPrimaryPhotoUrl: 'https://cdn/mochi.jpg',
+      authorHandle: 'alex',
     });
   });
 
@@ -111,7 +116,11 @@ describe('Posts API', () => {
 
   it('GET /users/:id/posts excludes pet_update', async () => {
     const { app, container } = createTestAppWithContainer();
-    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      handle: 'alex',
+    });
     const petId = await createPet(app);
     const token = await createAuthToken(ownerId, 'owner@example.com');
 
@@ -129,6 +138,7 @@ describe('Posts API', () => {
     const res = await request(app).get(`/users/${ownerId}/posts`).expect(200);
     expect(res.body).toHaveLength(1);
     expect(res.body[0].postType).toBe('general');
+    expect(res.body[0].authorHandle).toBe('alex');
   });
 
   it('rejects pet_update without owned pet', async () => {

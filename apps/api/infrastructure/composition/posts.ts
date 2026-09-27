@@ -28,7 +28,7 @@ export function createPostsModule(
 ): PostsModule {
   const postRepository: IPostRepository = dataAdapter
     ? new PostRepository(dataAdapter)
-    : new InMemoryPostRepository(petRepository);
+    : new InMemoryPostRepository(petRepository, userRepository);
 
   return {
     postRepository,

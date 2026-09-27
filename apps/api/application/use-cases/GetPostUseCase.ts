@@ -16,6 +16,7 @@ export class GetPostUseCase {
         row.post.toPublicDto({
           name: row.petName,
           primaryPhotoUrl: row.petPrimaryPhotoUrl,
+          authorHandle: row.authorHandle,
         })
       );
     } catch {

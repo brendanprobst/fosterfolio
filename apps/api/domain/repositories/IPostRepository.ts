@@ -1,5 +1,12 @@
 import type { Post, PostType } from '@api/domain/entities/Post';
 
+export type PostListRow = {
+  post: Post;
+  petName: string | null;
+  petPrimaryPhotoUrl: string | null;
+  authorHandle: string | null;
+};
+
 export type CreatePostInput = {
   authorId: string;
   postType: PostType;
@@ -15,21 +22,13 @@ export type FeedCursor = {
 };
 
 export type FeedPage = {
-  posts: Array<{
-    post: Post;
-    petName: string | null;
-    petPrimaryPhotoUrl: string | null;
-  }>;
+  posts: PostListRow[];
   /** True when more rows may exist beyond this page. */
   hasMore: boolean;
 };
 
 export interface IPostRepository {
-  findById(id: string): Promise<{
-    post: Post;
-    petName: string | null;
-    petPrimaryPhotoUrl: string | null;
-  } | null>;
+  findById(id: string): Promise<PostListRow | null>;
   create(input: CreatePostInput): Promise<Post>;
   save(post: Post): Promise<void>;
   listFeed(options: {
@@ -39,11 +38,5 @@ export interface IPostRepository {
   listByAuthorId(
     authorId: string,
     options?: { excludePetUpdates?: boolean }
-  ): Promise<
-    Array<{
-      post: Post;
-      petName: string | null;
-      petPrimaryPhotoUrl: string | null;
-    }>
-  >;
+  ): Promise<PostListRow[]>;
 }

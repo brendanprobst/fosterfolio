@@ -7,30 +7,42 @@ import type {
   IPostRepository,
 } from '@api/domain/repositories/IPostRepository';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
+import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
 
 type Stored = {
   post: Post;
   petName: string | null;
   petPrimaryPhotoUrl: string | null;
+  authorHandle: string | null;
 };
 
 export class InMemoryPostRepository implements IPostRepository {
   private readonly posts = new Map<string, Stored>();
 
-  constructor(private readonly petRepository?: IPetRepository) {}
+  constructor(
+    private readonly petRepository?: IPetRepository,
+    private readonly userRepository?: IUserRepository
+  ) {}
 
   seed(post: Post, pet?: { name: string | null; primaryPhotoUrl: string | null }): void {
     this.posts.set(post.id, {
       post,
       petName: pet?.name ?? null,
       petPrimaryPhotoUrl: pet?.primaryPhotoUrl ?? null,
+      authorHandle: null,
     });
+  }
+
+  private async withAuthorHandle(row: Stored): Promise<Stored> {
+    if (!this.userRepository) return row;
+    const author = await this.userRepository.findById(row.post.authorId);
+    return { ...row, authorHandle: author?.handle ?? null };
   }
 
   async findById(id: string): Promise<Stored | null> {
     const row = this.posts.get(id) ?? null;
     if (!row || row.post.deletedAt) return null;
-    return row;
+    return this.withAuthorHandle(row);
   }
 
   async create(input: CreatePostInput): Promise<Post> {
@@ -62,7 +74,12 @@ export class InMemoryPostRepository implements IPostRepository {
       }
     }
 
-    this.posts.set(post.id, { post, petName, petPrimaryPhotoUrl });
+    this.posts.set(post.id, {
+      post,
+      petName,
+      petPrimaryPhotoUrl,
+      authorHandle: null,
+    });
     return post;
   }
 
@@ -72,6 +89,7 @@ export class InMemoryPostRepository implements IPostRepository {
       post,
       petName: existing?.petName ?? null,
       petPrimaryPhotoUrl: existing?.petPrimaryPhotoUrl ?? null,
+      authorHandle: existing?.authorHandle ?? null,
     });
   }
 
@@ -100,7 +118,7 @@ export class InMemoryPostRepository implements IPostRepository {
 
     const slice = all.slice(start, start + options.limit);
     return {
-      posts: slice,
+      posts: await Promise.all(slice.map((row) => this.withAuthorHandle(row))),
       hasMore: start + options.limit < all.length,
     };
   }
@@ -109,7 +127,7 @@ export class InMemoryPostRepository implements IPostRepository {
     authorId: string,
     options?: { excludePetUpdates?: boolean }
   ): Promise<Stored[]> {
-    return Array.from(this.posts.values())
+    const rows = Array.from(this.posts.values())
       .filter((row) => {
         if (row.post.deletedAt) return false;
         if (row.post.authorId !== authorId) return false;
@@ -119,5 +137,6 @@ export class InMemoryPostRepository implements IPostRepository {
         return true;
       })
       .sort((a, b) => b.post.createdAt.getTime() - a.post.createdAt.getTime());
+    return Promise.all(rows.map((row) => this.withAuthorHandle(row)));
   }
 }

@@ -42,7 +42,10 @@ import { StubAllowedEmailRepository } from './support/StubAllowedEmailRepository
 export class TestContainer {
   readonly userRepository = new InMemoryUserRepository();
   readonly petRepository = new InMemoryPetRepository();
-  readonly postRepository = new InMemoryPostRepository(this.petRepository);
+  readonly postRepository = new InMemoryPostRepository(
+    this.petRepository,
+    this.userRepository
+  );
   readonly starRepository = new InMemoryStarRepository(this.userRepository);
   readonly inquiryRepository = new InMemoryInquiryRepository();
   readonly searchRepository = new InMemorySearchRepository(

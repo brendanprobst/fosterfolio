@@ -5,9 +5,16 @@ export function isPostType(value: string): value is PostType {
   return (POST_TYPES as readonly string[]).includes(value);
 }
 
+export type PostDenorm = {
+  name?: string | null;
+  primaryPhotoUrl?: string | null;
+  authorHandle?: string | null;
+};
+
 export type PostPublicDto = {
   id: string;
   authorId: string;
+  authorHandle: string | null;
   postType: PostType;
   petId: string | null;
   bodyText: string | null;
@@ -89,14 +96,12 @@ export class Post {
     this.props.updatedAt = new Date();
   }
 
-  toPublicDto(pet?: {
-    name: string | null;
-    primaryPhotoUrl: string | null;
-  } | null): PostPublicDto {
+  toPublicDto(denorm?: PostDenorm | null): PostPublicDto {
     const isPetUpdate = this.props.postType === 'pet_update';
     return {
       id: this.props.id,
       authorId: this.props.authorId,
+      authorHandle: denorm?.authorHandle ?? null,
       postType: this.props.postType,
       petId: this.props.petId,
       bodyText: this.props.bodyText,
@@ -104,16 +109,15 @@ export class Post {
       geoLock: this.props.geoLock,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
-      petName: isPetUpdate ? (pet?.name ?? null) : null,
-      petPrimaryPhotoUrl: isPetUpdate ? (pet?.primaryPhotoUrl ?? null) : null,
+      petName: isPetUpdate ? (denorm?.name ?? null) : null,
+      petPrimaryPhotoUrl: isPetUpdate
+        ? (denorm?.primaryPhotoUrl ?? null)
+        : null,
     };
   }
 
-  toOwnerDto(pet?: {
-    name: string | null;
-    primaryPhotoUrl: string | null;
-  } | null): PostOwnerDto {
-    return this.toPublicDto(pet);
+  toOwnerDto(denorm?: PostDenorm | null): PostOwnerDto {
+    return this.toPublicDto(denorm);
   }
 
   toPersistence(): Record<string, unknown> {

@@ -2,7 +2,7 @@
 
 import { Markdown } from "@client/components/markdown";
 import { petHref } from "@client/lib/petBioPath";
-import { userProfileHref } from "@client/lib/userProfilePath";
+import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
 import type { PostPublic } from "./types";
 import Link from "next/link";
 
@@ -12,7 +12,11 @@ type PostCardProps = {
 
 export function PostCard({ post }: PostCardProps) {
   const isPetUpdate = post.postType === "pet_update";
-  const petLink = post.petId ? petHref(post.authorId, post.petId) : null;
+  const authorRef = publicHandle({
+    id: post.authorId,
+    handle: post.authorHandle,
+  });
+  const petLink = post.petId ? petHref(authorRef, post.petId) : null;
 
   return (
     <article className="border-border space-y-3 border-t pt-4">
@@ -42,7 +46,7 @@ export function PostCard({ post }: PostCardProps) {
       ) : (
         <p className="text-muted-foreground text-xs">
           <Link
-            href={userProfileHref(post.authorId)}
+            href={userProfileHref(authorRef)}
             className="hover:text-foreground underline-offset-2 hover:underline"
           >
             Foster profile

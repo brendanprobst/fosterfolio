@@ -8,7 +8,10 @@ describe('e2e seed fixtures', () => {
   it('seeds the Playwright user, pet, feed post, and search hits', async () => {
     const userRepository = new InMemoryUserRepository();
     const petRepository = new InMemoryPetRepository();
-    const postRepository = new InMemoryPostRepository(petRepository);
+    const postRepository = new InMemoryPostRepository(
+      petRepository,
+      userRepository
+    );
 
     expect(
       seedFosterfolioE2eData({ userRepository, petRepository, postRepository })

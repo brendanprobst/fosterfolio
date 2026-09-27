@@ -11,6 +11,7 @@ describe('Search API', () => {
       id: ownerId,
       email: 'owner@example.com',
       displayName: 'Alex Foster',
+      handle: 'alex',
     });
     const token = await createAuthToken(ownerId, 'owner@example.com');
     await request(app)
@@ -20,13 +21,19 @@ describe('Search API', () => {
       .expect(201);
 
     const res = await request(app).get('/search?q=mochi').expect(200);
-    expect(res.body.pets.some((p: { name: string }) => p.name === 'Mochi Bean')).toBe(
-      true
-    );
+    const petHit = res.body.pets.find((p: { name: string }) => p.name === 'Mochi Bean');
+    expect(petHit).toMatchObject({
+      name: 'Mochi Bean',
+      ownerId,
+      ownerHandle: 'alex',
+    });
 
     const users = await request(app).get('/search?q=Alex').expect(200);
     expect(
-      users.body.users.some((u: { displayName: string }) => u.displayName === 'Alex Foster')
+      users.body.users.some(
+        (u: { displayName: string; handle: string | null }) =>
+          u.displayName === 'Alex Foster' && u.handle === 'alex'
+      )
     ).toBe(true);
   });
 
