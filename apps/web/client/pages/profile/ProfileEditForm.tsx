@@ -7,7 +7,11 @@ import { Label } from "@client/components/ui/label";
 import { Textarea } from "@client/components/ui/textarea";
 import { useUpdateUserMutation } from "@client/features/users";
 import type { UserOwner } from "@client/features/users";
-import { normalizeHandleInput } from "@client/lib/userProfilePath";
+import {
+  handleEditConfirmMessage,
+  handleEditDelta,
+  normalizeHandleInput,
+} from "@client/lib/userProfilePath";
 import { FormEvent, useState } from "react";
 
 type ProfileEditFormProps = {
@@ -28,13 +32,22 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
+    const delta = handleEditDelta(user.handle, handle);
+    const confirmMessage = handleEditConfirmMessage(
+      delta.kind,
+      user.handle,
+      delta.next,
+    );
+    if (confirmMessage && !window.confirm(confirmMessage)) {
+      return;
+    }
     mutation.mutate(
       {
         id: user.id,
         payload: {
           displayName: displayName.trim() || null,
-          handle: handle.trim() || null,
           bio: bio.trim() || null,
+          ...(delta.changed ? { handle: delta.next } : {}),
         },
       },
       { onSuccess: () => onSaved?.() },

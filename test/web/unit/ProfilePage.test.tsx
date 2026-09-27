@@ -26,6 +26,12 @@ vi.mock("@client/features/storage", () => ({
   useMediaUpload: () => ({ mutateAsync: vi.fn(), isPending: false, error: null }),
 }));
 
+vi.mock("qrcode", () => ({
+  default: {
+    toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,qq"),
+  },
+}));
+
 const profile: UserOwner = {
   id: "u1",
   handle: null,
@@ -81,6 +87,34 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("link", { name: /view public profile/i })).toHaveAttribute(
       "href",
       "/@u1",
+    );
+    expect(screen.getByRole("link", { name: /current foster/i })).toHaveAttribute(
+      "href",
+      "/@u1/foster-me",
+    );
+    expect(
+      screen.getByText(/no handle yet — public links use your id/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText("/@u1")).toBeInTheDocument();
+  });
+
+  it("shows a claimed handle and handle-based share links", () => {
+    vi.mocked(useOwnUser).mockReturnValue({
+      data: { ...profile, handle: "alex" },
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useOwnUser>);
+
+    renderWithQueryClient(<ProfilePage />);
+
+    expect(screen.getByText("@alex")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /view public profile/i })).toHaveAttribute(
+      "href",
+      "/@alex",
+    );
+    expect(screen.getByRole("link", { name: /current foster/i })).toHaveAttribute(
+      "href",
+      "/@alex/foster-me",
     );
   });
 

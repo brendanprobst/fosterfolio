@@ -17,7 +17,11 @@ import { useOwnUser } from "@client/features/users";
 import { humanizeToken } from "@client/lib/humanizeToken";
 import { petHref } from "@client/lib/petBioPath";
 import { cn } from "@client/lib/utils";
-import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
+import {
+  fosterMeHref,
+  publicHandle,
+  userProfileHref,
+} from "@client/lib/userProfilePath";
 import { ExternalLink, Eye, Info, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -26,6 +30,7 @@ import { ConnectedSitesCard } from "./ConnectedSitesCard";
 import { PetEditor } from "./PetEditor";
 import { PetsEmptyState } from "./PetsEmptyState";
 import { ProfileEditDialog } from "./ProfileEditDialog";
+import { ProfileLinkCard } from "./ProfileLinkCard";
 import { ProfileLocationCard } from "./ProfileLocationCard";
 import { SocialLinksDialog } from "./SocialLinksDialog";
 
@@ -48,6 +53,7 @@ export function ProfilePage() {
 
   const profile = own.data;
   const petList = pets.data ?? [];
+  const shareRef = publicHandle(profile ?? user);
 
   return (
     <AppShell active="profile">
@@ -59,7 +65,7 @@ export function ProfilePage() {
           rather than only visually via a CSS reorder.
         */}
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
-          <aside className="lg:order-2 lg:sticky lg:top-20">
+          <aside className="space-y-4 lg:order-2 lg:sticky lg:top-20">
             <Card size="sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-1.5">
@@ -72,18 +78,34 @@ export function ProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Link
-                  href={userProfileHref(publicHandle(profile ?? user))}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "w-full",
-                  )}
-                >
-                  <ExternalLink aria-hidden />
-                  View public profile
-                </Link>
+                <div className="space-y-2">
+                  <Link
+                    href={userProfileHref(shareRef)}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                      "w-full",
+                    )}
+                  >
+                    <ExternalLink aria-hidden />
+                    View public profile
+                  </Link>
+                  <Link
+                    href={fosterMeHref(shareRef)}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                      "w-full",
+                    )}
+                  >
+                    <ExternalLink aria-hidden />
+                    Current foster
+                  </Link>
+                </div>
               </CardContent>
             </Card>
+            <ProfileLinkCard
+              handleOrId={shareRef}
+              hasHandle={Boolean(profile?.handle)}
+            />
           </aside>
 
           <div className="min-w-0 space-y-6">
@@ -107,6 +129,15 @@ export function ProfilePage() {
                     </Button>
                   ) : null}
                 </div>
+                {profile?.handle ? (
+                  <p className="text-muted-foreground font-mono text-sm">
+                    @{profile.handle}
+                  </p>
+                ) : profile ? (
+                  <p className="text-muted-foreground text-sm">
+                    No handle yet — public links use your id until you pick one.
+                  </p>
+                ) : null}
                 {profile?.bio ? (
                   <Markdown className="text-muted-foreground [&_p]:mb-0 text-sm leading-snug [&_a]:text-primary [&_a]:underline-offset-4 [&_a]:hover:underline">
                     {profile.bio}
@@ -178,7 +209,7 @@ export function ProfilePage() {
                         </div>
                         <div className="flex flex-wrap gap-1">
                           <Link
-                            href={petHref(publicHandle(profile ?? user), pet.id)}
+                            href={petHref(shareRef, pet.id)}
                             className={cn(
                               buttonVariants({ variant: "ghost", size: "sm" }),
                             )}

@@ -1,6 +1,8 @@
 import { USER_PROFILE_SENTINEL_ID } from "@client/lib/constants/userProfileSentinel";
 import {
   fosterMeHref,
+  handleEditConfirmMessage,
+  handleEditDelta,
   handleFromPathname,
   handleHref,
   normalizeHandleInput,
@@ -15,6 +17,36 @@ describe("handle paths", () => {
     expect(handleHref("@brendan")).toBe("/@brendan");
     expect(userProfileHref("abc")).toBe("/@abc");
     expect(fosterMeHref("brendan")).toBe("/@brendan/foster-me");
+  });
+
+  it("classifies handle edits so the form can skip or confirm", () => {
+    expect(handleEditDelta("brendan", " Brendan ")).toEqual({
+      next: "brendan",
+      changed: false,
+      kind: "none",
+    });
+    expect(handleEditDelta(null, "Alex")).toEqual({
+      next: "alex",
+      changed: true,
+      kind: "claim",
+    });
+    expect(handleEditDelta("brendan", "")).toEqual({
+      next: null,
+      changed: true,
+      kind: "clear",
+    });
+    expect(handleEditDelta("brendan", "brendan_p")).toEqual({
+      next: "brendan_p",
+      changed: true,
+      kind: "rename",
+    });
+    expect(handleEditConfirmMessage("clear", "brendan", null)).toMatch(
+      /\/@brendan will stop working/,
+    );
+    expect(handleEditConfirmMessage("rename", "brendan", "brendan_p")).toMatch(
+      /\/@brendan_p/,
+    );
+    expect(handleEditConfirmMessage("claim", null, "alex")).toBeNull();
   });
 
   it("normalizes handle input the same way the API stores it", () => {

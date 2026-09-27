@@ -1,21 +1,34 @@
 "use client";
 
+import { ShareQrDownload } from "@client/components/ShareQrDownload";
 import { UserAvatar } from "@client/components/UserAvatar";
 import { Markdown } from "@client/components/markdown";
 import { InquiryForm } from "@client/features/inquiries";
 import type { PetPublic } from "@client/features/pets";
 import { humanizeToken } from "@client/lib/humanizeToken";
-import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
-import { PetQrDownload } from "./PetQrDownload";
+import { petHref } from "@client/lib/petBioPath";
+import {
+  fosterMeHref,
+  publicHandle,
+  userProfileHref,
+} from "@client/lib/userProfilePath";
 import Link from "next/link";
 import { ReactNode, useEffect } from "react";
 
 type PetBioViewProps = {
   pet: PetPublic;
   notice?: ReactNode;
+  /** When set, the QR encodes this path instead of the pet permalink. */
+  qrHref?: string;
+  qrDescription?: string;
 };
 
-export function PetBioView({ pet, notice }: PetBioViewProps) {
+export function PetBioView({
+  pet,
+  notice,
+  qrHref,
+  qrDescription,
+}: PetBioViewProps) {
   useEffect(() => {
     if (pet.meta?.title) {
       document.title = pet.meta.title;
@@ -86,6 +99,14 @@ export function PetBioView({ pet, notice }: PetBioViewProps) {
             >
               {pet.owner.displayName || "Foster profile"}
             </Link>
+            <p>
+              <Link
+                href={fosterMeHref(ownerRef)}
+                className="text-primary text-xs hover:underline"
+              >
+                See who they’re fostering now
+              </Link>
+            </p>
           </div>
         </section>
       ) : null}
@@ -112,10 +133,14 @@ export function PetBioView({ pet, notice }: PetBioViewProps) {
         </section>
       ) : null}
 
-      <PetQrDownload
-        petId={pet.id}
-        petName={pet.name}
-        ownerIdOrHandle={ownerRef}
+      <ShareQrDownload
+        href={qrHref ?? petHref(ownerRef, pet.id)}
+        description={
+          qrDescription ??
+          "Print this on a tag or flyer. Scanning it opens this bio page."
+        }
+        downloadName={pet.name}
+        imageAlt={`QR code for ${pet.name}`}
       />
 
       <InquiryForm targetUserId={pet.ownerId} targetPetId={pet.id} />

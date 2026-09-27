@@ -6,6 +6,42 @@ export function normalizeHandleInput(raw: string): string {
   return raw.trim().replace(/^@+/, "").toLowerCase();
 }
 
+export type HandleEditKind = "none" | "claim" | "rename" | "clear";
+
+export type HandleEditDelta = {
+  next: string | null;
+  changed: boolean;
+  kind: HandleEditKind;
+};
+
+/** Compare a draft handle field to the stored slug. */
+export function handleEditDelta(
+  current: string | null | undefined,
+  draft: string,
+): HandleEditDelta {
+  const nextRaw = normalizeHandleInput(draft);
+  const next = nextRaw || null;
+  const prev = current || null;
+  if (next === prev) return { next, changed: false, kind: "none" };
+  if (!prev && next) return { next, changed: true, kind: "claim" };
+  if (prev && !next) return { next, changed: true, kind: "clear" };
+  return { next, changed: true, kind: "rename" };
+}
+
+export function handleEditConfirmMessage(
+  kind: HandleEditKind,
+  current: string | null | undefined,
+  next: string | null,
+): string | null {
+  if (kind === "clear" && current) {
+    return `/@${current} will stop working. Clear this handle?`;
+  }
+  if (kind === "rename" && current && next) {
+    return `/@${current} will stop working. Change it to /@${next}?`;
+  }
+  return null;
+}
+
 export function handleHref(handleOrId: string): string {
   const raw = handleOrId.replace(/^@+/, "");
   return `/@${raw}`;

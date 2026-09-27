@@ -112,6 +112,9 @@ describe("FosterMePage", () => {
     expect(
       screen.queryByText(/may not be who Alex Foster is fostering/i),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/always opens whoever this foster is listing now/i),
+    ).toBeInTheDocument();
   });
 
   it("shows a fallback notice when the latest pet is not actively fostering", () => {
@@ -166,6 +169,9 @@ describe("FosterMePage", () => {
       "href",
       "/search",
     );
+    expect(
+      screen.getByText(/always opens whoever this foster is listing now/i),
+    ).toBeInTheDocument();
   });
 
   it("shows a pets-list error instead of the empty roster copy", () => {

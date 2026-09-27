@@ -50,13 +50,13 @@ todos:
     status: completed
   - id: followup-rename-clear
     content: "Defer — decide unclaim/rename UX; don't send handle unless dirty; confirm before releasing a live slug"
-    status: pending
+    status: completed
   - id: followup-foster-me-entry
     content: "Defer — foster-me has no in-app link, e2e, or private-beta checklist row"
-    status: pending
+    status: completed
   - id: followup-foster-me-qr
     content: "Defer — FosterMePage reuses PetBioView QR, which encodes the pet permalink instead of /@handle/foster-me"
-    status: pending
+    status: completed
   - id: followup-foster-me-errors
     content: "Defer — foster-me treats a failed pets list as empty roster and has no usePet error branch"
     status: completed

@@ -86,6 +86,9 @@ describe("PetBioPage", () => {
       "href",
       "/@owner-1",
     );
+    expect(
+      screen.getByRole("link", { name: /see who they’re fostering now/i }),
+    ).toHaveAttribute("href", "/@owner-1/foster-me");
     expect(screen.getByRole("form", { name: "Contact the foster" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "QR code" })).toBeInTheDocument();
     expect(document.title).toBe("Mochi · Fosterfolio");

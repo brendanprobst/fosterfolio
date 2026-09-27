@@ -1,14 +1,22 @@
 "use client";
 
+import { ShareQrDownload } from "@client/components/ShareQrDownload";
 import { AppShell } from "@client/components/layout";
 import { useOwnerPets, usePet } from "@client/features/pets";
 import { useUser } from "@client/features/users";
-import { handleFromPathname, userProfileHref } from "@client/lib/userProfilePath";
 import { selectFosterMePet } from "@client/lib/selectFosterMePet";
+import {
+  fosterMeHref,
+  handleFromPathname,
+  userProfileHref,
+} from "@client/lib/userProfilePath";
 import { PetBioView } from "@client/pages/pets/PetBioView";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo } from "react";
+
+const FOSTER_ME_QR_DESCRIPTION =
+  "Print this on a tag or flyer. Scanning it always opens whoever this foster is listing now — not one specific pet.";
 
 /**
  * Stable "current foster" pointer. Resolves which pet to show on every load
@@ -41,6 +49,15 @@ export function FosterMePage() {
 
   const displayName = user?.displayName || "This foster";
   const pet = petQuery.data;
+  const fosterMePath = handle ? fosterMeHref(handle) : null;
+  const fosterMeQr = fosterMePath ? (
+    <ShareQrDownload
+      href={fosterMePath}
+      description={FOSTER_ME_QR_DESCRIPTION}
+      downloadName={handle ?? "foster-me"}
+      imageAlt="QR code for the current foster page"
+    />
+  ) : null;
 
   return (
     <AppShell>
@@ -84,6 +101,7 @@ export function FosterMePage() {
                 Browse other pets
               </Link>
             </p>
+            {fosterMeQr}
           </section>
         ) : null}
         {selectedId && petQuery.isLoading ? (
@@ -99,6 +117,8 @@ export function FosterMePage() {
         {pet && selection.kind === "fallback" ? (
           <PetBioView
             pet={pet}
+            qrHref={fosterMePath ?? undefined}
+            qrDescription={FOSTER_ME_QR_DESCRIPTION}
             notice={
               <p
                 className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm"
@@ -110,7 +130,13 @@ export function FosterMePage() {
             }
           />
         ) : null}
-        {pet && selection.kind === "active" ? <PetBioView pet={pet} /> : null}
+        {pet && selection.kind === "active" ? (
+          <PetBioView
+            pet={pet}
+            qrHref={fosterMePath ?? undefined}
+            qrDescription={FOSTER_ME_QR_DESCRIPTION}
+          />
+        ) : null}
       </main>
     </AppShell>
   );

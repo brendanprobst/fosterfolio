@@ -10,7 +10,11 @@ import { StarButton } from "@client/features/stars";
 import { useUser } from "@client/features/users";
 import { humanizeToken } from "@client/lib/humanizeToken";
 import { petHref } from "@client/lib/petBioPath";
-import { handleFromPathname, publicHandle } from "@client/lib/userProfilePath";
+import {
+  fosterMeHref,
+  handleFromPathname,
+  publicHandle,
+} from "@client/lib/userProfilePath";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
@@ -59,10 +63,23 @@ export function PublicProfilePage() {
                 <h1 className="text-3xl font-semibold tracking-tight">
                   {user.displayName || "Foster"}
                 </h1>
+                {user.handle ? (
+                  <p className="text-muted-foreground font-mono text-sm">
+                    @{user.handle}
+                  </p>
+                ) : null}
                 {location ? (
                   <p className="text-muted-foreground text-sm">{location}</p>
                 ) : null}
                 <StarButton userId={user.id} initialCount={user.starCount} />
+                <p>
+                  <Link
+                    href={fosterMeHref(publicHandle(user))}
+                    className="text-primary text-sm hover:underline"
+                  >
+                    See who they’re fostering now
+                  </Link>
+                </p>
               </div>
             </header>
             {user.bio ? <Markdown>{user.bio}</Markdown> : null}

@@ -80,4 +80,13 @@ describe("PublicProfilePage", () => {
     expect(screen.queryByLabelText("Profile picture")).not.toBeInTheDocument();
     expect(container.querySelector('input[type="file"]')).toBeNull();
   });
+
+  it("shows the handle and a foster-me link", () => {
+    renderWithQueryClient(<PublicProfilePage />);
+
+    expect(screen.getByText("@alex")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /see who they’re fostering now/i }),
+    ).toHaveAttribute("href", "/@alex/foster-me");
+  });
 });
