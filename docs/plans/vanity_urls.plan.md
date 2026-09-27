@@ -44,10 +44,10 @@ todos:
     status: completed
   - id: followup-handle-type
     content: "Defer — reject non-string handle in UserController (trim on a number 500s)"
-    status: pending
+    status: completed
   - id: followup-blocklist-copy
     content: "Defer — blocklisted handles should not reuse the format-error message"
-    status: pending
+    status: completed
   - id: followup-rename-clear
     content: "Defer — decide unclaim/rename UX; don't send handle unless dirty; confirm before releasing a live slug"
     status: pending
@@ -59,12 +59,12 @@ todos:
     status: pending
   - id: followup-foster-me-errors
     content: "Defer — foster-me treats a failed pets list as empty roster and has no usePet error branch"
-    status: pending
+    status: completed
   - id: followup-cloudfront-apply
     content: "Defer — terraform apply still required before /@… works on the live distribution; confirm sentinel @ encoding after first export"
     status: pending
   - id: followup-docs-tests
-    content: "Defer — swagger still says uuid on nested user routes; PUT-by-handle untested; profile e2e still facelift-era; private-beta.md still says [id]"
+    content: "Defer — profile e2e still facelift-era (swagger uuid copy, PUT-by-handle, and private-beta [id] leftover are done)"
     status: pending
 ---
 

@@ -25,6 +25,12 @@ export class UserErrors {
     400
   );
 
+  static readonly HANDLE_BLOCKLISTED = ResultError.create(
+    'HANDLE_BLOCKLISTED',
+    'That handle is reserved.',
+    400
+  );
+
   static readonly HANDLE_TAKEN = ResultError.create(
     'HANDLE_TAKEN',
     'That handle is already taken.',

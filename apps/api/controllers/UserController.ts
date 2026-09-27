@@ -58,6 +58,20 @@ export class UserController {
         });
         return;
       }
+      if (
+        'handle' in body &&
+        body.handle !== null &&
+        typeof body.handle !== 'string'
+      ) {
+        res.status(400).json({
+          error: {
+            status: 400,
+            code: 'USER_INVALID_INPUT',
+            message: 'handle must be a string or null',
+          },
+        });
+        return;
+      }
 
       const input: UpdateUserInput = {};
       if ('displayName' in body) input.displayName = body.displayName;

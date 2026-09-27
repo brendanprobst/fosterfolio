@@ -21,8 +21,11 @@ export function FosterMePage() {
   const petsQuery = useOwnerPets(handle);
   const user = userQuery.data;
   const selection = useMemo(
-    () => selectFosterMePet(petsQuery.data ?? []),
-    [petsQuery.data],
+    () =>
+      petsQuery.isSuccess
+        ? selectFosterMePet(petsQuery.data ?? [])
+        : { kind: "empty" as const },
+    [petsQuery.data, petsQuery.isSuccess],
   );
   const selectedId =
     selection.kind === "empty" ? null : selection.pet.id;
@@ -55,7 +58,14 @@ export function FosterMePage() {
               : "Failed to load profile."}
           </p>
         ) : null}
-        {handle && user && selection.kind === "empty" ? (
+        {handle && petsQuery.isError ? (
+          <p className="text-destructive text-sm">
+            {petsQuery.error instanceof Error
+              ? petsQuery.error.message
+              : "Failed to load pets."}
+          </p>
+        ) : null}
+        {handle && user && petsQuery.isSuccess && selection.kind === "empty" ? (
           <section className="space-y-3" aria-label="No foster listed">
             <h1 className="text-2xl font-semibold tracking-tight">
               {displayName} isn’t listed as fostering anyone right now.
@@ -78,6 +88,13 @@ export function FosterMePage() {
         ) : null}
         {selectedId && petQuery.isLoading ? (
           <p className="text-muted-foreground text-sm">Loading pet…</p>
+        ) : null}
+        {selectedId && petQuery.isError ? (
+          <p className="text-destructive text-sm">
+            {petQuery.error instanceof Error
+              ? petQuery.error.message
+              : "Failed to load pet."}
+          </p>
         ) : null}
         {pet && selection.kind === "fallback" ? (
           <PetBioView

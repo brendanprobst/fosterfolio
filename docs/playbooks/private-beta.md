@@ -85,4 +85,4 @@ The script only prints `status path`. It does not log tokens.
 5. Sign in with an **allowlisted** email; `/profile` edits and can create a pet.
 6. Sign-up with an email **not** on the list shows the approved-access message.
 
-Local `next dev` serves `[id]` directly; CloudFront is what needs the rewrite apply from §2.
+Local `next dev` serves `[handle]` / `/@handle` directly; CloudFront is what needs the rewrite apply from §2.

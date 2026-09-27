@@ -47,7 +47,7 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
+ *           description: User uuid or vanity handle
  *     responses:
  *       200:
  *         description: Pet list
@@ -64,7 +64,7 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
+ *           description: User uuid or vanity handle
  *     responses:
  *       200:
  *         description: Post list
@@ -79,7 +79,7 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
+ *           description: User uuid or vanity handle
  *     responses:
  *       200:
  *         description: Already starred
@@ -96,7 +96,7 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
+ *           description: User uuid or vanity handle
  *     responses:
  *       200:
  *         description: '{ starCount: number }'

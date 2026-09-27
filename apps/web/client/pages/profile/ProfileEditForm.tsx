@@ -7,6 +7,7 @@ import { Label } from "@client/components/ui/label";
 import { Textarea } from "@client/components/ui/textarea";
 import { useUpdateUserMutation } from "@client/features/users";
 import type { UserOwner } from "@client/features/users";
+import { normalizeHandleInput } from "@client/lib/userProfilePath";
 import { FormEvent, useState } from "react";
 
 type ProfileEditFormProps = {
@@ -69,10 +70,11 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
+          maxLength={30}
           placeholder="your-name"
         />
         <p className="text-muted-foreground text-xs">
-          Public URL: /@{handle.trim() || "your-name"}
+          Public URL: /@{normalizeHandleInput(handle) || "your-name"}
         </p>
       </div>
       <div className="space-y-1.5">

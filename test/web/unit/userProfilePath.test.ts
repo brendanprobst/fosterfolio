@@ -3,6 +3,7 @@ import {
   fosterMeHref,
   handleFromPathname,
   handleHref,
+  normalizeHandleInput,
   publicHandle,
   userProfileHref,
 } from "@client/lib/userProfilePath";
@@ -14,6 +15,12 @@ describe("handle paths", () => {
     expect(handleHref("@brendan")).toBe("/@brendan");
     expect(userProfileHref("abc")).toBe("/@abc");
     expect(fosterMeHref("brendan")).toBe("/@brendan/foster-me");
+  });
+
+  it("normalizes handle input the same way the API stores it", () => {
+    expect(normalizeHandleInput(" Brendan ")).toBe("brendan");
+    expect(normalizeHandleInput("@Brendan")).toBe("brendan");
+    expect(normalizeHandleInput("")).toBe("");
   });
 
   it("prefers a claimed handle over the uuid", () => {

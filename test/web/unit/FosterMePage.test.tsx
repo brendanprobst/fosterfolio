@@ -96,6 +96,8 @@ describe("FosterMePage", () => {
     vi.mocked(useOwnerPets).mockReturnValue({
       data: [active],
       isLoading: false,
+      isSuccess: true,
+      isError: false,
     } as ReturnType<typeof useOwnerPets>);
     vi.mocked(usePet).mockReturnValue({
       data: active,
@@ -117,6 +119,8 @@ describe("FosterMePage", () => {
     vi.mocked(useOwnerPets).mockReturnValue({
       data: [adopted],
       isLoading: false,
+      isSuccess: true,
+      isError: false,
     } as ReturnType<typeof useOwnerPets>);
     vi.mocked(usePet).mockReturnValue({
       data: adopted,
@@ -137,6 +141,8 @@ describe("FosterMePage", () => {
     vi.mocked(useOwnerPets).mockReturnValue({
       data: [],
       isLoading: false,
+      isSuccess: true,
+      isError: false,
     } as ReturnType<typeof useOwnerPets>);
     vi.mocked(usePet).mockReturnValue({
       data: undefined,
@@ -160,5 +166,51 @@ describe("FosterMePage", () => {
       "href",
       "/search",
     );
+  });
+
+  it("shows a pets-list error instead of the empty roster copy", () => {
+    vi.mocked(useOwnerPets).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isSuccess: false,
+      isError: true,
+      error: new Error("Pets unavailable"),
+    } as ReturnType<typeof useOwnerPets>);
+    vi.mocked(usePet).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof usePet>);
+
+    renderWithQueryClient(<FosterMePage />);
+
+    expect(screen.getByText("Pets unavailable")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", {
+        name: /isn’t listed as fostering anyone right now/i,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a selected-pet error instead of a blank main", () => {
+    const active = pet();
+    vi.mocked(useOwnerPets).mockReturnValue({
+      data: [active],
+      isLoading: false,
+      isSuccess: true,
+      isError: false,
+    } as ReturnType<typeof useOwnerPets>);
+    vi.mocked(usePet).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error("Failed to load pet."),
+    } as ReturnType<typeof usePet>);
+
+    renderWithQueryClient(<FosterMePage />);
+
+    expect(screen.getByText("Failed to load pet.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Mochi" })).not.toBeInTheDocument();
   });
 });

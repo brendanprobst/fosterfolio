@@ -45,7 +45,11 @@ export class UpdateUserUseCase {
         } else {
           const parsed = UserHandle.parse(nextHandle);
           if (!parsed.ok) {
-            return Result.failure(ErrorCatalog.HANDLE_INVALID);
+            return Result.failure(
+              parsed.reason === 'blocklisted'
+                ? ErrorCatalog.HANDLE_BLOCKLISTED
+                : ErrorCatalog.HANDLE_INVALID
+            );
           }
           const taken = await this.userRepository.isHandleTaken(
             parsed.handle.value,

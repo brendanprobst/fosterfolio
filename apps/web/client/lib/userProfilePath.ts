@@ -1,6 +1,11 @@
 import { USER_PROFILE_SENTINEL_ID } from "@client/lib/constants/userProfileSentinel";
 import { normalizeAppPathname } from "@client/lib/normalizeAppPathname";
 
+/** Same normalize as the API `UserHandle.normalize` — trim, strip @, lowercase. */
+export function normalizeHandleInput(raw: string): string {
+  return raw.trim().replace(/^@+/, "").toLowerCase();
+}
+
 export function handleHref(handleOrId: string): string {
   const raw = handleOrId.replace(/^@+/, "");
   return `/@${raw}`;

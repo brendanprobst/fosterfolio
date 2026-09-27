@@ -254,7 +254,48 @@ describe('Users API', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ handle: 'Admin' })
       .expect(400);
-    expect(blocklisted.body.error.code).toBe('HANDLE_INVALID');
+    expect(blocklisted.body.error.code).toBe('HANDLE_BLOCKLISTED');
+    expect(blocklisted.body.error.message).toMatch(/reserved/i);
+  });
+
+  it('PUT /users/:id rejects a non-string handle', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+
+    const res = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ handle: 1 })
+      .expect(400);
+    expect(res.body.error.code).toBe('USER_INVALID_INPUT');
+  });
+
+  it('PUT /users/:id by handle updates the owner and forbids others', async () => {
+    const { app, container } = createTestAppWithContainer();
+    const user = container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      handle: 'brendan',
+    });
+    await container.userRepository.save(user);
+    container.seedUser({ id: otherId, email: 'other@example.com' });
+
+    const ownerToken = await createAuthToken(ownerId, 'owner@example.com');
+    const own = await request(app)
+      .put('/users/brendan')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ displayName: 'Brendan' })
+      .expect(200);
+    expect(own.body).toMatchObject({ id: ownerId, handle: 'brendan', displayName: 'Brendan' });
+
+    const otherToken = await createAuthToken(otherId, 'other@example.com');
+    const forbidden = await request(app)
+      .put('/users/brendan')
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ displayName: 'Nope' })
+      .expect(403);
+    expect(forbidden.body.error.code).toBe('USER_FORBIDDEN');
   });
 
   it('an avatar-only PUT leaves the handle untouched', async () => {

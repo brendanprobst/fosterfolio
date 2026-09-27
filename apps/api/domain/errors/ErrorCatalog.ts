@@ -21,6 +21,7 @@ export class ErrorCatalog {
   static readonly USER_FORBIDDEN = UserErrors.FORBIDDEN;
   static readonly USER_INVALID_INPUT = UserErrors.INVALID_INPUT;
   static readonly HANDLE_INVALID = UserErrors.HANDLE_INVALID;
+  static readonly HANDLE_BLOCKLISTED = UserErrors.HANDLE_BLOCKLISTED;
   static readonly HANDLE_TAKEN = UserErrors.HANDLE_TAKEN;
 
   static readonly PET_NOT_FOUND = PetErrors.NOT_FOUND;
