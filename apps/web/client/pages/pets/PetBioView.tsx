@@ -1,44 +1,29 @@
 "use client";
 
-import { ShareQrDownload } from "@client/components/ShareQrDownload";
 import { Badge } from "@client/components/ui/badge";
 import { Markdown } from "@client/components/markdown";
-import { InquiryForm } from "@client/features/inquiries";
 import type { PetPublic } from "@client/features/pets";
 import { humanizeToken } from "@client/lib/humanizeToken";
-import { petHref } from "@client/lib/petBioPath";
-import { fosterMeHref, publicHandle } from "@client/lib/userProfilePath";
-import Link from "next/link";
-import { ReactNode, useEffect } from "react";
-import { FosteredBy } from "./FosteredBy";
+import { useEffect } from "react";
 
 type PetBioViewProps = {
   pet: PetPublic;
-  notice?: ReactNode;
-  /** When set, the QR encodes this path instead of the pet permalink. */
-  qrHref?: string;
-  qrDescription?: string;
-  /**
-   * Inline QR + inquiry for pages that do not host a sidebar (foster-me).
-   * Pet bio uses a sidebar and passes false.
-   */
-  embedActions?: boolean;
+  /** Foster-me keeps its own document title. */
+  setDocumentTitle?: boolean;
 };
 
 export function PetBioView({
   pet,
-  notice,
-  qrHref,
-  qrDescription,
-  embedActions = true,
+  setDocumentTitle = true,
 }: PetBioViewProps) {
   useEffect(() => {
+    if (!setDocumentTitle) return;
     if (pet.meta?.title) {
       document.title = pet.meta.title;
       return;
     }
     document.title = "Fosterfolio";
-  }, [pet.meta?.title]);
+  }, [pet.meta?.title, setDocumentTitle]);
 
   const facts = [
     pet.species,
@@ -48,11 +33,8 @@ export function PetBioView({
     pet.size,
   ].filter((item): item is string => !!item);
 
-  const ownerRef = pet.owner ? publicHandle(pet.owner) : pet.ownerId;
-
   return (
     <>
-      {notice}
       <header className="space-y-4">
         {pet.primaryPhotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- static export; absolute Supabase URLs
@@ -103,24 +85,6 @@ export function PetBioView({
         </div>
       </header>
 
-      {embedActions && pet.owner ? (
-        <div className="space-y-1">
-          <FosteredBy
-            name={pet.owner.displayName || "Foster profile"}
-            avatarUrl={pet.owner.avatarUrl}
-            ownerRef={ownerRef}
-          />
-          <p>
-            <Link
-              href={fosterMeHref(ownerRef)}
-              className="text-primary text-xs hover:underline"
-            >
-              See who they’re fostering now
-            </Link>
-          </p>
-        </div>
-      ) : null}
-
       {pet.bioMarkdown ? <Markdown>{pet.bioMarkdown}</Markdown> : null}
 
       {pet.importantLinks.length > 0 ? (
@@ -141,21 +105,6 @@ export function PetBioView({
             ))}
           </ul>
         </section>
-      ) : null}
-
-      {embedActions ? (
-        <>
-          <ShareQrDownload
-            href={qrHref ?? petHref(ownerRef, pet.id)}
-            description={
-              qrDescription ??
-              "Print this on a tag or flyer. Scanning it opens this bio page."
-            }
-            downloadName={pet.name}
-            imageAlt={`QR code for ${pet.name}`}
-          />
-          <InquiryForm targetUserId={pet.ownerId} targetPetId={pet.id} />
-        </>
       ) : null}
 
       {pet.updates.length > 0 ? (

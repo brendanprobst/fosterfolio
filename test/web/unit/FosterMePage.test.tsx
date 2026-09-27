@@ -7,7 +7,12 @@ import { FosterMePage } from "@client/pages/users";
 import { screen } from "@testing-library/react";
 import { usePathname } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { authLoggedOut, renderWithQueryClient } from "./support/renderWithProviders";
+import type { User } from "@supabase/supabase-js";
+import {
+  authLoggedOut,
+  authSignedIn,
+  renderWithQueryClient,
+} from "./support/renderWithProviders";
 
 vi.mock("@client/auth", () => ({
   useAuth: vi.fn(),
@@ -109,12 +114,21 @@ describe("FosterMePage", () => {
     renderWithQueryClient(<FosterMePage />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Mochi" })).toBeInTheDocument();
+    expect(screen.getByText("Fostered by")).toBeInTheDocument();
+    expect(screen.getByText("Actively fostering Mochi")).toBeInTheDocument();
     expect(
       screen.queryByText(/may not be who Alex Foster is fostering/i),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/always opens whoever this foster is listing now/i),
-    ).toBeInTheDocument();
+      screen.queryByRole("link", { name: /see who they’re fostering now/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
+    expect(
+      screen.queryByText(/always opens whoever this foster is listing now/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/"Foster Me" Link/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/flyer QR stays on/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Edit Mochi's bio")).not.toBeInTheDocument();
   });
 
   it("shows a fallback notice when the latest pet is not actively fostering", () => {
@@ -138,6 +152,40 @@ describe("FosterMePage", () => {
       /may not be who Alex Foster is fostering right now/i,
     );
     expect(screen.getByRole("heading", { level: 1, name: "Mochi" })).toBeInTheDocument();
+    expect(screen.queryByText("Actively fostering Mochi")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /see who they’re fostering now/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
+    expect(
+      screen.queryByText(/always opens whoever this foster is listing now/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the inquiry form from the owning foster", () => {
+    const active = pet();
+    vi.mocked(useAuth).mockReturnValue(
+      authSignedIn({ id: "owner-1", email: "alex@example.com" } as User),
+    );
+    vi.mocked(useOwnerPets).mockReturnValue({
+      data: [active],
+      isLoading: false,
+      isSuccess: true,
+      isError: false,
+    } as ReturnType<typeof useOwnerPets>);
+    vi.mocked(usePet).mockReturnValue({
+      data: active,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof usePet>);
+
+    renderWithQueryClient(<FosterMePage />);
+
+    expect(screen.queryByRole("button", { name: "Expand" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/always opens whoever this foster is listing now/i),
+    ).toBeInTheDocument();
   });
 
   it("shows an empty state with profile and search links when there are no pets", () => {
@@ -170,8 +218,8 @@ describe("FosterMePage", () => {
       "/search",
     );
     expect(
-      screen.getByText(/always opens whoever this foster is listing now/i),
-    ).toBeInTheDocument();
+      screen.queryByText(/always opens whoever this foster is listing now/i),
+    ).not.toBeInTheDocument();
   });
 
   it("shows a pets-list error instead of the empty roster copy", () => {

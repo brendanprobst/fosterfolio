@@ -55,7 +55,7 @@ export function PetBioPage() {
               />
             }
           >
-            <PetBioView pet={pet} embedActions={false} />
+            <PetBioView pet={pet} />
           </PageWithSidebar>
         ) : null}
       </main>
