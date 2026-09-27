@@ -46,6 +46,7 @@ export function seedFosterfolioE2eData(input: {
   const user = new User({
     id: E2E_SEED.userId,
     email: E2E_SEED.userEmail,
+    handle: null,
     displayName: E2E_SEED.userDisplayName,
     avatarUrl: null,
     bio: 'Foster parent in the Playwright seed.',

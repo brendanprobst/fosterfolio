@@ -23,6 +23,7 @@ export class GetPetUseCase {
         const publicOwner = ownerUser.toPublicDto();
         owner = {
           id: publicOwner.id,
+          handle: publicOwner.handle,
           displayName: publicOwner.displayName,
           avatarUrl: publicOwner.avatarUrl,
         };

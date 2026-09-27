@@ -1,13 +1,16 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { PET_BIO_SENTINEL_ID } from "@client/lib/constants/petBioSentinel";
+import {
+  HANDLE_SENTINEL_SEGMENT,
+  PET_BIO_SENTINEL_ID,
+} from "@client/lib/constants/petBioSentinel";
 
 /**
  * Smoke-check the CloudFront viewer-request function source stays aligned with
  * the web sentinel id (runtime is cloudfront-js; we eval a tiny wrapper).
  */
-describe("CloudFront pet bio rewrite", () => {
+describe("CloudFront vanity URL rewrite", () => {
   const source = readFileSync(
     resolve(
       __dirname,
@@ -28,19 +31,24 @@ describe("CloudFront pet bio rewrite", () => {
     expect(source).toContain(PET_BIO_SENTINEL_ID);
   });
 
-  it("rewrites /pets/{uuid} to the sentinel object", () => {
-    expect(rewrite("/pets/11111111-1111-1111-1111-111111111111")).toBe(
-      `/pets/${PET_BIO_SENTINEL_ID}.html`,
+  it("rewrites /@handle to the profile sentinel", () => {
+    expect(rewrite("/@brendan")).toBe(`/${HANDLE_SENTINEL_SEGMENT}.html`);
+  });
+
+  it("rewrites /@handle/foster-me to the foster-me sentinel", () => {
+    expect(rewrite("/@brendan/foster-me")).toBe(
+      `/${HANDLE_SENTINEL_SEGMENT}/foster-me.html`,
     );
   });
 
-  it("rewrites /users/{uuid} to the sentinel object", () => {
-    expect(rewrite("/users/11111111-1111-1111-1111-111111111111")).toBe(
-      `/users/${PET_BIO_SENTINEL_ID}.html`,
+  it("rewrites /@handle/pet/{id} to the pet sentinel", () => {
+    expect(rewrite("/@brendan/pet/11111111-1111-1111-1111-111111111111")).toBe(
+      `/${HANDLE_SENTINEL_SEGMENT}/pet/${PET_BIO_SENTINEL_ID}.html`,
     );
   });
 
-  it("still maps ordinary extensionless routes to .html", () => {
+  it("leaves static product routes untouched by the handle family", () => {
+    expect(rewrite("/search")).toBe("/search.html");
     expect(rewrite("/profile")).toBe("/profile.html");
   });
 });

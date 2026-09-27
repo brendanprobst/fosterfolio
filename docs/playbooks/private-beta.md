@@ -1,6 +1,6 @@
 # Private beta (Checkpoint 7)
 
-Fosterfolio launches as a **private beta**: authenticated writes are allowlisted, SES stays in sandbox / `EMAIL_PROVIDER=log`, and `/pets/{uuid}` plus `/users/{uuid}` deep links need the CloudFront viewer-request rewrite applied.
+Fosterfolio launches as a **private beta**: authenticated writes are allowlisted, SES stays in sandbox / `EMAIL_PROVIDER=log`, and `/@handle` plus `/@handle/pet/{id}` deep links need the CloudFront viewer-request rewrite applied.
 
 This playbook is the operator half. Repo-side pieces (Playwright product specs, `npm run smoke`, Terraform default `email_allowlist_enabled = true`, SSM parameter names on the API Lambda) ship in git. **`terraform apply` and the Supabase SQL below change live systems** — run them from a machine with AWS + Supabase credentials when you are ready.
 
@@ -49,7 +49,7 @@ What apply does that beta depends on:
 |---|---|
 | SSM `/{project}-{env}/supabase/*` | Lambda reads `SUPABASE_URL` / service role at boot (`apps/api/lambda.ts`) |
 | `EMAIL_ALLOWLIST_ENABLED=true` on the API Lambda | API gate matches the DB flag |
-| CloudFront function | `/pets/{uuid}` and `/users/{uuid}` serve the static-export sentinels while the browser URL stays intact |
+| CloudFront function | `/@handle`, `/@handle/foster-me`, and `/@handle/pet/{id}` serve the static-export sentinels while the browser URL stays intact |
 
 Confirm after apply: **Lambda → Configuration → Environment variables** shows `EMAIL_ALLOWLIST_ENABLED=true`, `SUPABASE_URL_PARAM`, and `SUPABASE_SERVICE_ROLE_KEY_PARAM`.
 
@@ -57,7 +57,7 @@ Do **not** commit `terraform.tfvars` or `.env` files.
 
 ## 3. Local / CI product smoke (no AWS)
 
-Playwright starts in-memory API + Next with a synthetic JWT and `LATTICE_E2E=1` (seeds Alex / Mochi). `next dev` omits `output: "export"` so `/pets/{uuid}` and `/users/{uuid}` resolve without CloudFront; `next build` still exports the sentinel pages.
+Playwright starts in-memory API + Next with a synthetic JWT and `LATTICE_E2E=1` (seeds Alex / Mochi). `next dev` omits `output: "export"` so `/@handle` and `/@handle/pet/{uuid}` resolve without CloudFront; `next build` still exports the sentinel pages.
 
 ```bash
 npx playwright install chromium   # once
@@ -80,8 +80,8 @@ The script only prints `status path`. It does not log tokens.
 
 1. `/` feed loads.
 2. `/search?q=` finds a known pet or foster.
-3. `/pets/{uuid}` (paste a real id, not `?id=`) shows bio, QR, inquiry.
-4. `/users/{uuid}` shows the public profile + star.
+3. `/@{handle}/pet/{uuid}` (uuid fallback `/@{userId}/pet/{uuid}` is fine) shows bio, QR, inquiry.
+4. `/@{handle}` shows the public profile + star.
 5. Sign in with an **allowlisted** email; `/profile` edits and can create a pet.
 6. Sign-up with an email **not** on the list shows the approved-access message.
 

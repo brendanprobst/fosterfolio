@@ -2,6 +2,7 @@ export type SocialLink = { label: string; url: string };
 
 export type UserPublic = {
   id: string;
+  handle: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   bio: string | null;
@@ -27,6 +28,7 @@ export type UserProfileUpdate = {
   zipCode?: string | null;
   socialLinks?: SocialLink[] | null;
   sheltersText?: string | null;
+  handle?: string | null;
 };
 
 export function isUserOwner(user: UserPublic | UserOwner): user is UserOwner {

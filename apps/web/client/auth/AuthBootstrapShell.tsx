@@ -11,8 +11,8 @@ function isSessionBootstrapNonBlocking(pathname: string): boolean {
   if (pathname === "/" || pathname === "/ui") {
     return true;
   }
-  // Public pet bios must render without waiting on Supabase session restore.
-  if (pathname === "/pets" || pathname.startsWith("/pets/")) {
+  // Public vanity routes must render without waiting on Supabase session restore.
+  if (pathname.startsWith("/@")) {
     return true;
   }
   return pathname.startsWith("/auth/");

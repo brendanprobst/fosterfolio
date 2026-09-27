@@ -9,15 +9,15 @@ import { PostCard, useAuthorPosts } from "@client/features/posts";
 import { StarButton } from "@client/features/stars";
 import { useUser } from "@client/features/users";
 import { humanizeToken } from "@client/lib/humanizeToken";
-import { petBioHref } from "@client/lib/petBioPath";
-import { userIdFromPathname } from "@client/lib/userProfilePath";
+import { petHref } from "@client/lib/petBioPath";
+import { handleFromPathname, publicHandle } from "@client/lib/userProfilePath";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 export function PublicProfilePage() {
   const pathname = usePathname();
-  const userId = userIdFromPathname(pathname);
+  const userId = handleFromPathname(pathname);
   const userQuery = useUser(userId);
   const petsQuery = useOwnerPets(userId);
   const postsQuery = useAuthorPosts(userId);
@@ -98,7 +98,7 @@ export function PublicProfilePage() {
                   {(petsQuery.data ?? []).map((pet) => (
                     <li key={pet.id}>
                       <Link
-                        href={petBioHref(pet.id)}
+                        href={petHref(publicHandle(user), pet.id)}
                         className="border-border hover:bg-muted/40 block overflow-hidden rounded-lg border"
                       >
                         {pet.primaryPhotoUrl ? (

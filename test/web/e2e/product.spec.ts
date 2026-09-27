@@ -21,18 +21,18 @@ test.describe("Fosterfolio product smoke", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Search" })).toBeVisible();
     await expect(
       page.getByRole("link", { name: new RegExp(E2E_SEED.petName, "i") }),
-    ).toHaveAttribute("href", `/pets/${E2E_SEED.petId}`);
+    ).toHaveAttribute("href", `/@${E2E_SEED.userId}/pet/${E2E_SEED.petId}`);
 
     await page.goto(`/search?q=${encodeURIComponent("Alex")}`);
     await expect(
       page.getByRole("link", { name: new RegExp(E2E_SEED.userDisplayName, "i") }),
-    ).toHaveAttribute("href", `/users/${E2E_SEED.userId}`);
+    ).toHaveAttribute("href", `/@${E2E_SEED.userId}`);
   });
 
   test("pet bio loads from the pathname, sets title, and shows inquiry + QR", async ({
     page,
   }) => {
-    await page.goto(`/pets/${E2E_SEED.petId}`);
+    await page.goto(`/@${E2E_SEED.userId}/pet/${E2E_SEED.petId}`);
     await expect(
       page.getByRole("heading", { level: 1, name: E2E_SEED.petName }),
     ).toBeVisible();
@@ -42,7 +42,7 @@ test.describe("Fosterfolio product smoke", () => {
   });
 
   test("public profile shows star control and pets", async ({ page }) => {
-    await page.goto(`/users/${E2E_SEED.userId}`);
+    await page.goto(`/@${E2E_SEED.userId}`);
     await expect(
       page.getByRole("heading", { level: 1, name: E2E_SEED.userDisplayName }),
     ).toBeVisible();
@@ -51,7 +51,7 @@ test.describe("Fosterfolio product smoke", () => {
   });
 
   test("inquiry form on the bio page shows success after submit", async ({ page }) => {
-    await page.goto(`/pets/${E2E_SEED.petId}`);
+    await page.goto(`/@${E2E_SEED.userId}/pet/${E2E_SEED.petId}`);
     await page.getByLabel("Your name").fill("Jamie");
     await page.getByLabel("Your email").fill("jamie@example.com");
     await page.getByLabel("Message").fill("Can I meet Mochi this weekend?");

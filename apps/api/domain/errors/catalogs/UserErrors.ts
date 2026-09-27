@@ -18,4 +18,16 @@ export class UserErrors {
     'Please provide a valid profile update.',
     400
   );
+
+  static readonly HANDLE_INVALID = ResultError.create(
+    'HANDLE_INVALID',
+    'Handles must be 3–30 characters: start and end with a letter or number, and use only lowercase letters, numbers, underscores, or hyphens.',
+    400
+  );
+
+  static readonly HANDLE_TAKEN = ResultError.create(
+    'HANDLE_TAKEN',
+    'That handle is already taken.',
+    409
+  );
 }

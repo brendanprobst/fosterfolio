@@ -15,9 +15,9 @@ import { Separator } from "@client/components/ui/separator";
 import { useOwnerPets, type PetPublic } from "@client/features/pets";
 import { useOwnUser } from "@client/features/users";
 import { humanizeToken } from "@client/lib/humanizeToken";
-import { petBioHref } from "@client/lib/petBioPath";
+import { petHref } from "@client/lib/petBioPath";
 import { cn } from "@client/lib/utils";
-import { userProfileHref } from "@client/lib/userProfilePath";
+import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
 import { ExternalLink, Eye, Info, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -73,7 +73,7 @@ export function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <Link
-                  href={userProfileHref(user.id)}
+                  href={userProfileHref(publicHandle(profile ?? user))}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
                     "w-full",
@@ -178,7 +178,7 @@ export function ProfilePage() {
                         </div>
                         <div className="flex flex-wrap gap-1">
                           <Link
-                            href={petBioHref(pet.id)}
+                            href={petHref(publicHandle(profile ?? user), pet.id)}
                             className={cn(
                               buttonVariants({ variant: "ghost", size: "sm" }),
                             )}

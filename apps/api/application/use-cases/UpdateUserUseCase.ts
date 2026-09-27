@@ -1,7 +1,9 @@
+import { resolveUser } from '@api/application/resolveUser';
 import type { SocialLink, UserOwnerDto } from '@api/domain/entities/User';
 import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
+import { UserHandle } from '@api/domain/value-objects/UserHandle';
 import type { GeoLookupAdapter } from '@api/infrastructure/adapters/geo/GeoLookupAdapter';
 
 export type UpdateUserInput = {
@@ -11,6 +13,7 @@ export type UpdateUserInput = {
   zipCode?: string | null;
   socialLinks?: SocialLink[] | null;
   sheltersText?: string | null;
+  handle?: string | null;
 };
 
 export class UpdateUserUseCase {
@@ -24,18 +27,38 @@ export class UpdateUserUseCase {
     targetId: string,
     input: UpdateUserInput
   ): Promise<Result<UserOwnerDto>> {
-    if (actorId !== targetId) {
-      return Result.failure(ErrorCatalog.USER_FORBIDDEN);
-    }
-
     try {
-      const user = await this.userRepository.findById(targetId);
+      const user = await resolveUser(this.userRepository, targetId);
       if (!user) {
         return Result.failure(ErrorCatalog.USER_NOT_FOUND);
       }
+      if (actorId !== user.id) {
+        return Result.failure(ErrorCatalog.USER_FORBIDDEN);
+      }
+
+      const { handle: nextHandle, ...profileInput } = input;
+
+      if (nextHandle !== undefined) {
+        if (nextHandle === null || nextHandle.trim() === '') {
+          user.applyProfileUpdate({ handle: null });
+        } else {
+          const parsed = UserHandle.parse(nextHandle);
+          if (!parsed.ok) {
+            return Result.failure(ErrorCatalog.HANDLE_INVALID);
+          }
+          const taken = await this.userRepository.isHandleTaken(
+            parsed.handle.value,
+            user.id
+          );
+          if (taken) {
+            return Result.failure(ErrorCatalog.HANDLE_TAKEN);
+          }
+          user.applyProfileUpdate({ handle: parsed.handle.value });
+        }
+      }
 
       const previousZip = user.zipCode;
-      user.applyProfileUpdate(input);
+      user.applyProfileUpdate(profileInput);
 
       if (input.zipCode !== undefined) {
         const nextZip = input.zipCode?.trim() || null;
@@ -58,7 +81,7 @@ export class UpdateUserUseCase {
       }
 
       await this.userRepository.save(user);
-      const starCount = await this.userRepository.countStars(targetId);
+      const starCount = await this.userRepository.countStars(user.id);
       return Result.success(user.toOwnerDto(starCount));
     } catch {
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);

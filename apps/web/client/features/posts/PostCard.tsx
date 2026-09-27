@@ -1,7 +1,7 @@
 "use client";
 
 import { Markdown } from "@client/components/markdown";
-import { petBioHref } from "@client/lib/petBioPath";
+import { petHref } from "@client/lib/petBioPath";
 import { userProfileHref } from "@client/lib/userProfilePath";
 import type { PostPublic } from "./types";
 import Link from "next/link";
@@ -12,7 +12,7 @@ type PostCardProps = {
 
 export function PostCard({ post }: PostCardProps) {
   const isPetUpdate = post.postType === "pet_update";
-  const petHref = post.petId ? petBioHref(post.petId) : null;
+  const petLink = post.petId ? petHref(post.authorId, post.petId) : null;
 
   return (
     <article className="border-border space-y-3 border-t pt-4">
@@ -28,8 +28,8 @@ export function PostCard({ post }: PostCardProps) {
           ) : null}
           <div className="min-w-0">
             <p className="text-sm font-medium">
-              {petHref ? (
-                <Link href={petHref} className="text-primary hover:underline">
+              {petLink ? (
+                <Link href={petLink} className="text-primary hover:underline">
                   {post.petName}
                 </Link>
               ) : (

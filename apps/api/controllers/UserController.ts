@@ -66,6 +66,7 @@ export class UserController {
       if ('zipCode' in body) input.zipCode = body.zipCode;
       if ('socialLinks' in body) input.socialLinks = body.socialLinks;
       if ('sheltersText' in body) input.sheltersText = body.sheltersText;
+      if ('handle' in body) input.handle = body.handle;
 
       const result = await this.container
         .getUpdateUserUseCase()

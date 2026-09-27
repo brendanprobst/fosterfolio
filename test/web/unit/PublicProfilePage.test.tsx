@@ -34,6 +34,7 @@ vi.mock("@client/features/posts", async (importOriginal) => {
 
 const user: UserPublic = {
   id: "owner-1",
+  handle: "alex",
   displayName: "Alex Foster",
   avatarUrl: "https://cdn.example.com/alex.jpg",
   bio: null,
@@ -49,7 +50,7 @@ describe("PublicProfilePage", () => {
   beforeEach(() => {
     // Signed in: the owner's own picture controls still must not appear here.
     vi.mocked(useAuth).mockReturnValue(authSignedIn());
-    vi.mocked(usePathname).mockReturnValue("/users/owner-1");
+    vi.mocked(usePathname).mockReturnValue("/@alex");
     vi.mocked(useUser).mockReturnValue({
       data: user,
       isLoading: false,

@@ -34,7 +34,12 @@ const petId = "11111111-1111-1111-1111-111111111111";
 const pet: PetPublic = {
   id: petId,
   ownerId: "owner-1",
-  owner: { id: "owner-1", displayName: "Alex Foster", avatarUrl: null },
+  owner: {
+    id: "owner-1",
+    handle: null,
+    displayName: "Alex Foster",
+    avatarUrl: null,
+  },
   name: "Mochi",
   species: "dog",
   breed: "mutt",
@@ -62,7 +67,7 @@ const pet: PetPublic = {
 describe("PetBioPage", () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());
-    vi.mocked(usePathname).mockReturnValue(`/pets/${petId}`);
+    vi.mocked(usePathname).mockReturnValue(`/@owner-1/pet/${petId}`);
     document.title = "Fosterfolio";
   });
 
@@ -79,7 +84,7 @@ describe("PetBioPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Mochi" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Alex Foster" })).toHaveAttribute(
       "href",
-      "/users/owner-1",
+      "/@owner-1",
     );
     expect(screen.getByRole("form", { name: "Contact the foster" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "QR code" })).toBeInTheDocument();

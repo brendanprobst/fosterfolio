@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const user: UserOwner = {
   id: "u1",
+  handle: null,
   email: "you@example.com",
   displayName: "Alex Foster",
   avatarUrl: null,

@@ -1,16 +1,21 @@
 "use client";
 
 import { Button } from "@client/components/ui/button";
-import { petBioHref } from "@client/lib/petBioPath";
+import { petHref } from "@client/lib/petBioPath";
 import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type PetQrDownloadProps = {
   petId: string;
   petName: string;
+  ownerIdOrHandle: string;
 };
 
-export function PetQrDownload({ petId, petName }: PetQrDownloadProps) {
+export function PetQrDownload({
+  petId,
+  petName,
+  ownerIdOrHandle,
+}: PetQrDownloadProps) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +26,7 @@ export function PetQrDownload({ petId, petName }: PetQrDownloadProps) {
         const QRCode = (await import("qrcode")).default;
         const origin =
           typeof window !== "undefined" ? window.location.origin : "";
-        const url = `${origin}${petBioHref(petId)}`;
+        const url = `${origin}${petHref(ownerIdOrHandle, petId)}`;
         const next = await QRCode.toDataURL(url, {
           width: 320,
           margin: 2,
@@ -39,7 +44,7 @@ export function PetQrDownload({ petId, petName }: PetQrDownloadProps) {
     return () => {
       cancelled = true;
     };
-  }, [petId]);
+  }, [ownerIdOrHandle, petId]);
 
   function downloadPng() {
     if (!dataUrl) return;

@@ -28,6 +28,7 @@ vi.mock("@client/features/storage", () => ({
 
 const profile: UserOwner = {
   id: "u1",
+  handle: null,
   email: "you@example.com",
   displayName: "Alex Foster",
   avatarUrl: null,
@@ -79,7 +80,7 @@ describe("ProfilePage", () => {
     expect(screen.getByLabelText("Profile picture")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /view public profile/i })).toHaveAttribute(
       "href",
-      "/users/u1",
+      "/@u1",
     );
   });
 
@@ -124,7 +125,7 @@ describe("ProfilePage", () => {
     expect(screen.queryByRole("link", { name: "Instagram" })).not.toBeInTheDocument();
   });
 
-  it("opens the name/bio dialog with only those two fields", async () => {
+  it("opens the name/handle/bio dialog without location fields", async () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -133,6 +134,7 @@ describe("ProfilePage", () => {
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(screen.getByLabelText("Display name")).toHaveValue("Alex Foster");
+    expect(screen.getByLabelText("Handle")).toHaveValue("");
     expect(screen.getByLabelText("Bio (markdown)")).toHaveValue("Fostering since 2019");
     expect(screen.queryByLabelText("ZIP code")).not.toBeInTheDocument();
   });

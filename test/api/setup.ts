@@ -71,11 +71,13 @@ export class TestContainer {
     id: string;
     email: string;
     displayName?: string | null;
+    handle?: string | null;
     starCount?: number;
   }): User {
     const user = new User({
       id: input.id,
       email: input.email,
+      handle: input.handle ?? null,
       displayName: input.displayName ?? null,
       avatarUrl: null,
       bio: null,

@@ -16,13 +16,13 @@ type ProfileEditFormProps = {
 };
 
 /**
- * Name and bio only. Location/shelters live in `ProfileLocationCard` (inline, no
- * dialog); social links live in `SocialLinksDialog`. Splitting these out keeps this
- * form — and the header it feeds — small.
+ * Name, handle, and bio. Location/shelters live in `ProfileLocationCard` (inline,
+ * no dialog); social links live in `SocialLinksDialog`.
  */
 export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
   const mutation = useUpdateUserMutation();
   const [displayName, setDisplayName] = useState(user.displayName ?? "");
+  const [handle, setHandle] = useState(user.handle ?? "");
   const [bio, setBio] = useState(user.bio ?? "");
 
   function onSubmit(event: FormEvent) {
@@ -32,6 +32,7 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
         id: user.id,
         payload: {
           displayName: displayName.trim() || null,
+          handle: handle.trim() || null,
           bio: bio.trim() || null,
         },
       },
@@ -58,6 +59,21 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
         />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="profile-handle">Handle</Label>
+        <Input
+          id="profile-handle"
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder="your-name"
+        />
+        <p className="text-muted-foreground text-xs">
+          Public URL: /@{handle.trim() || "your-name"}
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="profile-bio">Bio (markdown)</Label>

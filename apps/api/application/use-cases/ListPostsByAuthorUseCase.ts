@@ -1,3 +1,4 @@
+import { resolveUser } from '@api/application/resolveUser';
 import type { PostPublicDto } from '@api/domain/entities/Post';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
@@ -13,11 +14,11 @@ export class ListPostsByAuthorUseCase {
 
   async execute(authorId: string): Promise<Result<PostPublicDto[]>> {
     try {
-      const user = await this.userRepository.findById(authorId);
+      const user = await resolveUser(this.userRepository, authorId);
       if (!user) {
         return Result.failure(ErrorCatalog.USER_NOT_FOUND);
       }
-      const rows = await this.postRepository.listByAuthorId(authorId, {
+      const rows = await this.postRepository.listByAuthorId(user.id, {
         excludePetUpdates: true,
       });
       return Result.success(

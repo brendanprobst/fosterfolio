@@ -11,7 +11,7 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
+ *           description: User uuid or vanity handle
  *     responses:
  *       200:
  *         description: Public user profile (no email/zip/lat/lng)
@@ -28,7 +28,7 @@
  *         required: true
  *         schema:
  *           type: string
- *           format: uuid
+ *           description: User uuid or vanity handle
  *     responses:
  *       200:
  *         description: Owner user profile

@@ -19,6 +19,7 @@ vi.mock("@client/features/users", async (importOriginal) => {
 
 const withoutPicture: UserOwner = {
   id: "u1",
+  handle: null,
   email: "you@example.com",
   displayName: "Alex Foster",
   avatarUrl: null,

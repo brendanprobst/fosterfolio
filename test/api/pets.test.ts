@@ -47,6 +47,7 @@ describe('Pets API', () => {
       updates: [],
       owner: {
         id: ownerId,
+        handle: null,
         displayName: 'Alex Foster',
         avatarUrl: null,
       },

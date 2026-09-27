@@ -58,7 +58,10 @@ describe("SearchPage", () => {
     render(<SearchPage />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Search" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Mochi/i })).toHaveAttribute("href", "/pets/pet-1");
-    expect(screen.getByRole("link", { name: /Alex/i })).toHaveAttribute("href", "/users/owner-1");
+    expect(screen.getByRole("link", { name: /Mochi/i })).toHaveAttribute(
+      "href",
+      "/@owner-1/pet/pet-1",
+    );
+    expect(screen.getByRole("link", { name: /Alex/i })).toHaveAttribute("href", "/@owner-1");
   });
 });

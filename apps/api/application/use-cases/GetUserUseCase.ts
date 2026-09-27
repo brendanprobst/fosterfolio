@@ -1,3 +1,4 @@
+import { resolveUser } from '@api/application/resolveUser';
 import type { UserOwnerDto, UserPublicDto } from '@api/domain/entities/User';
 import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
@@ -11,11 +12,11 @@ export class GetUserUseCase {
     actorId?: string | null
   ): Promise<Result<UserPublicDto | UserOwnerDto>> {
     try {
-      const user = await this.userRepository.findById(id);
+      const user = await resolveUser(this.userRepository, id);
       if (!user) {
         return Result.failure(ErrorCatalog.USER_NOT_FOUND);
       }
-      const starCount = await this.userRepository.countStars(id);
+      const starCount = await this.userRepository.countStars(user.id);
       if (actorId && actorId === user.id) {
         return Result.success(user.toOwnerDto(starCount));
       }

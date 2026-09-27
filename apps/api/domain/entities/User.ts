@@ -2,6 +2,7 @@ export type SocialLink = { label: string; url: string };
 
 export type UserPublicDto = {
   id: string;
+  handle: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   bio: string | null;
@@ -23,6 +24,7 @@ export type UserOwnerDto = UserPublicDto & {
 export type UserProps = {
   id: string;
   email: string;
+  handle: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   bio: string | null;
@@ -52,6 +54,10 @@ export class User {
     return this.props.zipCode;
   }
 
+  get handle(): string | null {
+    return this.props.handle;
+  }
+
   get deletedAt(): Date | null {
     return this.props.deletedAt;
   }
@@ -63,6 +69,7 @@ export class User {
     zipCode?: string | null;
     socialLinks?: SocialLink[] | null;
     sheltersText?: string | null;
+    handle?: string | null;
     city?: string | null;
     state?: string | null;
     lat?: number | null;
@@ -90,6 +97,9 @@ export class User {
       this.props.sheltersText =
         input.sheltersText === null ? null : input.sheltersText.trim() || null;
     }
+    if (input.handle !== undefined) {
+      this.props.handle = input.handle;
+    }
     if (input.city !== undefined) this.props.city = input.city;
     if (input.state !== undefined) this.props.state = input.state;
     if (input.lat !== undefined) this.props.lat = input.lat;
@@ -106,6 +116,7 @@ export class User {
   toPublicDto(starCount = 0): UserPublicDto {
     return {
       id: this.props.id,
+      handle: this.props.handle,
       displayName: this.props.displayName,
       avatarUrl: this.props.avatarUrl,
       bio: this.props.bio,
@@ -131,6 +142,7 @@ export class User {
   toPersistence(): {
     id: string;
     email: string;
+    handle: string | null;
     display_name: string | null;
     avatar_url: string | null;
     bio: string | null;
@@ -147,6 +159,7 @@ export class User {
     return {
       id: this.props.id,
       email: this.props.email,
+      handle: this.props.handle,
       display_name: this.props.displayName,
       avatar_url: this.props.avatarUrl,
       bio: this.props.bio,

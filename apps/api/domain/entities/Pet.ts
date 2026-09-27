@@ -20,6 +20,7 @@ export type PetUpdateSummaryDto = {
 /** Nested on GET /pets/:id so the bio page is one round-trip (plan §4). */
 export type PetOwnerSummaryDto = {
   id: string;
+  handle: string | null;
   displayName: string | null;
   avatarUrl: string | null;
 };

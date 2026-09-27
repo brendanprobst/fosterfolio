@@ -1,3 +1,4 @@
+import { resolveUser } from '@api/application/resolveUser';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IStarRepository } from '@api/domain/repositories/IStarRepository';
@@ -26,13 +27,13 @@ export class AddStarUseCase {
     }
 
     try {
-      const user = await this.userRepository.findById(input.starredUserId);
+      const user = await resolveUser(this.userRepository, input.starredUserId);
       if (!user) {
         return Result.failure(ErrorCatalog.STAR_USER_NOT_FOUND);
       }
 
       const result = await this.starRepository.addStar({
-        starredUserId: input.starredUserId,
+        starredUserId: user.id,
         sessionToken,
         starrerUserId: input.starrerUserId ?? null,
       });

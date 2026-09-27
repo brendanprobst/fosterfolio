@@ -7,7 +7,7 @@ import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
 import { useSearch } from "@client/features/search";
 import { humanizeToken } from "@client/lib/humanizeToken";
-import { petBioHref } from "@client/lib/petBioPath";
+import { petHref } from "@client/lib/petBioPath";
 import { userProfileHref } from "@client/lib/userProfilePath";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -77,7 +77,7 @@ function SearchPageInner() {
               {pets.map((pet) => (
                 <li key={pet.id}>
                   <Link
-                    href={petBioHref(pet.id)}
+                    href={petHref(pet.ownerId, pet.id)}
                     className="hover:bg-muted/50 flex items-center gap-3 rounded-lg p-1"
                   >
                     {pet.primaryPhotoUrl ? (

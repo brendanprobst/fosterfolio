@@ -1,27 +1,45 @@
 // Viewer-request rewrite for Next static export on S3 (REST origin + OAC).
 // Extensionless paths like /profile must map to /profile.html.
 //
-// Pet bio and public profile deep links: /pets/{uuid} and /users/{uuid} must stay
+// Vanity URLs: /@handle, /@handle/foster-me, and /@handle/pet/{id} must stay
 // in the browser URL (QR / share) but fetch the single statically exported
 // sentinel object. Keep this id in sync with
 // apps/web/client/lib/constants/petBioSentinel.ts (PET_BIO_SENTINEL_ID).
 
 var STATIC_EXPORT_SENTINEL_ID = "00000000-0000-0000-0000-000000000000";
+var HANDLE_SENTINEL = "@" + STATIC_EXPORT_SENTINEL_ID;
 
-function rewriteDynamicToSentinel(uri, prefix) {
-  if (uri === prefix || uri === prefix + "/") {
-    return prefix + "/" + STATIC_EXPORT_SENTINEL_ID + ".html";
+function stripTrailingSlash(uri) {
+  if (uri.length > 1 && uri.charAt(uri.length - 1) === "/") {
+    return uri.substring(0, uri.length - 1);
   }
-  if (uri.indexOf(prefix + "/") === 0) {
-    var rest = uri.substring((prefix + "/").length);
-    if (rest.indexOf("/") === -1 && rest.indexOf(".") === -1 && rest.length > 0) {
-      return prefix + "/" + STATIC_EXPORT_SENTINEL_ID + ".html";
+  return uri;
+}
+
+function rewriteHandleFamily(uri) {
+  var path = stripTrailingSlash(uri);
+  if (path.indexOf("/@") !== 0) {
+    return null;
+  }
+  var rest = path.substring(2);
+  if (rest.length === 0) {
+    return null;
+  }
+  var slash = rest.indexOf("/");
+  if (slash === -1) {
+    if (rest.indexOf(".") !== -1) {
+      return null;
     }
-    if (rest.charAt(rest.length - 1) === "/" && rest.indexOf(".") === -1) {
-      var segment = rest.substring(0, rest.length - 1);
-      if (segment.indexOf("/") === -1 && segment.length > 0) {
-        return prefix + "/" + STATIC_EXPORT_SENTINEL_ID + ".html";
-      }
+    return "/" + HANDLE_SENTINEL + ".html";
+  }
+  var after = rest.substring(slash + 1);
+  if (after === "foster-me") {
+    return "/" + HANDLE_SENTINEL + "/foster-me.html";
+  }
+  if (after.indexOf("pet/") === 0) {
+    var petRest = after.substring(4);
+    if (petRest.length > 0 && petRest.indexOf("/") === -1 && petRest.indexOf(".") === -1) {
+      return "/" + HANDLE_SENTINEL + "/pet/" + STATIC_EXPORT_SENTINEL_ID + ".html";
     }
   }
   return null;
@@ -35,15 +53,9 @@ function handler(event) {
     return request;
   }
 
-  var petsRewrite = rewriteDynamicToSentinel(uri, "/pets");
-  if (petsRewrite) {
-    request.uri = petsRewrite;
-    return request;
-  }
-
-  var usersRewrite = rewriteDynamicToSentinel(uri, "/users");
-  if (usersRewrite) {
-    request.uri = usersRewrite;
+  var handleRewrite = rewriteHandleFamily(uri);
+  if (handleRewrite) {
+    request.uri = handleRewrite;
     return request;
   }
 

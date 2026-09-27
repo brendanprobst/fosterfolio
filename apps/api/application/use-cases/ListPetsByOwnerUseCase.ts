@@ -1,3 +1,4 @@
+import { resolveUser } from '@api/application/resolveUser';
 import type { PetPublicDto } from '@api/domain/entities/Pet';
 import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
@@ -12,11 +13,11 @@ export class ListPetsByOwnerUseCase {
 
   async execute(ownerId: string): Promise<Result<PetPublicDto[]>> {
     try {
-      const owner = await this.userRepository.findById(ownerId);
+      const owner = await resolveUser(this.userRepository, ownerId);
       if (!owner) {
         return Result.failure(ErrorCatalog.USER_NOT_FOUND);
       }
-      const pets = await this.petRepository.listByOwnerId(ownerId);
+      const pets = await this.petRepository.listByOwnerId(owner.id);
       return Result.success(pets.map((p) => p.toPublicDto([])));
     } catch {
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);

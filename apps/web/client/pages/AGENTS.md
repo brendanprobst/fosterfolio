@@ -9,12 +9,12 @@
 | Folder        | Route | Notes |
 |---------------|-------|--------|
 | **`home/`**   | `/`   | Public chronological feed + composer when signed in. |
-| **`pets/`**   | `/pets/[id]` | Public pet bio; id from pathname (static-export sentinel + CloudFront rewrite). |
-| **`users/`**  | `/users/[id]` | Public foster profile; same sentinel + CloudFront rewrite pattern as pets. |
+| **`pets/`**   | `/@handle/pet/[petId]` | Public pet bio; pet id from pathname (handle is decorative). Static-export sentinel + CloudFront `@` rewrite. |
+| **`users/`**  | `/@handle`, `/@handle/foster-me` | Public foster profile and stable current-foster pointer. Same sentinel + CloudFront rewrite pattern. |
 | **`search/`** | `/search` | Name search across pets and users (`?q=`). |
 | **`ui-gallery/`** | `/ui` | Design-system smoke / QA (not product UI). |
 | **`auth/`** | `/auth/*` | Supabase sign-in, sign-up, forgot-password, reset-password (wired from **`app/auth/`**). |
-| **`profile/`** | `/profile` | Auth-only editor (picture + profile + pets). Public view is **`/users/[id]`** and stays read-only. |
+| **`profile/`** | `/profile` | Auth-only editor (picture + profile + pets). Public view is **`/@handle`** and stays read-only. |
 
 - **Do not** put shadcn primitives here — those stay in **`client/components/ui/`** (see [`../components/AGENTS.md`](../components/AGENTS.md)).
 - **Splitting:** As a page grows, add colocated modules under the same folder (e.g. `home/StepCards.tsx`, `home/constants.ts`) and keep **`HomePage.tsx`** as the thin composer.

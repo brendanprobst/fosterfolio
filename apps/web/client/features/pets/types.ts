@@ -26,6 +26,7 @@ export type PetUpdateSummary = {
 
 export type PetOwnerSummary = {
   id: string;
+  handle: string | null;
   displayName: string | null;
   avatarUrl: string | null;
 };
