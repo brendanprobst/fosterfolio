@@ -7,6 +7,7 @@ import { PublicProfilePage } from "@client/pages/users";
 import { screen } from "@testing-library/react";
 import { usePathname } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { User } from "@supabase/supabase-js";
 import { authSignedIn, renderWithQueryClient } from "./support/renderWithProviders";
 
 vi.mock("@client/auth", () => ({
@@ -81,12 +82,30 @@ describe("PublicProfilePage", () => {
     expect(container.querySelector('input[type="file"]')).toBeNull();
   });
 
-  it("shows the handle and a foster-me link", () => {
+  it("shows the handle and a guest sidebar with foster-me + inquiry", () => {
     renderWithQueryClient(<PublicProfilePage />);
 
     expect(screen.getByText("@alex")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /see who they’re fostering now/i }),
     ).toHaveAttribute("href", "/@alex/foster-me");
+    expect(screen.getByText("Interested in adopting?")).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Contact this foster" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /edit profile/i })).not.toBeInTheDocument();
+  });
+
+  it("shows an owner sidebar instead of the inquiry form on your own public page", () => {
+    vi.mocked(useAuth).mockReturnValue(
+      authSignedIn({ id: "owner-1", email: "alex@example.com" } as User),
+    );
+
+    renderWithQueryClient(<PublicProfilePage />);
+
+    expect(screen.getByText("Your public page")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /edit profile/i })).toHaveAttribute(
+      "href",
+      "/profile",
+    );
+    expect(screen.queryByRole("form", { name: "Contact this foster" })).not.toBeInTheDocument();
   });
 });

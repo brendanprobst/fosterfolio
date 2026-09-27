@@ -1,31 +1,33 @@
 "use client";
 
+import { useAuth } from "@client/auth";
+import { PetCard } from "@client/components/PetCard";
 import { UserAvatar } from "@client/components/UserAvatar";
-import { AppShell } from "@client/components/layout";
+import { AppShell, PageWithSidebar } from "@client/components/layout";
 import { Markdown } from "@client/components/markdown";
-import { InquiryForm } from "@client/features/inquiries";
 import { useOwnerPets } from "@client/features/pets";
 import { PostCard, useAuthorPosts } from "@client/features/posts";
 import { StarButton } from "@client/features/stars";
 import { useUser } from "@client/features/users";
-import { humanizeToken } from "@client/lib/humanizeToken";
 import { petHref } from "@client/lib/petBioPath";
 import {
-  fosterMeHref,
   handleFromPathname,
   publicHandle,
 } from "@client/lib/userProfilePath";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { PublicProfileSidebar } from "./PublicProfileSidebar";
 
 export function PublicProfilePage() {
   const pathname = usePathname();
+  const { user: viewer } = useAuth();
   const userId = handleFromPathname(pathname);
   const userQuery = useUser(userId);
   const petsQuery = useOwnerPets(userId);
   const postsQuery = useAuthorPosts(userId);
   const user = userQuery.data;
+  const isOwner = Boolean(viewer && user && viewer.id === user.id);
+  const shareRef = user ? publicHandle(user) : "";
 
   useEffect(() => {
     if (user?.displayName) {
@@ -41,22 +43,35 @@ export function PublicProfilePage() {
 
   return (
     <AppShell>
-      <main className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-8">
+      <main>
         {!userId ? (
-          <p className="text-muted-foreground text-sm">Profile not found.</p>
+          <p className="text-muted-foreground mx-auto max-w-5xl px-4 py-8 text-sm">
+            Profile not found.
+          </p>
         ) : null}
         {userId && userQuery.isLoading ? (
-          <p className="text-muted-foreground text-sm">Loading profile…</p>
+          <p className="text-muted-foreground mx-auto max-w-5xl px-4 py-8 text-sm">
+            Loading profile…
+          </p>
         ) : null}
         {userId && userQuery.isError ? (
-          <p className="text-destructive text-sm">
+          <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
             {userQuery.error instanceof Error
               ? userQuery.error.message
               : "Failed to load profile."}
           </p>
         ) : null}
         {user ? (
-          <>
+          <PageWithSidebar
+            sidebar={
+              <PublicProfileSidebar
+                handleOrId={shareRef}
+                displayName={user.displayName || "this foster"}
+                userId={user.id}
+                isOwner={isOwner}
+              />
+            }
+          >
             <header className="flex items-start gap-4">
               <UserAvatar name={user.displayName} url={user.avatarUrl} size="lg" />
               <div className="min-w-0 space-y-2">
@@ -72,38 +87,36 @@ export function PublicProfilePage() {
                   <p className="text-muted-foreground text-sm">{location}</p>
                 ) : null}
                 <StarButton userId={user.id} initialCount={user.starCount} />
-                <p>
-                  <Link
-                    href={fosterMeHref(publicHandle(user))}
-                    className="text-primary text-sm hover:underline"
-                  >
-                    See who they’re fostering now
-                  </Link>
-                </p>
               </div>
             </header>
+
             {user.bio ? <Markdown>{user.bio}</Markdown> : null}
-            {user.sheltersText ? (
-              <p className="text-sm">
-                <span className="text-muted-foreground">Shelters: </span>
-                {user.sheltersText}
-              </p>
-            ) : null}
-            {user.socialLinks.length > 0 ? (
-              <ul className="flex flex-wrap gap-3 text-sm">
-                {user.socialLinks.map((link) => (
-                  <li key={`${link.label}-${link.url}`}>
-                    <a
-                      href={link.url}
-                      className="text-primary hover:underline"
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+
+            {user.sheltersText || user.socialLinks.length > 0 ? (
+              <section className="space-y-3" aria-label="How to find them">
+                {user.sheltersText ? (
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Works with </span>
+                    {user.sheltersText}
+                  </p>
+                ) : null}
+                {user.socialLinks.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {user.socialLinks.map((link) => (
+                      <li key={`${link.label}-${link.url}`}>
+                        <a
+                          href={link.url}
+                          className="border-border hover:bg-muted/40 inline-flex rounded-full border px-3 py-1 text-sm"
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          {link.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
             ) : null}
 
             <section className="space-y-3" aria-label="Fostered pets">
@@ -114,26 +127,10 @@ export function PublicProfilePage() {
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {(petsQuery.data ?? []).map((pet) => (
                     <li key={pet.id}>
-                      <Link
-                        href={petHref(publicHandle(user), pet.id)}
-                        className="border-border hover:bg-muted/40 block overflow-hidden rounded-lg border"
-                      >
-                        {pet.primaryPhotoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={pet.primaryPhotoUrl}
-                            alt=""
-                            className="aspect-[4/3] w-full object-cover"
-                          />
-                        ) : null}
-                        <span className="block p-3">
-                          <span className="block font-medium">{pet.name}</span>
-                          <span className="text-muted-foreground text-sm capitalize">
-                            {humanizeToken(pet.species)}
-                            {pet.status ? ` · ${humanizeToken(pet.status)}` : ""}
-                          </span>
-                        </span>
-                      </Link>
+                      <PetCard
+                        pet={pet}
+                        href={petHref(shareRef, pet.id)}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -148,9 +145,7 @@ export function PublicProfilePage() {
                 ))}
               </section>
             ) : null}
-
-            <InquiryForm targetUserId={user.id} heading="Contact this foster" />
-          </>
+          </PageWithSidebar>
         ) : null}
       </main>
     </AppShell>

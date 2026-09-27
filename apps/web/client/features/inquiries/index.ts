@@ -1,4 +1,5 @@
 export type { CreateInquiryPayload, Inquiry } from "./types";
 export { createInquiry } from "./inquiriesApi";
 export { useCreateInquiryMutation } from "./useCreateInquiry";
-export { InquiryForm } from "./InquiryForm";
+export { ExpandableInquiryForm } from "./ExpandableInquiryForm";
+export { InquiryForm, type InquiryDraft } from "./InquiryForm";

@@ -1,7 +1,8 @@
 "use client";
 
 import { useAuth, useRequireAuth } from "@client/auth";
-import { AppShell } from "@client/components/layout";
+import { PetCard } from "@client/components/PetCard";
+import { AppShell, PageWithSidebar } from "@client/components/layout";
 import { Markdown } from "@client/components/markdown";
 import {
   Card,
@@ -14,7 +15,6 @@ import { Button, buttonVariants } from "@client/components/ui/button";
 import { Separator } from "@client/components/ui/separator";
 import { useOwnerPets, type PetPublic } from "@client/features/pets";
 import { useOwnUser } from "@client/features/users";
-import { humanizeToken } from "@client/lib/humanizeToken";
 import { petHref } from "@client/lib/petBioPath";
 import { cn } from "@client/lib/utils";
 import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
@@ -53,28 +53,22 @@ export function ProfilePage() {
 
   return (
     <AppShell active="profile">
-      <main className="mx-auto w-full max-w-5xl px-4 py-8">
-        {/*
-          `aside` comes first in the DOM (and `lg:order-2` pushes it back to the right
-          column only at `lg`) so that on narrow screens — where this collapses to one
-          column — it stacks above the profile in both visual and reading/tab order,
-          rather than only visually via a CSS reorder.
-        */}
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
-          <aside className="space-y-4 lg:order-2 lg:sticky lg:top-20">
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-1.5">
-                  <Info aria-hidden className="size-4" />
-                  Private editor
-                </CardTitle>
-                <CardDescription>
-                  You&apos;re currently on the profile editor page.  Only you can see this page. The public page is what everyone else
-                  sees.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+      <main>
+        <PageWithSidebar
+          sidebar={
+            <>
+              <Card size="sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-1.5">
+                    <Info aria-hidden className="size-4" />
+                    Private editor
+                  </CardTitle>
+                  <CardDescription>
+                    You&apos;re currently on the profile editor page. Only you can
+                    see this page. The public page is what everyone else sees.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
                   <Link
                     href={userProfileHref(shareRef)}
                     className={cn(
@@ -85,16 +79,15 @@ export function ProfilePage() {
                     <ExternalLink aria-hidden />
                     View public profile
                   </Link>
-                </div>
-              </CardContent>
-            </Card>
-            <ProfileLinkCard
-              handleOrId={shareRef}
-              hasHandle={Boolean(profile?.handle)}
-            />
-          </aside>
-
-          <div className="min-w-0 space-y-6">
+                </CardContent>
+              </Card>
+              <ProfileLinkCard
+                handleOrId={shareRef}
+                hasHandle={Boolean(profile?.handle)}
+              />
+            </>
+          }
+        >
             {/* Just picture, name, and bio; location and connected sites are below. */}
             <header className="flex items-start gap-4">
               {profile ? <AvatarEditor user={profile} /> : null}
@@ -174,53 +167,45 @@ export function ProfilePage() {
               {petList.length === 0 && editorPet !== "new" ? (
                 <PetsEmptyState onAddPet={() => setEditorPet("new")} />
               ) : null}
-              <ul className="space-y-3">
+              <ul className="grid gap-3 sm:grid-cols-2">
                 {petList.map((pet) => (
-                  <li
-                    key={pet.id}
-                    className="border-border space-y-3 rounded-xl border p-4"
-                  >
+                  <li key={pet.id}>
                     {editorPet !== null &&
                     editorPet !== "new" &&
                     editorPet.id === pet.id ? (
                       <PetEditor pet={pet} onClose={() => setEditorPet(null)} />
                     ) : (
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{pet.name}</p>
-                          <p className="text-muted-foreground text-sm">
-                            {humanizeToken(pet.species)}
-                            {pet.status ? ` · ${humanizeToken(pet.status)}` : ""}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          <Link
-                            href={petHref(shareRef, pet.id)}
-                            className={cn(
-                              buttonVariants({ variant: "ghost", size: "sm" }),
-                            )}
-                          >
-                            <Eye aria-hidden />
-                            View bio
-                          </Link>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditorPet(pet)}
-                          >
-                            <Pencil aria-hidden />
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
+                      <PetCard
+                        pet={pet}
+                        actions={
+                          <>
+                            <Link
+                              href={petHref(shareRef, pet.id)}
+                              className={cn(
+                                buttonVariants({ variant: "ghost", size: "sm" }),
+                              )}
+                            >
+                              <Eye aria-hidden />
+                              View bio
+                            </Link>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditorPet(pet)}
+                            >
+                              <Pencil aria-hidden />
+                              Edit
+                            </Button>
+                          </>
+                        }
+                      />
                     )}
                   </li>
                 ))}
               </ul>
             </section>
-          </div>
-        </div>
+        </PageWithSidebar>
       </main>
       {profile ? (
         <>

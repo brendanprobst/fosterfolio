@@ -1,19 +1,16 @@
 "use client";
 
 import { ShareQrDownload } from "@client/components/ShareQrDownload";
-import { UserAvatar } from "@client/components/UserAvatar";
+import { Badge } from "@client/components/ui/badge";
 import { Markdown } from "@client/components/markdown";
 import { InquiryForm } from "@client/features/inquiries";
 import type { PetPublic } from "@client/features/pets";
 import { humanizeToken } from "@client/lib/humanizeToken";
 import { petHref } from "@client/lib/petBioPath";
-import {
-  fosterMeHref,
-  publicHandle,
-  userProfileHref,
-} from "@client/lib/userProfilePath";
+import { fosterMeHref, publicHandle } from "@client/lib/userProfilePath";
 import Link from "next/link";
 import { ReactNode, useEffect } from "react";
+import { FosteredBy } from "./FosteredBy";
 
 type PetBioViewProps = {
   pet: PetPublic;
@@ -21,6 +18,11 @@ type PetBioViewProps = {
   /** When set, the QR encodes this path instead of the pet permalink. */
   qrHref?: string;
   qrDescription?: string;
+  /**
+   * Inline QR + inquiry for pages that do not host a sidebar (foster-me).
+   * Pet bio uses a sidebar and passes false.
+   */
+  embedActions?: boolean;
 };
 
 export function PetBioView({
@@ -28,6 +30,7 @@ export function PetBioView({
   notice,
   qrHref,
   qrDescription,
+  embedActions = true,
 }: PetBioViewProps) {
   useEffect(() => {
     if (pet.meta?.title) {
@@ -37,78 +40,85 @@ export function PetBioView({
     document.title = "Fosterfolio";
   }, [pet.meta?.title]);
 
-  const details = [
+  const facts = [
     pet.species,
     pet.breed,
     pet.ageValue != null ? `${pet.ageValue} ${pet.ageUnit ?? "years"}` : null,
     pet.sex,
     pet.size,
-    pet.status ? humanizeToken(pet.status) : null,
-    pet.subStatus ? humanizeToken(pet.subStatus) : null,
   ].filter((item): item is string => !!item);
 
-  const ownerRef = pet.owner
-    ? publicHandle(pet.owner)
-    : pet.ownerId;
+  const ownerRef = pet.owner ? publicHandle(pet.owner) : pet.ownerId;
 
   return (
     <>
       {notice}
-      <header className="space-y-3">
+      <header className="space-y-4">
         {pet.primaryPhotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- static export; absolute Supabase URLs
           <img
             src={pet.primaryPhotoUrl}
             alt={pet.name}
-            className="border-border aspect-[4/3] w-full rounded-lg border object-cover"
+            className="border-border aspect-[4/3] w-full rounded-xl border object-cover"
           />
         ) : null}
-        <h1 className="text-3xl font-semibold tracking-tight">{pet.name}</h1>
-        {details.length > 0 ? (
-          <p className="text-muted-foreground text-sm capitalize">
-            {details.join(" · ")}
-          </p>
-        ) : null}
-        {pet.shelterLinkUrl ? (
-          <p className="text-sm">
-            Shelter:{" "}
-            <a
-              href={pet.shelterLinkUrl}
-              className="text-primary hover:underline"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {pet.shelterLinkName || pet.shelterLinkUrl}
-            </a>
-          </p>
-        ) : null}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-3xl font-semibold tracking-tight">{pet.name}</h1>
+            {pet.status ? (
+              <Badge variant="secondary" className="capitalize">
+                {humanizeToken(pet.status)}
+              </Badge>
+            ) : null}
+            {pet.subStatus ? (
+              <Badge variant="outline" className="capitalize">
+                {humanizeToken(pet.subStatus)}
+              </Badge>
+            ) : null}
+          </div>
+          {facts.length > 0 ? (
+            <ul className="flex flex-wrap gap-2">
+              {facts.map((fact) => (
+                <li key={fact}>
+                  <Badge variant="outline" className="capitalize">
+                    {humanizeToken(fact)}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {pet.shelterLinkUrl ? (
+            <p className="text-sm">
+              <span className="text-muted-foreground">Shelter: </span>
+              <a
+                href={pet.shelterLinkUrl}
+                className="text-primary hover:underline"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {pet.shelterLinkName || pet.shelterLinkUrl}
+              </a>
+            </p>
+          ) : null}
+        </div>
       </header>
 
-      {pet.owner ? (
-        <section className="flex items-center gap-3" aria-label="Foster">
-          <UserAvatar
-            name={pet.owner.displayName}
-            url={pet.owner.avatarUrl}
-            size="sm"
+      {embedActions && pet.owner ? (
+        <div className="space-y-1">
+          <FosteredBy
+            name={pet.owner.displayName || "Foster profile"}
+            avatarUrl={pet.owner.avatarUrl}
+            ownerRef={ownerRef}
           />
-          <div className="min-w-0">
-            <p className="text-muted-foreground text-xs">Fostered by</p>
+          <p>
             <Link
-              href={userProfileHref(ownerRef)}
-              className="text-primary text-sm font-medium hover:underline"
+              href={fosterMeHref(ownerRef)}
+              className="text-primary text-xs hover:underline"
             >
-              {pet.owner.displayName || "Foster profile"}
+              See who they’re fostering now
             </Link>
-            <p>
-              <Link
-                href={fosterMeHref(ownerRef)}
-                className="text-primary text-xs hover:underline"
-              >
-                See who they’re fostering now
-              </Link>
-            </p>
-          </div>
-        </section>
+          </p>
+        </div>
       ) : null}
 
       {pet.bioMarkdown ? <Markdown>{pet.bioMarkdown}</Markdown> : null}
@@ -116,12 +126,12 @@ export function PetBioView({
       {pet.importantLinks.length > 0 ? (
         <section className="space-y-2" aria-label="Links">
           <h2 className="text-lg font-medium">Links</h2>
-          <ul className="list-disc space-y-1 pl-5 text-sm">
+          <ul className="flex flex-wrap gap-2">
             {pet.importantLinks.map((link) => (
               <li key={`${link.label}-${link.url}`}>
                 <a
                   href={link.url}
-                  className="text-primary hover:underline"
+                  className="border-border hover:bg-muted/40 inline-flex rounded-full border px-3 py-1 text-sm"
                   rel="noopener noreferrer"
                   target="_blank"
                 >
@@ -133,17 +143,20 @@ export function PetBioView({
         </section>
       ) : null}
 
-      <ShareQrDownload
-        href={qrHref ?? petHref(ownerRef, pet.id)}
-        description={
-          qrDescription ??
-          "Print this on a tag or flyer. Scanning it opens this bio page."
-        }
-        downloadName={pet.name}
-        imageAlt={`QR code for ${pet.name}`}
-      />
-
-      <InquiryForm targetUserId={pet.ownerId} targetPetId={pet.id} />
+      {embedActions ? (
+        <>
+          <ShareQrDownload
+            href={qrHref ?? petHref(ownerRef, pet.id)}
+            description={
+              qrDescription ??
+              "Print this on a tag or flyer. Scanning it opens this bio page."
+            }
+            downloadName={pet.name}
+            imageAlt={`QR code for ${pet.name}`}
+          />
+          <InquiryForm targetUserId={pet.ownerId} targetPetId={pet.id} />
+        </>
+      ) : null}
 
       {pet.updates.length > 0 ? (
         <section className="space-y-3" aria-label="Pet updates">

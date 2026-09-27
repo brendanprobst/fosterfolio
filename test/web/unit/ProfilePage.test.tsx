@@ -1,5 +1,5 @@
 import { useAuth, useRequireAuth } from "@client/auth";
-import { useOwnerPets } from "@client/features/pets";
+import { useOwnerPets, type PetPublic } from "@client/features/pets";
 import { useOwnUser, useUpdateUserMutation } from "@client/features/users";
 import type { UserOwner } from "@client/features/users";
 import { ProfilePage } from "@client/pages/profile";
@@ -207,5 +207,45 @@ describe("ProfilePage", () => {
     return waitFor(() =>
       expect(screen.getByRole("form", { name: "Add pet" })).toBeInTheDocument(),
     );
+  });
+
+  it("lists pets as photo cards with view and edit actions", () => {
+    const listed: PetPublic = {
+      id: "pet-1",
+      ownerId: "u1",
+      owner: null,
+      name: "Fido",
+      species: "dog",
+      breed: "Husky",
+      ageValue: null,
+      ageUnit: null,
+      sex: null,
+      size: null,
+      status: "actively_fostering",
+      subStatus: null,
+      shelterLinkName: null,
+      shelterLinkUrl: null,
+      primaryPhotoUrl: "https://cdn.example.com/fido.jpg",
+      bioMarkdown: null,
+      importantLinks: [],
+      createdAt: "2026-08-01T00:00:00.000Z",
+      updatedAt: "2026-08-01T00:00:00.000Z",
+      meta: { title: "Fido", description: "", imageUrl: null },
+      updates: [],
+    };
+    vi.mocked(useOwnerPets).mockReturnValue({
+      data: [listed],
+      isLoading: false,
+    } as ReturnType<typeof useOwnerPets>);
+
+    renderWithQueryClient(<ProfilePage />);
+
+    expect(screen.getByText("Fido")).toBeInTheDocument();
+    expect(screen.getByText(/actively fostering/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /view bio/i })).toHaveAttribute(
+      "href",
+      "/@u1/pet/pet-1",
+    );
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
   });
 });

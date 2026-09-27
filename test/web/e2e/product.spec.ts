@@ -29,7 +29,7 @@ test.describe("Fosterfolio product smoke", () => {
     ).toHaveAttribute("href", `/@${E2E_SEED.userId}`);
   });
 
-  test("pet bio loads from the pathname, sets title, and shows inquiry + QR", async ({
+  test("pet bio loads from the pathname, sets title, and shows inquiry without a pet QR", async ({
     page,
   }) => {
     await page.goto(`/@${E2E_SEED.userId}/pet/${E2E_SEED.petId}`);
@@ -37,7 +37,7 @@ test.describe("Fosterfolio product smoke", () => {
       page.getByRole("heading", { level: 1, name: E2E_SEED.petName }),
     ).toBeVisible();
     await expect(page.getByRole("form", { name: "Contact the foster" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "QR code" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "QR code" })).toHaveCount(0);
     await expect(page).toHaveTitle(/Mochi/);
   });
 

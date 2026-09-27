@@ -1,9 +1,12 @@
 "use client";
 
-import { AppShell } from "@client/components/layout";
+import { AppShell, PageWithSidebar } from "@client/components/layout";
+import { useAuth } from "@client/auth";
 import { usePet } from "@client/features/pets";
-import { petIdFromPathname } from "@client/lib/petBioPath";
+import { petHref, petIdFromPathname } from "@client/lib/petBioPath";
+import { publicHandle } from "@client/lib/userProfilePath";
 import { usePathname } from "next/navigation";
+import { PetBioSidebar } from "./PetBioSidebar";
 import { PetBioView } from "./PetBioView";
 
 /**
@@ -13,23 +16,48 @@ import { PetBioView } from "./PetBioView";
 export function PetBioPage() {
   const pathname = usePathname();
   const petId = petIdFromPathname(pathname);
+  const { user } = useAuth();
   const { data: pet, isLoading, isError, error } = usePet(petId);
+  const ownerRef = pet?.owner ? publicHandle(pet.owner) : pet?.ownerId ?? "";
+  const isOwner = Boolean(user && pet && user.id === pet.ownerId);
 
   return (
     <AppShell>
-      <main className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-8">
+      <main>
         {!petId ? (
-          <p className="text-muted-foreground text-sm">Pet not found.</p>
+          <p className="text-muted-foreground mx-auto max-w-5xl px-4 py-8 text-sm">
+            Pet not found.
+          </p>
         ) : null}
         {petId && isLoading ? (
-          <p className="text-muted-foreground text-sm">Loading pet…</p>
+          <p className="text-muted-foreground mx-auto max-w-5xl px-4 py-8 text-sm">
+            Loading pet…
+          </p>
         ) : null}
         {petId && isError ? (
-          <p className="text-destructive text-sm">
+          <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
             {error instanceof Error ? error.message : "Failed to load pet."}
           </p>
         ) : null}
-        {pet ? <PetBioView pet={pet} /> : null}
+        {pet ? (
+          <PageWithSidebar
+            sidebar={
+              <PetBioSidebar
+                petName={pet.name}
+                petId={pet.id}
+                petPath={petHref(ownerRef, pet.id)}
+                ownerId={pet.ownerId}
+                ownerRef={ownerRef}
+                ownerName={pet.owner?.displayName || "Foster"}
+                ownerAvatarUrl={pet.owner?.avatarUrl ?? null}
+                isActivelyFostering={pet.status === "actively_fostering"}
+                isOwner={isOwner}
+              />
+            }
+          >
+            <PetBioView pet={pet} embedActions={false} />
+          </PageWithSidebar>
+        ) : null}
       </main>
     </AppShell>
   );
