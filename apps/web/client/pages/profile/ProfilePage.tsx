@@ -73,7 +73,7 @@ export function ProfilePage() {
                   Private editor
                 </CardTitle>
                 <CardDescription>
-                  Only you can see this page. The public page is what everyone else
+                  You&apos;re currently on the profile editor page.  Only you can see this page. The public page is what everyone else
                   sees.
                 </CardDescription>
               </CardHeader>
@@ -88,16 +88,6 @@ export function ProfilePage() {
                   >
                     <ExternalLink aria-hidden />
                     View public profile
-                  </Link>
-                  <Link
-                    href={fosterMeHref(shareRef)}
-                    className={cn(
-                      buttonVariants({ variant: "outline", size: "sm" }),
-                      "w-full",
-                    )}
-                  >
-                    <ExternalLink aria-hidden />
-                    Current foster
                   </Link>
                 </div>
               </CardContent>

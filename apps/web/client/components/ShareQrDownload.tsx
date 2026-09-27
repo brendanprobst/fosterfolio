@@ -6,18 +6,21 @@ import { useEffect, useState } from "react";
 
 type ShareQrDownloadProps = {
   href: string;
-  description: string;
   downloadName: string;
   imageAlt: string;
   heading?: string;
+  description?: string;
+  /** When false, only the preview and download control render (for a host dialog). */
+  showHeader?: boolean;
 };
 
 export function ShareQrDownload({
   href,
-  description,
   downloadName,
   imageAlt,
   heading = "QR code",
+  description,
+  showHeader = true,
 }: ShareQrDownloadProps) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,8 +63,14 @@ export function ShareQrDownload({
 
   return (
     <section className="space-y-3" aria-label="Share QR code">
-      <h2 className="text-lg font-medium">{heading}</h2>
-      <p className="text-muted-foreground text-sm">{description}</p>
+      {showHeader ? (
+        <>
+          <h2 className="text-lg font-medium">{heading}</h2>
+          {description ? (
+            <p className="text-muted-foreground text-sm">{description}</p>
+          ) : null}
+        </>
+      ) : null}
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {dataUrl ? (
         <div className="space-y-3">
