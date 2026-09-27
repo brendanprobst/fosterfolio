@@ -56,7 +56,7 @@ function mockHooks(overrides?: { uploadError?: Error; pending?: boolean }) {
   } as unknown as ReturnType<typeof useUpdateUserMutation>);
 }
 
-function startEditing() {
+function openDialog() {
   fireEvent.click(screen.getByRole("button", { name: "Edit profile picture" }));
 }
 
@@ -80,52 +80,40 @@ describe("AvatarEditor", () => {
     mockHooks();
   });
 
-  it("shows only the picture and its edit toggle while viewing", () => {
+  it("shows only the picture and its edit button while closed", () => {
     render(<AvatarEditor user={withPicture} />);
 
     expect(screen.getByRole("img", { name: "Alex Foster" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit profile picture" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /image/i })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Clear profile picture" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText(/JPEG, PNG, WebP, or GIF/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("reveals the options and helper text once editing, and hides them again", () => {
+  it("opens a dialog with a larger preview, options, and helper text — no status text", () => {
     render(<AvatarEditor user={withPicture} />);
-    startEditing();
+    openDialog();
 
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
     expect(screen.getByText(/JPEG, PNG, WebP, or GIF/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Replace image" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Clear profile picture" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Done editing profile picture" }));
-    expect(screen.queryByRole("button", { name: "Replace image" })).not.toBeInTheDocument();
+    // The picture communicates its own state; no "set" / "not set" label.
+    expect(screen.queryByText(/profile picture (set|yet)/i)).not.toBeInTheDocument();
   });
 
-  it("labels the status and action for a user with no picture", () => {
+  it("labels the action for a user with no picture, and hides Clear", () => {
     render(<AvatarEditor user={withoutPicture} />);
-    startEditing();
+    openDialog();
 
-    expect(screen.getByText("No profile picture yet")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add image" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Clear profile picture" }),
     ).not.toBeInTheDocument();
   });
 
-  it("labels the status and action for a user with a picture", () => {
-    render(<AvatarEditor user={withPicture} />);
-    startEditing();
-
-    expect(screen.getByText("Profile picture set")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Replace image" })).toBeInTheDocument();
-  });
-
-  it("uploads the picked file and saves only the avatar URL", async () => {
+  it("uploads the picked file, saves only the avatar URL, and closes on success", async () => {
     const { container } = render(<AvatarEditor user={withoutPicture} />);
-    startEditing();
+    openDialog();
 
     const file = pickFile(container);
 
@@ -136,11 +124,12 @@ describe("AvatarEditor", () => {
         payload: { avatarUrl: "https://cdn.example.com/me.jpg" },
       }),
     );
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("clears the picture", async () => {
+  it("clears the picture and closes on success", async () => {
     render(<AvatarEditor user={withPicture} />);
-    startEditing();
+    openDialog();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear profile picture" }));
 
@@ -150,20 +139,22 @@ describe("AvatarEditor", () => {
         payload: { avatarUrl: null },
       }),
     );
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("shows the upload error message verbatim while editing", () => {
+  it("shows the upload error message verbatim and stays open", () => {
     mockHooks({ uploadError: new Error("Storage cap reached: free up space.") });
     render(<AvatarEditor user={withoutPicture} />);
-    startEditing();
+    openDialog();
 
     expect(screen.getByText("Storage cap reached: free up space.")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("disables the options while an upload is in flight", () => {
     mockHooks({ pending: true });
     render(<AvatarEditor user={withPicture} />);
-    startEditing();
+    openDialog();
 
     expect(screen.getByRole("button", { name: "Replace image" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Clear profile picture" })).toBeDisabled();

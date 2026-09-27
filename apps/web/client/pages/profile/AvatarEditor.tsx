@@ -3,9 +3,17 @@
 import { UserAvatar } from "@client/components/UserAvatar";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
 import { Button } from "@client/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@client/components/ui/dialog";
 import { useMediaUpload } from "@client/features/storage";
 import { useUpdateUserMutation, type UserOwner } from "@client/features/users";
-import { Check, Pencil, Trash2, Upload } from "lucide-react";
+import { Pencil, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 
 type AvatarEditorProps = {
@@ -13,17 +21,17 @@ type AvatarEditorProps = {
 };
 
 /**
- * Owner-only picture control for `/profile`, in two states: viewing shows just the
- * picture and its edit toggle; editing floats the options and helper text below it so
- * the surrounding header row keeps its height. The public profile renders `UserAvatar`
- * directly so it has no edit affordance at all.
+ * Owner-only picture control for `/profile`. The pencil opens a dialog rather than an
+ * inline panel — the earlier floating-panel version shifted the header's layout when
+ * it expanded. The public profile renders `UserAvatar` directly, with no edit
+ * affordance at all.
  *
  * Saves on its own rather than through `ProfileEditForm`: the payload carries only
  * `avatarUrl`, and the API applies just the keys present in the body.
  */
 export function AvatarEditor({ user }: AvatarEditorProps) {
   const fileInput = useRef<HTMLInputElement>(null);
-  const [editing, setEditing] = useState(false);
+  const [open, setOpen] = useState(false);
   const upload = useMediaUpload();
   const updateUser = useUpdateUserMutation();
 
@@ -34,8 +42,9 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
   async function save(avatarUrl: string | null) {
     try {
       await updateUser.mutateAsync({ id: user.id, payload: { avatarUrl } });
+      setOpen(false);
     } catch {
-      // Surfaced through `updateUser.error` below.
+      // Surfaced through `updateUser.error` below; stay open so the retry is visible.
     }
   }
 
@@ -45,24 +54,26 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
       const uploaded = await upload.mutateAsync(file);
       await save(uploaded.publicUrl);
     } catch {
-      // Surfaced through `upload.error` below.
+      // Surfaced through `upload.error` below; stay open so the retry is visible.
     }
   }
 
   return (
-    <section className="relative w-fit shrink-0" aria-label="Profile picture">
-      <UserAvatar name={user.displayName} url={user.avatarUrl} size="xl" />
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="secondary"
-        aria-label={editing ? "Done editing profile picture" : "Edit profile picture"}
-        aria-expanded={editing}
-        onClick={() => setEditing((open) => !open)}
-        className="border-background absolute -right-1 -bottom-1 rounded-full border-2 shadow-sm"
-      >
-        {editing ? <Check aria-hidden /> : <Pencil aria-hidden />}
-      </Button>
+    <section className="w-fit shrink-0" aria-label="Profile picture">
+      <div className="relative">
+        <UserAvatar name={user.displayName} url={user.avatarUrl} size="xl" />
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="secondary"
+          aria-label="Edit profile picture"
+          onClick={() => setOpen(true)}
+          className="border-background absolute -right-1 -bottom-1 rounded-full border-2 shadow-sm"
+        >
+          <Pencil aria-hidden />
+        </Button>
+      </div>
+
       <input
         ref={fileInput}
         type="file"
@@ -77,28 +88,33 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
           void onPickFile(file);
         }}
       />
-      {editing ? (
-        <div className="bg-card ring-foreground/10 absolute top-full left-0 z-20 mt-2 w-72 space-y-3 rounded-xl p-3 shadow-lg ring-1">
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Profile picture</DialogTitle>
+            <DialogDescription>
+              JPEG, PNG, WebP, or GIF. Large images are resized for you.
+            </DialogDescription>
+          </DialogHeader>
+
           {error instanceof Error ? (
             <Alert variant="destructive">
               <AlertTitle>Could not update your picture</AlertTitle>
               <AlertDescription>{error.message}</AlertDescription>
             </Alert>
           ) : null}
-          <div className="space-y-1">
-            <p className="text-sm font-medium">
-              {hasPicture ? "Profile picture set" : "No profile picture yet"}
-            </p>
-            <p className="text-muted-foreground text-sm">
-              {pending
-                ? "Uploading…"
-                : "JPEG, PNG, WebP, or GIF. Large images are resized for you."}
-            </p>
+
+          <div className="flex flex-col items-center gap-3 py-2">
+            <UserAvatar name={user.displayName} url={user.avatarUrl} size="2xl" />
+            {pending ? (
+              <p className="text-muted-foreground text-sm">Uploading…</p>
+            ) : null}
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <DialogFooter className="flex flex-row justify-center items-center gap-2">
             <Button
               type="button"
-              size="sm"
               variant="outline"
               disabled={pending}
               onClick={() => fileInput.current?.click()}
@@ -109,7 +125,6 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
             {hasPicture ? (
               <Button
                 type="button"
-                size="sm"
                 variant="ghost"
                 disabled={pending}
                 onClick={() => void save(null)}
@@ -118,9 +133,9 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
                 Clear profile picture
               </Button>
             ) : null}
-          </div>
-        </div>
-      ) : null}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

@@ -4,7 +4,7 @@ import { cn } from "@client/lib/utils";
 type UserAvatarProps = {
   name: string | null;
   url: string | null;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
 };
 
@@ -13,6 +13,7 @@ const sizeClass = {
   md: "size-12 text-sm",
   lg: "size-16 text-base",
   xl: "size-24 text-xl",
+  "2xl": "size-32 text-2xl",
 } as const;
 
 export function UserAvatar({ name, url, size = "md", className }: UserAvatarProps) {
