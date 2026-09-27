@@ -1,3 +1,4 @@
+import { isHandleUniqueViolation } from '@api/application/isHandleUniqueViolation';
 import { resolveUser } from '@api/application/resolveUser';
 import type { SocialLink, UserOwnerDto } from '@api/domain/entities/User';
 import { Result } from '@api/domain/errors/Result';
@@ -83,7 +84,10 @@ export class UpdateUserUseCase {
       await this.userRepository.save(user);
       const starCount = await this.userRepository.countStars(user.id);
       return Result.success(user.toOwnerDto(starCount));
-    } catch {
+    } catch (error) {
+      if (isHandleUniqueViolation(error)) {
+        return Result.failure(ErrorCatalog.HANDLE_TAKEN);
+      }
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

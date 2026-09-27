@@ -41,7 +41,7 @@ todos:
     status: completed
   - id: followup-unique-409
     content: "Do now — map users_handle_unique violations in UpdateUserUseCase/save to HANDLE_TAKEN 409 instead of a 500"
-    status: pending
+    status: completed
   - id: followup-handle-type
     content: "Defer — reject non-string handle in UserController (trim on a number 500s)"
     status: pending

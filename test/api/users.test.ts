@@ -215,6 +215,28 @@ describe('Users API', () => {
     expect(taken.body.error.code).toBe('HANDLE_TAKEN');
   });
 
+  it('PUT /users/:id maps a handle unique-index race to HANDLE_TAKEN', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    const save = container.userRepository.save.bind(container.userRepository);
+    container.userRepository.save = async (user) => {
+      if (user.handle === 'race') {
+        throw new Error(
+          'Supabase request failed (409): {"code":"23505","message":"duplicate key value violates unique constraint \\"users_handle_unique\\""}'
+        );
+      }
+      return save(user);
+    };
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const res = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ handle: 'race' })
+      .expect(409);
+    expect(res.body.error.code).toBe('HANDLE_TAKEN');
+  });
+
   it('PUT /users/:id rejects invalid and blocklisted handles', async () => {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'owner@example.com' });
