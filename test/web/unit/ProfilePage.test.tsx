@@ -225,7 +225,7 @@ describe("ProfilePage", () => {
     );
   });
 
-  it("lists pets as photo cards with view and edit actions", () => {
+  it("lists pets as clickable photo cards with an edit overlay", () => {
     const listed: PetPublic = {
       id: "pet-1",
       ownerId: "u1",
@@ -233,10 +233,10 @@ describe("ProfilePage", () => {
       name: "Fido",
       species: "dog",
       breed: "Husky",
-      ageValue: null,
-      ageUnit: null,
-      sex: null,
-      size: null,
+      ageValue: 3,
+      ageUnit: "years",
+      sex: "male",
+      size: "large",
       status: "actively_fostering",
       subStatus: null,
       shelterLinkName: null,
@@ -256,12 +256,15 @@ describe("ProfilePage", () => {
 
     renderWithQueryClient(<ProfilePage />);
 
-    expect(screen.getByText("Fido")).toBeInTheDocument();
-    expect(screen.getByText(/actively fostering/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /view bio/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Fido" })).toHaveAttribute(
       "href",
       "/@u1/pet/pet-1",
     );
+    expect(screen.getByText(/actively fostering/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Age: 3 years")).toBeInTheDocument();
+    expect(screen.getByText("Husky")).toBeInTheDocument();
+    expect(screen.queryByText("dog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /view bio/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
   });
 });

@@ -4,15 +4,13 @@ import { useAuth, useRequireAuth } from "@client/auth";
 import { PetCard } from "@client/components/PetCard";
 import { AppShell, PageWithSidebar } from "@client/components/layout";
 import { Markdown } from "@client/components/markdown";
-import { Button, buttonVariants } from "@client/components/ui/button";
+import { Button } from "@client/components/ui/button";
 import { Separator } from "@client/components/ui/separator";
 import { useOwnerPets, type PetPublic } from "@client/features/pets";
 import { useOwnUser } from "@client/features/users";
 import { petHref } from "@client/lib/petBioPath";
-import { cn } from "@client/lib/utils";
 import { publicHandle } from "@client/lib/userProfilePath";
-import { Eye, Pencil, Plus } from "lucide-react";
-import Link from "next/link";
+import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { AvatarEditor } from "./AvatarEditor";
 import { ConnectedSitesCard } from "./ConnectedSitesCard";
@@ -144,27 +142,17 @@ export function ProfilePage() {
                     ) : (
                       <PetCard
                         pet={pet}
+                        href={petHref(shareRef, pet.id)}
                         actions={
-                          <>
-                            <Link
-                              href={petHref(shareRef, pet.id)}
-                              className={cn(
-                                buttonVariants({ variant: "ghost", size: "sm" }),
-                              )}
-                            >
-                              <Eye aria-hidden />
-                              View bio
-                            </Link>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setEditorPet(pet)}
-                            >
-                              <Pencil aria-hidden />
-                              Edit
-                            </Button>
-                          </>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setEditorPet(pet)}
+                          >
+                            <Pencil aria-hidden />
+                            Edit
+                          </Button>
                         }
                       />
                     )}

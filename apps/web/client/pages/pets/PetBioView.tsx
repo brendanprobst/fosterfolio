@@ -1,9 +1,8 @@
 "use client";
 
-import { Badge } from "@client/components/ui/badge";
+import { PetFacts } from "@client/components/PetFacts";
 import { Markdown } from "@client/components/markdown";
 import type { PetPublic } from "@client/features/pets";
-import { humanizeToken } from "@client/lib/humanizeToken";
 import { useEffect } from "react";
 
 type PetBioViewProps = {
@@ -25,14 +24,6 @@ export function PetBioView({
     document.title = "Fosterfolio";
   }, [pet.meta?.title, setDocumentTitle]);
 
-  const facts = [
-    pet.species,
-    pet.breed,
-    pet.ageValue != null ? `${pet.ageValue} ${pet.ageUnit ?? "years"}` : null,
-    pet.sex,
-    pet.size,
-  ].filter((item): item is string => !!item);
-
   return (
     <>
       <header className="space-y-4">
@@ -45,30 +36,12 @@ export function PetBioView({
           />
         ) : null}
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-semibold tracking-tight">{pet.name}</h1>
-            {pet.status ? (
-              <Badge variant="secondary" className="capitalize">
-                {humanizeToken(pet.status)}
-              </Badge>
-            ) : null}
-            {pet.subStatus ? (
-              <Badge variant="outline" className="capitalize">
-                {humanizeToken(pet.subStatus)}
-              </Badge>
-            ) : null}
-          </div>
-          {facts.length > 0 ? (
-            <ul className="flex flex-wrap gap-2">
-              {facts.map((fact) => (
-                <li key={fact}>
-                  <Badge variant="outline" className="capitalize">
-                    {humanizeToken(fact)}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          <PetFacts
+            pet={pet}
+            title={
+              <h1 className="text-3xl font-semibold tracking-tight">{pet.name}</h1>
+            }
+          />
           {pet.shelterLinkUrl ? (
             <p className="text-sm">
               <span className="text-muted-foreground">Shelter: </span>
