@@ -3,7 +3,7 @@ import { useOwnerPets, type PetPublic } from "@client/features/pets";
 import { useOwnUser, useUpdateUserMutation } from "@client/features/users";
 import type { UserOwner } from "@client/features/users";
 import { ProfilePage } from "@client/pages/profile";
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authSignedIn, renderWithQueryClient } from "./support/renderWithProviders";
 
@@ -214,19 +214,18 @@ describe("ProfilePage", () => {
     expect(screen.getByLabelText("ZIP code")).toHaveValue("78701");
   });
 
-  it("shows an empty state with a call to action when there are no pets", () => {
+  it("shows an empty state with a call to action when there are no pets", async () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(screen.getByText("No pets yet")).toBeInTheDocument();
-    const cta = screen.getByRole("button", { name: /add your first pet/i });
-    fireEvent.click(cta);
+    fireEvent.click(screen.getByRole("button", { name: /add your first pet/i }));
 
-    return waitFor(() =>
-      expect(screen.getByRole("form", { name: "Add pet" })).toBeInTheDocument(),
-    );
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Add pet" })).toBeInTheDocument();
+    expect(screen.getByText("No pets yet")).toBeInTheDocument();
   });
 
-  it("lists pets as clickable photo cards with an edit overlay", () => {
+  it("lists pets as clickable photo cards and edits them in a dialog", () => {
     const listed: PetPublic = {
       id: "pet-1",
       ownerId: "u1",
@@ -267,5 +266,16 @@ describe("ProfilePage", () => {
     expect(screen.queryByText("dog")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /view bio/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Edit Fido" })).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Edit Fido" })).toBeInTheDocument();
+    // The card stays mounted behind the modal (inert, not replaced).
+    expect(screen.getByRole("link", { name: "Fido", hidden: true })).toHaveAttribute(
+      "href",
+      "/@u1/pet/pet-1",
+    );
   });
 });

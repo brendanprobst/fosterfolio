@@ -14,7 +14,7 @@ import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { AvatarEditor } from "./AvatarEditor";
 import { ConnectedSitesCard } from "./ConnectedSitesCard";
-import { PetEditor } from "./PetEditor";
+import { PetEditorDialog } from "./PetEditorDialog";
 import { PetsEmptyState } from "./PetsEmptyState";
 import { ProfileEditDialog } from "./ProfileEditDialog";
 import { ProfileLinkCard } from "./ProfileLinkCard";
@@ -131,36 +131,27 @@ export function ProfilePage() {
                   </Button>
                 ) : null}
               </div>
-              {editorPet === "new" ? (
-                <PetEditor pet={null} onClose={() => setEditorPet(null)} />
-              ) : null}
-              {petList.length === 0 && editorPet !== "new" ? (
+              {petList.length === 0 ? (
                 <PetsEmptyState onAddPet={() => setEditorPet("new")} />
               ) : null}
               <ul className="grid gap-3 sm:grid-cols-2">
                 {petList.map((pet) => (
                   <li key={pet.id}>
-                    {editorPet !== null &&
-                    editorPet !== "new" &&
-                    editorPet.id === pet.id ? (
-                      <PetEditor pet={pet} onClose={() => setEditorPet(null)} />
-                    ) : (
-                      <PetCard
-                        pet={pet}
-                        href={petHref(shareRef, pet.id)}
-                        actions={
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setEditorPet(pet)}
-                          >
-                            <Pencil aria-hidden />
-                            Edit
-                          </Button>
-                        }
-                      />
-                    )}
+                    <PetCard
+                      pet={pet}
+                      href={petHref(shareRef, pet.id)}
+                      actions={
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setEditorPet(pet)}
+                        >
+                          <Pencil aria-hidden />
+                          Edit
+                        </Button>
+                      }
+                    />
                   </li>
                 ))}
               </ul>
@@ -181,6 +172,15 @@ export function ProfilePage() {
             onOpenChange={setSocialOpen}
           />
         </>
+      ) : null}
+      {editorPet !== null ? (
+        <PetEditorDialog
+          pet={editorPet === "new" ? null : editorPet}
+          open
+          onOpenChange={(next) => {
+            if (!next) setEditorPet(null);
+          }}
+        />
       ) : null}
     </AppShell>
   );
