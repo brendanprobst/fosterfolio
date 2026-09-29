@@ -23,10 +23,8 @@ type SocialLinksDialogProps = {
 };
 
 /**
- * Social/external links, split out from the rest of the profile so it can grow
- * (Instagram, a shelter site, anything else) without crowding the header. Opened from
- * the "Connected sites" sidebar card via its "Manage" button, which also lists the
- * saved link labels.
+ * Places this foster posts about their animals. Opened from the "Where you share"
+ * card. Shelter websites belong on the location card, not here.
  */
 export function SocialLinksDialog({ user, open, onOpenChange }: SocialLinksDialogProps) {
   const mutation = useUpdateUserMutation();
@@ -55,12 +53,13 @@ export function SocialLinksDialog({ user, open, onOpenChange }: SocialLinksDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Connected sites</DialogTitle>
+          <DialogTitle>Where you share</DialogTitle>
           <DialogDescription>
-            Instagram, a shelter site, anywhere people can find you.
+            Instagram, a foster diary, a TikTok — anywhere you post about the animals
+            you foster. Shelter websites belong with location.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-3" aria-label="Edit connected sites">
+        <form onSubmit={onSubmit} className="space-y-3" aria-label="Edit where you share">
           {mutation.isError ? (
             <Alert variant="destructive">
               <AlertTitle>Could not save</AlertTitle>

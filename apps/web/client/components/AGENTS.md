@@ -3,6 +3,7 @@
 ## Layout
 
 - **`ui/`** — **Design-system primitives** from shadcn/ui (Base UI). Generated/maintained via `npx shadcn@latest add …`. Do not mix route-specific or marketing-only layouts in this folder.
+- **Dialog width** — `DialogContent` defaults to **`max-w-2xl`**. Keep that for edit/forms. See [`docs/ui-and-styling.md`](../../docs/ui-and-styling.md) **Product UX**.
 - **No page shells here** — route-level views live under **`client/pages/<route>/`** (see [`../pages/AGENTS.md`](../pages/AGENTS.md)).
 
 ## Imports

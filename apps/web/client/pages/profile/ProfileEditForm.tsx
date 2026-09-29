@@ -21,8 +21,8 @@ type ProfileEditFormProps = {
 };
 
 /**
- * Name, handle, and bio. Location/shelters live in `ProfileLocationCard` (inline,
- * no dialog); social links live in `SocialLinksDialog`.
+ * Name, handle, and bio. Location/shelters live in `ProfileLocationDialog`;
+ * social links live in `SocialLinksDialog`.
  */
 export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
   const mutation = useUpdateUserMutation();

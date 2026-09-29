@@ -94,6 +94,35 @@ describe("PublicProfilePage", () => {
     expect(screen.queryByRole("link", { name: /edit profile/i })).not.toBeInTheDocument();
   });
 
+  it("lists shelter links separately from where they share", () => {
+    vi.mocked(useUser).mockReturnValue({
+      data: {
+        ...user,
+        sheltersText: JSON.stringify([
+          { name: "SFACC", url: "https://sfacc.example" },
+          { name: "Muttville", url: "" },
+        ]),
+        socialLinks: [{ label: "Instagram", url: "https://example.com/alex" }],
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useUser>);
+
+    renderWithQueryClient(<PublicProfilePage />);
+
+    expect(screen.getByRole("link", { name: "SFACC" })).toHaveAttribute(
+      "href",
+      "https://sfacc.example",
+    );
+    expect(screen.getByText("Muttville")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Muttville" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
+      "href",
+      "https://example.com/alex",
+    );
+  });
+
   it("shows an owner sidebar instead of the inquiry form on your own public page", () => {
     vi.mocked(useAuth).mockReturnValue(
       authSignedIn({ id: "owner-1", email: "alex@example.com" } as User),

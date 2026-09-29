@@ -254,7 +254,7 @@ values
     'Long-term foster in the Mission. Mostly seniors and bottle babies. Ask me about crate training.',
     '94107', 'San Francisco', 'CA', 37.7642, -122.3949,
     '[{"label":"Instagram","url":"https://instagram.com/alexfosters"},{"label":"Foster diary","url":"https://alexfosters.example.com"}]'::jsonb,
-    'SF Animal Care & Control, Muttville',
+    '[{"name":"SF Animal Care & Control","url":"https://www.sf.gov/departments/animal-care-control"},{"name":"Muttville","url":"https://www.muttville.org"}]',
     now() - interval '240 days',
     null
   ),
@@ -266,7 +266,7 @@ values
     'Cat foster and TNR volunteer. Two permanent residents, one revolving guest room.',
     '94607', 'Oakland', 'CA', 37.7983, -122.2745,
     '[{"label":"Bluesky","url":"https://bsky.app/profile/bianca.example.com"}]'::jsonb,
-    'Oakland Animal Services',
+    '[{"name":"Oakland Animal Services","url":""}]',
     now() - interval '180 days',
     null
   ),
@@ -278,7 +278,7 @@ values
     'Austin foster, mostly heartworm treatment cases. Slow walks only.',
     '78704', 'Austin', 'TX', 30.2489, -97.7713,
     '[]'::jsonb,
-    'Austin Pets Alive!',
+    '[{"name":"Austin Pets Alive!","url":"https://www.austinpetsalive.org"}]',
     now() - interval '120 days',
     null
   ),

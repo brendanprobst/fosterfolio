@@ -56,7 +56,7 @@ export function seedFosterfolioE2eData(input: {
     lat: 37.76,
     lng: -122.39,
     socialLinks: [],
-    sheltersText: 'SFACC',
+    sheltersText: JSON.stringify([{ name: "SFACC", url: "https://www.sfacc.example" }]),
     createdAt: now,
     deletedAt: null,
   });

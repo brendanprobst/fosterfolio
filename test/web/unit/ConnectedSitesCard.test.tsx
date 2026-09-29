@@ -25,6 +25,7 @@ describe("ConnectedSitesCard", () => {
   it("lists each link by label and lets it open in a new tab", () => {
     render(<ConnectedSitesCard user={user} onManage={vi.fn()} />);
 
+    expect(screen.getByText("Where you share")).toBeInTheDocument();
     const link = screen.getByRole("link", { name: "Instagram" });
     expect(link).toHaveAttribute("href", "https://example.com/alex");
     expect(link).toHaveAttribute("target", "_blank");
@@ -33,14 +34,14 @@ describe("ConnectedSitesCard", () => {
   it("shows a placeholder with no links", () => {
     render(<ConnectedSitesCard user={{ ...user, socialLinks: [] }} onManage={vi.fn()} />);
 
-    expect(screen.getByText("No sites connected yet.")).toBeInTheDocument();
+    expect(screen.getByText("No places listed yet.")).toBeInTheDocument();
   });
 
   it("delegates management to the dialog opener, not itself", () => {
     const onManage = vi.fn();
     render(<ConnectedSitesCard user={user} onManage={onManage} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Manage connected sites" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manage where you share" }));
 
     expect(onManage).toHaveBeenCalledOnce();
   });

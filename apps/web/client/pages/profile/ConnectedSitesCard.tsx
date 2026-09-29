@@ -10,26 +10,27 @@ type ConnectedSitesCardProps = {
 };
 
 /**
- * Sits beside `ProfileLocationCard` (row on wide screens, stacked column on narrow
- * ones — the grid lives in `ProfilePage`). Same shape as that card — a muted heading
- * and a top-right icon button — but management always opens `SocialLinksDialog`
- * rather than expanding in place, since each link needs a label and a URL.
+ * Places this foster posts about their animals — Instagram, a diary, TikTok.
+ * Shelter websites live on `ProfileLocationCard` instead.
  */
 export function ConnectedSitesCard({ user, onManage }: ConnectedSitesCardProps) {
   return (
-    <section className="border-border rounded-xl border p-4" aria-label="Connected sites">
+    <section className="border-border rounded-xl border p-4" aria-label="Where you share">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-muted-foreground text-sm font-medium">Connected sites</h2>
+        <h2 className="text-muted-foreground text-sm font-medium">Where you share</h2>
         <Button
           type="button"
           size="icon-sm"
           variant="ghost"
-          aria-label="Manage connected sites"
+          aria-label="Manage where you share"
           onClick={onManage}
         >
           <Pencil aria-hidden />
         </Button>
       </div>
+      <p className="text-muted-foreground mt-1 text-xs">
+        Instagram, a foster diary, anywhere you post about the animals you foster.
+      </p>
       <div className="mt-3">
         {user.socialLinks.length > 0 ? (
           <ul className="space-y-1.5 text-sm">
@@ -47,7 +48,7 @@ export function ConnectedSitesCard({ user, onManage }: ConnectedSitesCardProps) 
             ))}
           </ul>
         ) : (
-          <p className="text-muted-foreground text-sm">No sites connected yet.</p>
+          <p className="text-muted-foreground text-sm">No places listed yet.</p>
         )}
       </div>
     </section>

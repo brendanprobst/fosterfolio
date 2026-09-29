@@ -19,6 +19,7 @@ import { PetsEmptyState } from "./PetsEmptyState";
 import { ProfileEditDialog } from "./ProfileEditDialog";
 import { ProfileLinkCard } from "./ProfileLinkCard";
 import { ProfileLocationCard } from "./ProfileLocationCard";
+import { ProfileLocationDialog } from "./ProfileLocationDialog";
 import { SocialLinksDialog } from "./SocialLinksDialog";
 
 export function ProfilePage() {
@@ -28,6 +29,7 @@ export function ProfilePage() {
   const pets = useOwnerPets(user?.id ?? null);
   const [editorPet, setEditorPet] = useState<PetPublic | null | "new">(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
   const [socialOpen, setSocialOpen] = useState(false);
 
   if (loading || !user) {
@@ -106,7 +108,10 @@ export function ProfilePage() {
 
             {profile ? (
               <div className="grid gap-4 sm:grid-cols-2">
-                <ProfileLocationCard user={profile} />
+                <ProfileLocationCard
+                  user={profile}
+                  onManage={() => setLocationOpen(true)}
+                />
                 <ConnectedSitesCard user={profile} onManage={() => setSocialOpen(true)} />
               </div>
             ) : null}
@@ -165,6 +170,11 @@ export function ProfilePage() {
       {profile ? (
         <>
           <ProfileEditDialog user={profile} open={editOpen} onOpenChange={setEditOpen} />
+          <ProfileLocationDialog
+            user={profile}
+            open={locationOpen}
+            onOpenChange={setLocationOpen}
+          />
           <SocialLinksDialog
             user={profile}
             open={socialOpen}

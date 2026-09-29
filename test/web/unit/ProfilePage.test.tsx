@@ -161,14 +161,14 @@ describe("ProfilePage", () => {
   it("lists connected sites by label beside the location card and manages them from there", async () => {
     renderWithQueryClient(<ProfilePage />);
 
-    expect(screen.getByText("Connected sites")).toBeInTheDocument();
+    expect(screen.getByText("Where you share")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
       "href",
       "https://example.com/alex",
     );
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Manage connected sites" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manage where you share" }));
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
@@ -186,7 +186,7 @@ describe("ProfilePage", () => {
 
     renderWithQueryClient(<ProfilePage />);
 
-    expect(screen.getByText("No sites connected yet.")).toBeInTheDocument();
+    expect(screen.getByText("No places listed yet.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Instagram" })).not.toBeInTheDocument();
   });
 
@@ -204,12 +204,13 @@ describe("ProfilePage", () => {
     expect(screen.queryByLabelText("ZIP code")).not.toBeInTheDocument();
   });
 
-  it("expands the location card in place, not a dialog", () => {
+  it("opens location and shelters in a dialog", async () => {
     renderWithQueryClient(<ProfilePage />);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit location and shelters" }));
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toBeInTheDocument();
     expect(screen.getByLabelText("ZIP code")).toHaveValue("78701");
   });
 

@@ -22,6 +22,14 @@ import { HomePage } from "@client/pages/home";
 import { Button } from "@client/components/ui/button";
 ```
 
+## Product UX
+
+Conventions for product UI under `client/pages/` (not the `/ui` gallery). Agents implementing pages should follow these instead of inventing a one-off pattern.
+
+- **Edit grouped fields in a Dialog, not in-place on the card.** Compact cards stay read-only; the pencil (or equivalent) opens a modal. Closing without save discards the draft (re-seed from saved data each time the dialog opens). Profile examples: name/bio (`ProfileEditDialog`), photo (`AvatarEditor`), location/shelters (`ProfileLocationDialog`), where you share (`SocialLinksDialog`).
+- **Do not shrink edit dialogs.** `DialogContent` defaults to **`max-w-2xl`** so forms have room for labels, side-by-side inputs, and helper text. Leave that default. Override smaller only for a true confirm/alert. The inquiry expand flow is the opposite exception: it uses a full-bleed overlay (`max-w-none`), not a centered card.
+- **In-place exceptions** are rare. The pet editor on `/profile` still replaces the card until it is moved to a modal; do not copy that pattern for new field groups.
+
 ## Design tokens
 
 Theme colors and radius live as **CSS variables** in `globals.css` (`:root` and `.dark`). Tailwind maps them through `@theme inline` (e.g. `bg-background`, `text-muted-foreground`). Toggle dark mode by adding class `dark` on `<html>` when you implement a theme switcher.

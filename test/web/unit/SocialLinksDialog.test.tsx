@@ -44,6 +44,7 @@ describe("SocialLinksDialog", () => {
   it("prefills the existing links when opened", () => {
     render(<SocialLinksDialog user={user} open onOpenChange={vi.fn()} />);
 
+    expect(screen.getByRole("heading", { name: "Where you share" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("Instagram")).toBeInTheDocument();
     expect(screen.getByDisplayValue("https://example.com/alex")).toBeInTheDocument();
   });
