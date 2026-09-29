@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { E2E_SEED } from "./support/e2eSeedConstants";
 
 /**
  * Do not use `page.addInitScript` to clear `lattice-e2e-signed-out` here — Playwright runs
@@ -7,7 +8,9 @@ import { expect, test } from "@playwright/test";
  */
 test("protected routes redirect to sign-in when there is no session", async ({ page }) => {
   await page.goto("/profile");
-  await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: E2E_SEED.userDisplayName }),
+  ).toBeVisible();
 
   await page.evaluate(() => {
     sessionStorage.setItem("lattice-e2e-signed-out", "1");
