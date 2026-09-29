@@ -18,7 +18,7 @@ test.describe("full stack (profile)", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: E2E_SEED.userDisplayName }),
     ).toBeVisible();
-    await expect(page.getByText("Private editor")).toBeVisible();
+    await expect(page.getByText("Sharing your profile")).toBeVisible();
     await expect(page.getByText(E2E_SEED.petName)).toBeVisible();
     await expect(page.getByRole("link", { name: "View bio" })).toHaveAttribute(
       "href",

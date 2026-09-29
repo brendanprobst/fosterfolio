@@ -4,21 +4,14 @@ import { useAuth, useRequireAuth } from "@client/auth";
 import { PetCard } from "@client/components/PetCard";
 import { AppShell, PageWithSidebar } from "@client/components/layout";
 import { Markdown } from "@client/components/markdown";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@client/components/ui/card";
 import { Button, buttonVariants } from "@client/components/ui/button";
 import { Separator } from "@client/components/ui/separator";
 import { useOwnerPets, type PetPublic } from "@client/features/pets";
 import { useOwnUser } from "@client/features/users";
 import { petHref } from "@client/lib/petBioPath";
 import { cn } from "@client/lib/utils";
-import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
-import { ExternalLink, Eye, Info, Pencil, Plus } from "lucide-react";
+import { publicHandle } from "@client/lib/userProfilePath";
+import { Eye, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { AvatarEditor } from "./AvatarEditor";
@@ -56,36 +49,10 @@ export function ProfilePage() {
       <main>
         <PageWithSidebar
           sidebar={
-            <>
-              <Card size="sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-1.5">
-                    <Info aria-hidden className="size-4" />
-                    Private editor
-                  </CardTitle>
-                  <CardDescription>
-                    You&apos;re currently on the profile editor page. Only you can
-                    see this page. The public page is what everyone else sees.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link
-                    href={userProfileHref(shareRef)}
-                    className={cn(
-                      buttonVariants({ variant: "outline", size: "sm" }),
-                      "w-full",
-                    )}
-                  >
-                    <ExternalLink aria-hidden />
-                    View public profile
-                  </Link>
-                </CardContent>
-              </Card>
-              <ProfileLinkCard
-                handleOrId={shareRef}
-                hasHandle={Boolean(profile?.handle)}
-              />
-            </>
+            <ProfileLinkCard
+              handleOrId={shareRef}
+              hasHandle={Boolean(profile?.handle)}
+            />
           }
         >
             {/* Just picture, name, and bio; location and connected sites are below. */}

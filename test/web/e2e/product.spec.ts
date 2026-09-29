@@ -138,11 +138,15 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: E2E_SEED.userDisplayName }),
       ).toBeVisible();
-      await expect(page.getByText("Private editor")).toBeVisible();
-      await expect(page.getByRole("link", { name: /view public profile/i })).toHaveAttribute(
+      await expect(page.getByText("Sharing your profile")).toBeVisible();
+      await expect(page.getByText("Private editor")).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
         "href",
         E2E_PATHS.publicProfile,
       );
+      await expect(
+        page.getByRole("link", { name: 'Preview "Foster Me" Link' }),
+      ).toHaveAttribute("href", E2E_PATHS.fosterMe);
       await expect(page.getByRole("heading", { name: "Profile Link" })).toBeVisible();
       await expect(page.getByRole("heading", { name: '"Foster Me" Link' })).toBeVisible();
       await expect(page.getByText(E2E_SEED.petName)).toBeVisible();

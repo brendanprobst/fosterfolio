@@ -54,7 +54,7 @@ export function PublicProfileSidebar({
               )}
             >
               <PawPrint aria-hidden />
-              See who you’re fostering now
+              Preview &apos;Foster Me&apos; page
             </Link>
           </CardContent>
         </Card>

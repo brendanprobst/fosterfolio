@@ -76,7 +76,7 @@ describe("ProfilePage", () => {
     } as unknown as ReturnType<typeof useUpdateUserMutation>);
   });
 
-  it("leads with the identity header and keeps the public link in the sidebar", () => {
+  it("leads with the identity header and shares public URLs from one sidebar card", () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(
@@ -84,17 +84,30 @@ describe("ProfilePage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Fostering since 2019")).toBeInTheDocument();
     expect(screen.getByLabelText("Profile picture")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /view public profile/i })).toHaveAttribute(
-      "href",
-      "/@u1",
-    );
+    expect(screen.queryByText("Private editor")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /view public profile/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Sharing your profile")).toBeInTheDocument();
+    expect(
+      screen.getByText(/this editor is private/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/no handle yet — public links use your id/i),
     ).toBeInTheDocument();
     expect(screen.getByText("/@u1")).toBeInTheDocument();
     expect(screen.getByText("/@u1/foster-me")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Profile Link" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: '"Foster Me" Link' })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Profile Link" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: '"Foster Me" Link' })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
+      "href",
+      "/@u1",
+    );
+    expect(
+      screen.getByRole("link", { name: 'Preview "Foster Me" Link' }),
+    ).toHaveAttribute("href", "/@u1/foster-me");
     expect(
       screen.getByText(/always opens whoever you’re fostering now/i),
     ).toBeInTheDocument();
@@ -126,10 +139,13 @@ describe("ProfilePage", () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(screen.getByText("@alex")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /view public profile/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
       "href",
       "/@alex",
     );
+    expect(
+      screen.getByRole("link", { name: 'Preview "Foster Me" Link' }),
+    ).toHaveAttribute("href", "/@alex/foster-me");
     expect(screen.getByText("/@alex/foster-me")).toBeInTheDocument();
   });
 
