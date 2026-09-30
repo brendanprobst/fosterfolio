@@ -4,7 +4,7 @@ State as of commit `9cd1da2`. Checkpoints 0–6 of the [MVP plan](fosterfolio_mv
 
 The authoritative runbook is [`docs/playbooks/private-beta.md`](../playbooks/private-beta.md); this file only tracks what is still outstanding and what each item is blocked on.
 
-**Product work is tracked separately.** The site still needs work before go-live matters — see [user handles (vanity URLs)](vanity_urls.plan.md) for the next scoped slice.
+**Product work is tracked separately.** Next coding session is [§6](#6-next-session--last-product-slice-before-pre-deploy-2026-09-30) (pet editor UX, inquiry submit + UX, flag off feed/search). After that, go-live is mostly items 1–2. Older product nits remain in §3–4. See [user handles (vanity URLs)](vanity_urls.plan.md) for that already-shipped slice.
 
 ---
 
@@ -90,7 +90,41 @@ Raised after a demo with a target-demographic user. Grounded against the current
 - **Decide on `zustand`.** Still in `apps/web/package.json` but with no consumers since `thingsStore.ts` was deleted. Kept for now because it is part of the documented state stack in [`apps/web/client/stores/AGENTS.md`](../../apps/web/client/stores/AGENTS.md); drop it if no screen needs client UI state.
 - **Investigate Supabase Advisor: "Clients can list all files in this bucket."** The warning is about `fosterfolio_media_public_read` on `storage.objects` in [`supabase/migrations/20260804031454_app_create_core_schema.sql`](../../supabase/migrations/20260804031454_app_create_core_schema.sql) — `FOR SELECT USING (bucket_id = 'fosterfolio-media')` with no path restriction. The bucket is already `public = true`, so individual objects are reachable by known URL without that policy; SELECT on `storage.objects` is what lets an anon client *list* every object via the Storage/PostgREST API. Checkpoint 4 tried to blunt enumeration by giving uploaded filenames a random suffix ([MVP plan](fosterfolio_mvp.plan.md) §4), but listing still exposes the full set. Likely fix is drop the public SELECT (or restrict it to `auth.uid()`'s folder) and confirm browsers still load `<img src="{publicUrl}">` from the public bucket. Writes already require own-folder; `user_storage_bytes` is `security definer` and granted only to `service_role`, so it should keep working. Verify in the dashboard after a new migration, and check that seed/dev picsum URLs (not storage objects) are unaffected.
 - ~~add a "visible only to you" label to info cards on pubic facing pages for content only rendered to a user~~ **Done 2026-09-30.** `OwnerOnlyLabel` on owner-only chrome: public-profile sidebar, pet-bio edit card, and `ShareLinkCard` (foster-me preview + pet-bio share).
-- be able to edit a pet's bio from their page, or the foster me page, may involve navigating, but the flow should have a valid starting path from both those pages
+- be able to edit a pet's bio from their page, or the foster me page, may involve navigating, but the flow should have a valid starting path from both those pages — **pull into next session** (item 6.1); do not treat as a separate later chore.
+
+---
+
+## 6. Next session — last product slice before pre-deploy (2026-09-30)
+
+Do these three, in this order, **before** items 1–2 (allowlist + AWS). Do not start the code until that session. After they land, the remaining work is mostly operator/deploy (plus leftover product nits in §3–4 that are not required for a private-beta cut).
+
+### 6.1 Pet bio edit UX
+
+Today add/edit is a single wide `PetEditorDialog` wrapping a long `PetEditor` form (`name` through `shelterLinkUrl` in one scroll). Owner entry is `/profile` only. Pet bio and foster-me still have no “edit this pet” path (see the last bullet in §5).
+
+**Do:**
+- Keep edit-in-`Dialog` (product UX rule). Split the wall of fields: identity + photo first, facts (species/age/sex/size/status) second, bio markdown third, shelter link last — tabs, steppers, or stacked sections with sticky Save, not one undifferentiated column.
+- Add an owner-only Edit control on `PetBioPage` and on the current pet on `FosterMePage` that opens the same dialog (or a thin wrapper) so `/profile` is not the only start.
+- Verify: create, edit, photo upload, delete, and both new entry points. Desktop + a narrow viewport (the current dialog is already `max-w-4xl` for pets).
+
+### 6.2 Inquiry form — actually submit it, then buff UX
+
+`InquiryForm` / `ExpandableInquiryForm` already POST via `useCreateInquiryMutation`. Success is an `Alert` (“Inquiry sent”). Failures surface the mutation error. Email is the logging adapter unless SES is wired.
+
+**Do:**
+- Guest-submit from public profile, pet bio (with `targetPetId`), and foster-me. Confirm the foster’s inbox (or API/server logs if email is still the logger). Cover empty fields, bad email, and double-submit.
+- Then UX: clearer pending/disabled Save, keep the draft on error, success copy that names the foster when we have `displayName`, maybe collapse the expandable form after send. Honeypot / rate-limit stay deferred for private beta (MVP plan).
+- Tests: extend `InquiryForm.test.tsx` and the product e2e that already fills the dialog on pet bio; add a public-profile submit if missing.
+
+### 6.3 Hide feed and search behind product flags (do not delete)
+
+`HomePage` (`/`) and `SearchPage` (`/search`) stay in the repo. `AppHeader` always links Home + Search. Foster-me empty copy links `/search`.
+
+**Do not** use `config/repo-features.json` — that only gates CI/Dependabot. Use the existing `apps/web/client/lib/latticeFeatureFlags.ts` seam (`NEXT_PUBLIC_LATTICE_*`), e.g. `NEXT_PUBLIC_LATTICE_FEED=1` / `NEXT_PUBLIC_LATTICE_SEARCH=1`, **default off** for beta. When off: drop header (and any other) nav to `/` and `/search`; those routes can 404 or show a short “not in this beta” shell so bookmarks do not look broken. Keep unit/e2e that cover feed/search, but skip or gate them when the flag is off (Playwright already uses `NEXT_PUBLIC_LATTICE_E2E` — same pattern). API list/search endpoints can stay; this is a web chrome cut, not a backend deletion.
+
+### After 6.x
+
+Pre-deploy prep = item 2 (`terraform.tfvars` + `deploy:aws`) and item 1 (allowlist emails), then the browser checklist in [private-beta.md §5](../playbooks/private-beta.md). Still later, not this slice: connected-site warning modal, theme switcher, multi-photo pets, view counts, `user_shelters` table.
 
 ---
 
