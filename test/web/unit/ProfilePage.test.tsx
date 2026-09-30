@@ -1,4 +1,5 @@
 import { useAuth, useRequireAuth } from "@client/auth";
+import { BIO_PREVIEW_MAX_LINES } from "@client/lib/bioPreview";
 import { useOwnerPets, type PetPublic } from "@client/features/pets";
 import { useOwnUser, useUpdateUserMutation } from "@client/features/users";
 import type { UserOwner } from "@client/features/users";
@@ -202,6 +203,27 @@ describe("ProfilePage", () => {
     expect(screen.getByLabelText("Handle")).toHaveValue("");
     expect(screen.getByLabelText("Bio (markdown)")).toHaveValue("Fostering since 2019");
     expect(screen.queryByLabelText("ZIP code")).not.toBeInTheDocument();
+  });
+
+  it("opens the name and bio editor from Read more when the bio is too many lines", async () => {
+    const bio = Array.from(
+      { length: BIO_PREVIEW_MAX_LINES + 1 },
+      (_, i) => `Editor line ${i + 1}.`,
+    ).join("\n");
+    vi.mocked(useOwnUser).mockReturnValue({
+      data: { ...profile, bio },
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useOwnUser>);
+
+    renderWithQueryClient(<ProfilePage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Read more..." }));
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Edit name & bio" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Bio (markdown)")).toHaveValue(bio);
+    expect(screen.queryByText("About this foster")).not.toBeInTheDocument();
   });
 
   it("opens location and shelters in a dialog", async () => {

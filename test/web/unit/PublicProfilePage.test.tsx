@@ -4,7 +4,7 @@ import { useAuthorPosts } from "@client/features/posts";
 import { useUser } from "@client/features/users";
 import type { UserPublic } from "@client/features/users";
 import { PublicProfilePage } from "@client/pages/users";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { usePathname } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "@supabase/supabase-js";
@@ -86,6 +86,11 @@ describe("PublicProfilePage", () => {
     renderWithQueryClient(<PublicProfilePage />);
 
     expect(screen.getByText("@alex")).toBeInTheDocument();
+    const heading = screen.getByRole("heading", { level: 1, name: "Alex Foster" });
+    const identity = heading.closest("header");
+    expect(identity).toContainElement(screen.getByRole("img", { name: "Alex Foster" }));
+    expect(screen.queryByRole("button", { name: "Star" })).not.toBeInTheDocument();
+    expect(screen.getByRole("separator")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /see who they’re fostering now/i }),
     ).toHaveAttribute("href", "/@alex/foster-me");
@@ -143,5 +148,21 @@ describe("PublicProfilePage", () => {
       "/profile",
     );
     expect(screen.queryByRole("form", { name: "Contact this foster" })).not.toBeInTheDocument();
+  });
+
+  it("left-aligns a long bio with the name and expands it in a dialog", () => {
+    const bio = `${"Helping seniors and bottle babies in the Mission. ".repeat(8)}That's the work.`;
+    vi.mocked(useUser).mockReturnValue({
+      data: { ...user, bio },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useUser>);
+
+    renderWithQueryClient(<PublicProfilePage />);
+
+    expect(screen.getByRole("region", { name: "Bio" })).toHaveClass("ml-20");
+    fireEvent.click(screen.getByRole("button", { name: "Read more..." }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("That's the work.");
   });
 });

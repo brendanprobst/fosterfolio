@@ -81,7 +81,7 @@ The script only prints `status path`. It does not log tokens.
 1. `/` feed loads.
 2. `/search?q=` finds a known pet or foster.
 3. `/@{handle}/pet/{uuid}` (uuid fallback `/@{userId}/pet/{uuid}` is fine) shows bio, QR, inquiry.
-4. `/@{handle}` shows the public profile + star.
+4. `/@{handle}` shows the public profile.
 5. `/@{handle}/foster-me` shows the current foster (or empty/fallback copy) and a QR for that stable URL.
 6. Sign in with an **allowlisted** email; `/profile` edits and can create a pet.
 7. Sign-up with an email **not** on the list shows the approved-access message.

@@ -4,18 +4,18 @@ import { useAuth } from "@client/auth";
 import { PetCard } from "@client/components/PetCard";
 import { UserAvatar } from "@client/components/UserAvatar";
 import { AppShell, PageWithSidebar } from "@client/components/layout";
-import { Markdown } from "@client/components/markdown";
 import { useOwnerPets } from "@client/features/pets";
 import { PostCard, useAuthorPosts } from "@client/features/posts";
-import { StarButton } from "@client/features/stars";
 import { useUser } from "@client/features/users";
 import { petHref } from "@client/lib/petBioPath";
 import {
   handleFromPathname,
   publicHandle,
 } from "@client/lib/userProfilePath";
+import { Separator } from "@client/components/ui/separator";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { PublicBio } from "./PublicBio";
 import { PublicLocationCard } from "./PublicLocationCard";
 import { PublicProfileSidebar } from "./PublicProfileSidebar";
 import { PublicShareCard } from "./PublicShareCard";
@@ -70,22 +70,26 @@ export function PublicProfilePage() {
               />
             }
           >
-            <header className="flex items-start gap-4">
-              <UserAvatar name={user.displayName} url={user.avatarUrl} size="lg" />
-              <div className="min-w-0 space-y-2">
-                <h1 className="text-3xl font-semibold tracking-tight">
-                  {user.displayName || "Foster"}
-                </h1>
-                {user.handle ? (
-                  <p className="text-muted-foreground font-mono text-sm">
-                    @{user.handle}
-                  </p>
-                ) : null}
-                <StarButton userId={user.id} initialCount={user.starCount} />
-              </div>
-            </header>
+            <div className="space-y-3">
+              <header className="flex min-w-0 items-start gap-4">
+                <UserAvatar name={user.displayName} url={user.avatarUrl} size="lg" />
+                <div className="min-w-0 space-y-2">
+                  <h1 className="text-3xl font-semibold tracking-tight">
+                    {user.displayName || "Foster"}
+                  </h1>
+                  {user.handle ? (
+                    <p className="text-muted-foreground font-mono text-sm">
+                      @{user.handle}
+                    </p>
+                  ) : null}
+                </div>
+              </header>
 
-            {user.bio ? <Markdown>{user.bio}</Markdown> : null}
+              {user.bio ? (
+                <PublicBio name={user.displayName || "Foster"} bio={user.bio} />
+              ) : null}
+              <Separator />
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <PublicLocationCard

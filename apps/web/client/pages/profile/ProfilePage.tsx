@@ -3,7 +3,7 @@
 import { useAuth, useRequireAuth } from "@client/auth";
 import { PetCard } from "@client/components/PetCard";
 import { AppShell, PageWithSidebar } from "@client/components/layout";
-import { Markdown } from "@client/components/markdown";
+import { BioPreview } from "@client/components/BioPreview";
 import { Button } from "@client/components/ui/button";
 import { Separator } from "@client/components/ui/separator";
 import { useOwnerPets, type PetPublic } from "@client/features/pets";
@@ -85,9 +85,11 @@ export function ProfilePage() {
                   </p>
                 ) : null}
                 {profile?.bio ? (
-                  <Markdown className="text-muted-foreground [&_p]:mb-0 text-sm leading-snug [&_a]:text-primary [&_a]:underline-offset-4 [&_a]:hover:underline">
-                    {profile.bio}
-                  </Markdown>
+                  <BioPreview
+                    bio={profile.bio}
+                    markdownClassName="text-muted-foreground [&_p]:mb-0 text-sm leading-snug [&_a]:text-primary [&_a]:underline-offset-4 [&_a]:hover:underline"
+                    onReadMore={() => setEditOpen(true)}
+                  />
                 ) : (
                   <p className="text-muted-foreground text-sm">
                     Add a bio to tell people about your fostering.

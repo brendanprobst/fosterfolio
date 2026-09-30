@@ -74,7 +74,7 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(dialog.getByText("Inquiry sent")).toBeVisible();
     });
 
-    test("public profile shows guest sidebar, star control, and pets", async ({ page }) => {
+    test("public profile shows guest sidebar and pets", async ({ page }) => {
       await page.goto(E2E_PATHS.publicProfile);
       await expect(
         page.getByRole("heading", { level: 1, name: E2E_SEED.userDisplayName }),
@@ -85,7 +85,7 @@ test.describe("Fosterfolio product smoke", () => {
         E2E_PATHS.fosterMe,
       );
       await expect(page.getByRole("form", { name: "Contact this foster" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Star" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Star" })).toHaveCount(0);
       await expect(
         page.getByRole("link", { name: new RegExp(E2E_SEED.petName, "i") }),
       ).toBeVisible();
