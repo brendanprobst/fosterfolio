@@ -10,14 +10,15 @@ import { PostCard, useAuthorPosts } from "@client/features/posts";
 import { StarButton } from "@client/features/stars";
 import { useUser } from "@client/features/users";
 import { petHref } from "@client/lib/petBioPath";
-import { parseShelterLinks } from "@client/lib/shelterLinks";
 import {
   handleFromPathname,
   publicHandle,
 } from "@client/lib/userProfilePath";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { PublicLocationCard } from "./PublicLocationCard";
 import { PublicProfileSidebar } from "./PublicProfileSidebar";
+import { PublicShareCard } from "./PublicShareCard";
 
 export function PublicProfilePage() {
   const pathname = usePathname();
@@ -37,12 +38,6 @@ export function PublicProfilePage() {
     }
     document.title = "Fosterfolio";
   }, [user?.displayName]);
-
-  const location = user
-    ? [user.city, user.state].filter(Boolean).join(", ")
-    : "";
-  const shelters = user ? parseShelterLinks(user.sheltersText) : [];
-  const shares = user?.socialLinks ?? [];
 
   return (
     <AppShell>
@@ -86,61 +81,20 @@ export function PublicProfilePage() {
                     @{user.handle}
                   </p>
                 ) : null}
-                {location ? (
-                  <p className="text-muted-foreground text-sm">{location}</p>
-                ) : null}
                 <StarButton userId={user.id} initialCount={user.starCount} />
               </div>
             </header>
 
             {user.bio ? <Markdown>{user.bio}</Markdown> : null}
 
-            {shelters.length > 0 || shares.length > 0 ? (
-              <section className="space-y-4" aria-label="How to find them">
-                {shelters.length > 0 ? (
-                  <div className="space-y-1.5">
-                    <p className="text-muted-foreground text-sm">Works with</p>
-                    <ul className="flex flex-wrap gap-2 text-sm">
-                      {shelters.map((shelter) => (
-                        <li key={`${shelter.name}-${shelter.url}`}>
-                          {shelter.url ? (
-                            <a
-                              href={shelter.url}
-                              className="text-primary hover:underline"
-                              rel="noopener noreferrer"
-                              target="_blank"
-                            >
-                              {shelter.name}
-                            </a>
-                          ) : (
-                            <span>{shelter.name}</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {shares.length > 0 ? (
-                  <div className="space-y-1.5">
-                    <p className="text-muted-foreground text-sm">Also shares</p>
-                    <ul className="flex flex-wrap gap-2">
-                      {shares.map((link) => (
-                        <li key={`${link.label}-${link.url}`}>
-                          <a
-                            href={link.url}
-                            className="border-border hover:bg-muted/40 inline-flex rounded-full border px-3 py-1 text-sm"
-                            rel="noopener noreferrer"
-                            target="_blank"
-                          >
-                            {link.label}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </section>
-            ) : null}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <PublicLocationCard
+                city={user.city}
+                state={user.state}
+                sheltersText={user.sheltersText}
+              />
+              <PublicShareCard socialLinks={user.socialLinks} />
+            </div>
 
             <section className="space-y-3" aria-label="Fostered pets">
               <h2 className="text-lg font-medium">Pets</h2>

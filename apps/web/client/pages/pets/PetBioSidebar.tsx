@@ -1,6 +1,7 @@
 "use client";
 
 import { ExpandableInquiryForm } from "@client/features/inquiries";
+import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
 import { buttonVariants } from "@client/components/ui/button";
 import {
   Card,
@@ -43,7 +44,10 @@ export function PetBioSidebar({
       <>
         <Card size="sm">
           <CardHeader>
-            <CardTitle>Edit {petName}&apos;s bio</CardTitle>
+            <div className="space-y-1">
+              <OwnerOnlyLabel />
+              <CardTitle>Edit {petName}&apos;s bio</CardTitle>
+            </div>
             <CardDescription>
               Change what visitors and adopters see on this public page.
             </CardDescription>

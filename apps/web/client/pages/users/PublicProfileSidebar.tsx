@@ -1,5 +1,7 @@
 "use client";
 
+import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
+import { buttonVariants } from "@client/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@client/components/ui/card";
-import { buttonVariants } from "@client/components/ui/button";
 import { InquiryForm } from "@client/features/inquiries";
 import { cn } from "@client/lib/utils";
 import { fosterMeHref } from "@client/lib/userProfilePath";
@@ -32,7 +33,10 @@ export function PublicProfileSidebar({
       <>
         <Card size="sm">
           <CardHeader>
-            <CardTitle>Your public page</CardTitle>
+            <div className="space-y-1">
+              <OwnerOnlyLabel />
+              <CardTitle>Your public page</CardTitle>
+            </div>
             <CardDescription>
               This is what visitors see. Edit details and pets on your private
               profile.

@@ -1,6 +1,7 @@
 "use client";
 
 import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 
 type MarkdownProps = {
   children: string;
@@ -18,7 +19,7 @@ export function Markdown({ children, className }: MarkdownProps) {
         "prose prose-neutral text-foreground max-w-none prose-p:leading-relaxed prose-a:text-primary"
       }
     >
-      <ReactMarkdown>{children}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkBreaks]}>{children}</ReactMarkdown>
     </div>
   );
 }

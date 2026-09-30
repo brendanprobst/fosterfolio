@@ -92,6 +92,7 @@ describe("PublicProfilePage", () => {
     expect(screen.getByText("Interested in adopting?")).toBeInTheDocument();
     expect(screen.getByRole("form", { name: "Contact this foster" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /edit profile/i })).not.toBeInTheDocument();
+    expect(screen.queryByText("Visible only to you")).not.toBeInTheDocument();
   });
 
   it("lists shelter links separately from where they share", () => {
@@ -111,12 +112,17 @@ describe("PublicProfilePage", () => {
 
     renderWithQueryClient(<PublicProfilePage />);
 
+    expect(screen.getByRole("region", { name: "Location and shelters" })).toBeInTheDocument();
+    expect(screen.getByText("Austin, TX")).toBeInTheDocument();
+    expect(screen.queryByText("Works with")).not.toBeInTheDocument();
+    expect(screen.queryByText("Also shares")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "SFACC" })).toHaveAttribute(
       "href",
       "https://sfacc.example",
     );
     expect(screen.getByText("Muttville")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Muttville" })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Where they share" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
       "href",
       "https://example.com/alex",
@@ -131,6 +137,7 @@ describe("PublicProfilePage", () => {
     renderWithQueryClient(<PublicProfilePage />);
 
     expect(screen.getByText("Your public page")).toBeInTheDocument();
+    expect(screen.getByText("Visible only to you")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /edit profile/i })).toHaveAttribute(
       "href",
       "/profile",

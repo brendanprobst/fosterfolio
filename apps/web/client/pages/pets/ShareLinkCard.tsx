@@ -1,5 +1,6 @@
 "use client";
 
+import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
 import { ShareQrDialog } from "@client/components/ShareQrDialog";
 import { Button } from "@client/components/ui/button";
 import {
@@ -46,7 +47,10 @@ export function ShareLinkCard({
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <div className="space-y-1">
+          <OwnerOnlyLabel />
+          <CardTitle>{title}</CardTitle>
+        </div>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">

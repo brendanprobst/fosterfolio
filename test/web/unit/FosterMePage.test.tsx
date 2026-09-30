@@ -129,6 +129,7 @@ describe("FosterMePage", () => {
     expect(screen.queryByText(/"Foster Me" Link/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/flyer QR stays on/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Edit Mochi's bio")).not.toBeInTheDocument();
+    expect(screen.queryByText("Visible only to you")).not.toBeInTheDocument();
   });
 
   it("shows a fallback notice when the latest pet is not actively fostering", () => {
@@ -186,6 +187,7 @@ describe("FosterMePage", () => {
     expect(
       screen.getByText(/always opens whoever this foster is listing now/i),
     ).toBeInTheDocument();
+    expect(screen.getByText("Visible only to you")).toBeInTheDocument();
   });
 
   it("shows an empty state with profile and search links when there are no pets", () => {
