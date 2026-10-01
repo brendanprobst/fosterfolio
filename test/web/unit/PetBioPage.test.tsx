@@ -1,5 +1,6 @@
 import { useAuth } from "@client/auth";
 import { usePet } from "@client/features/pets";
+import { petEditorEditHref } from "@client/lib/petEditorPath";
 import type { PetPublic } from "@client/features/pets";
 import { PetBioPage } from "@client/pages/pets";
 import { fireEvent, screen } from "@testing-library/react";
@@ -195,7 +196,7 @@ describe("PetBioPage", () => {
     expect(screen.getAllByText("Visible only to you")).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Edit bio" })).toHaveAttribute(
       "href",
-      "/profile",
+      petEditorEditHref(petId, `/@owner-1/pet/${petId}`),
     );
     expect(
       screen.queryByRole("link", { name: /view your public profile/i }),

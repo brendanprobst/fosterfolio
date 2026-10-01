@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@client/components/ui/card";
+import { petEditorEditHref } from "@client/lib/petEditorPath";
 import { cn } from "@client/lib/utils";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
@@ -54,7 +55,7 @@ export function PetBioSidebar({
           </CardHeader>
           <CardContent>
             <Link
-              href="/profile"
+              href={petEditorEditHref(petId, petPath)}
               className={cn(buttonVariants({ size: "sm" }), "w-full")}
             >
               <Pencil aria-hidden />

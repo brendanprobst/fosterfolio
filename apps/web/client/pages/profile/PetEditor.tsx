@@ -2,7 +2,6 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
 import { Button, buttonVariants } from "@client/components/ui/button";
-import { DialogFooter } from "@client/components/ui/dialog";
 import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
 import { Textarea } from "@client/components/ui/textarea";
@@ -231,7 +230,7 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
           />
         </div>
       </div>
-      <DialogFooter>
+      <div className="flex flex-wrap gap-2 pt-2">
         <Button type="submit" disabled={pending}>
           {pet ? "Save pet" : "Create pet"}
         </Button>
@@ -252,7 +251,7 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
             Delete
           </Button>
         ) : null}
-      </DialogFooter>
+      </div>
     </form>
   );
 }

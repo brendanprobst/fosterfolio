@@ -4,17 +4,19 @@ import { useAuth, useRequireAuth } from "@client/auth";
 import { PetCard } from "@client/components/PetCard";
 import { AppShell, PageWithSidebar } from "@client/components/layout";
 import { BioPreview } from "@client/components/BioPreview";
-import { Button } from "@client/components/ui/button";
+import { Button, buttonVariants } from "@client/components/ui/button";
 import { Separator } from "@client/components/ui/separator";
-import { useOwnerPets, type PetPublic } from "@client/features/pets";
+import { useOwnerPets } from "@client/features/pets";
 import { useOwnUser } from "@client/features/users";
 import { petHref } from "@client/lib/petBioPath";
+import { petEditorEditHref, petEditorNewHref } from "@client/lib/petEditorPath";
 import { publicHandle } from "@client/lib/userProfilePath";
+import { cn } from "@client/lib/utils";
 import { Pencil, Plus } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { AvatarEditor } from "./AvatarEditor";
 import { ConnectedSitesCard } from "./ConnectedSitesCard";
-import { PetEditorDialog } from "./PetEditorDialog";
 import { PetsEmptyState } from "./PetsEmptyState";
 import { ProfileEditDialog } from "./ProfileEditDialog";
 import { ProfileLinkCard } from "./ProfileLinkCard";
@@ -27,7 +29,6 @@ export function ProfilePage() {
   const { user } = useAuth();
   const own = useOwnUser(user?.id ?? null);
   const pets = useOwnerPets(user?.id ?? null);
-  const [editorPet, setEditorPet] = useState<PetPublic | null | "new">(null);
   const [editOpen, setEditOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [socialOpen, setSocialOpen] = useState(false);
@@ -122,20 +123,16 @@ export function ProfilePage() {
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-lg font-medium">Your pets</h2>
                 {petList.length > 0 ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditorPet("new")}
+                  <Link
+                    href={petEditorNewHref()}
+                    className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
                   >
                     <Plus aria-hidden />
                     Add pet
-                  </Button>
+                  </Link>
                 ) : null}
               </div>
-              {petList.length === 0 ? (
-                <PetsEmptyState onAddPet={() => setEditorPet("new")} />
-              ) : null}
+              {petList.length === 0 ? <PetsEmptyState /> : null}
               <ul className="grid gap-3 sm:grid-cols-2">
                 {petList.map((pet) => (
                   <li key={pet.id}>
@@ -143,15 +140,13 @@ export function ProfilePage() {
                       pet={pet}
                       href={petHref(shareRef, pet.id)}
                       actions={
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => setEditorPet(pet)}
+                        <Link
+                          href={petEditorEditHref(pet.id)}
+                          className={cn(buttonVariants({ size: "sm", variant: "secondary" }))}
                         >
                           <Pencil aria-hidden />
                           Edit
-                        </Button>
+                        </Link>
                       }
                     />
                   </li>
@@ -174,15 +169,6 @@ export function ProfilePage() {
             onOpenChange={setSocialOpen}
           />
         </>
-      ) : null}
-      {editorPet !== null ? (
-        <PetEditorDialog
-          pet={editorPet === "new" ? null : editorPet}
-          open
-          onOpenChange={(next) => {
-            if (!next) setEditorPet(null);
-          }}
-        />
       ) : null}
     </AppShell>
   );

@@ -50,5 +50,7 @@ describe("CloudFront vanity URL rewrite", () => {
   it("leaves static product routes untouched by the handle family", () => {
     expect(rewrite("/search")).toBe("/search.html");
     expect(rewrite("/profile")).toBe("/profile.html");
+    expect(rewrite("/profile/pets/new")).toBe("/profile/pets/new.html");
+    expect(rewrite("/profile/pets/edit")).toBe("/profile/pets/edit.html");
   });
 });

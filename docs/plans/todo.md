@@ -100,12 +100,12 @@ Do these, in this order, **before** items 1–2 (allowlist + AWS). Do not start 
 
 ### 6.1 Pet bio edit UX
 
-Today add/edit is a single wide `PetEditorDialog` wrapping a long `PetEditor` form. Owner entry is `/profile` only. Pet bio and foster-me still have no “edit this pet” path (see the last bullet in §5).
+Pet create/edit is a dedicated page (`/profile/pets/new`, `/profile/pets/edit?petId=`), wired from `/profile`, pet bio, and foster-me. Multi-photo is still outstanding.
 
 **Decided 2026-09-30:** one big form is fine — no tabs or steps yet. Move it off the dialog onto **its own page** (product “edit in Dialog” rule does not apply here; pet editor is the exception). `/profile` “Add pet” / “Edit” and owner-only controls on `PetBioPage` + `FosterMePage` should navigate to that page (create vs edit routes), then back to where the user started.
 
 **Do:**
-- Dedicated route(s), e.g. `/profile/pets/new` and `/profile/pets/[petId]/edit` (or equivalent). Reuse `PetEditor` as the page body, not `PetEditorDialog`.
+- ~~Dedicated routes.~~ **Done 2026-09-30.** `/profile/pets/new` and `/profile/pets/edit?petId=` (query id so static export needs no CloudFront sentinel). Wired from `/profile`, pet bio, and foster-me. `?from=` returns after save/cancel.
 - Keep the current single-scroll form. Light grouping/labels are ok; no wizard.
 - **Multiple photos in the beta:** `photos jsonb` on `pets` (same idea as `important_links`); `primaryPhotoUrl` stays the cover / first. Editor: add/remove/reorder uploads on that one page. Pet bio (and cards) show a small gallery, cover first. Existing single-URL pets migrate as a one-item array.
 - Verify: create, edit, multi-upload, delete, and all three entry points. Desktop + a narrow viewport.

@@ -167,7 +167,7 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(page.getByText(`Edit ${E2E_SEED.petName}'s bio`)).toBeVisible();
       await expect(page.getByRole("link", { name: "Edit bio" })).toHaveAttribute(
         "href",
-        "/profile",
+        `/profile/pets/edit?petId=${E2E_SEED.petId}&from=${encodeURIComponent(E2E_PATHS.petBio)}`,
       );
       await expect(page.getByRole("form", { name: "Contact the foster" })).toHaveCount(0);
       await expect(page.getByRole("img", { name: /QR code/i })).toHaveCount(0);

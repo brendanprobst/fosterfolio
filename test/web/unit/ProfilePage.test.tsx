@@ -240,14 +240,14 @@ describe("ProfilePage", () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(screen.getByText("No pets yet")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /add your first pet/i }));
-
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("form", { name: "Add pet" })).toBeInTheDocument();
-    expect(screen.getByText("No pets yet")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /add your first pet/i })).toHaveAttribute(
+      "href",
+      "/profile/pets/new",
+    );
+    expect(screen.queryByRole("form", { name: "Add pet" })).not.toBeInTheDocument();
   });
 
-  it("lists pets as clickable photo cards and edits them in a dialog", () => {
+  it("lists pets as clickable photo cards and links to the pet editor page", () => {
     const listed: PetPublic = {
       id: "pet-1",
       ownerId: "u1",
@@ -287,15 +287,16 @@ describe("ProfilePage", () => {
     expect(screen.getByText("Husky")).toBeInTheDocument();
     expect(screen.queryByText("dog")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /view bio/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Edit Fido" })).toBeInTheDocument();
-    expect(screen.getByRole("form", { name: "Edit Fido" })).toBeInTheDocument();
-    // The card stays mounted behind the modal (inert, not replaced).
-    expect(screen.getByRole("link", { name: "Fido", hidden: true })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute(
+      "href",
+      "/profile/pets/edit?petId=pet-1",
+    );
+    expect(screen.getByRole("link", { name: "Add pet" })).toHaveAttribute(
+      "href",
+      "/profile/pets/new",
+    );
+    expect(screen.queryByRole("form", { name: "Edit Fido" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Fido" })).toHaveAttribute(
       "href",
       "/@u1/pet/pet-1",
     );

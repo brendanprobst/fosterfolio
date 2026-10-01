@@ -3,6 +3,7 @@ import { useOwnerPets, usePet } from "@client/features/pets";
 import type { PetPublic } from "@client/features/pets";
 import { useUser } from "@client/features/users";
 import type { UserPublic } from "@client/features/users";
+import { petEditorEditHref } from "@client/lib/petEditorPath";
 import { FosterMePage } from "@client/pages/users";
 import { screen } from "@testing-library/react";
 import { usePathname } from "next/navigation";
@@ -187,7 +188,11 @@ describe("FosterMePage", () => {
     expect(
       screen.getByText(/always opens whoever this foster is listing now/i),
     ).toBeInTheDocument();
-    expect(screen.getByText("Visible only to you")).toBeInTheDocument();
+    expect(screen.getAllByText("Visible only to you")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: /edit mochi/i })).toHaveAttribute(
+      "href",
+      petEditorEditHref("pet-1", "/@alex/foster-me"),
+    );
   });
 
   it("shows an empty state with profile and search links when there are no pets", () => {

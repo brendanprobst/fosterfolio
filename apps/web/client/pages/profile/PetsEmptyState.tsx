@@ -1,13 +1,16 @@
 "use client";
 
-import { Button } from "@client/components/ui/button";
+import { buttonVariants } from "@client/components/ui/button";
+import { petEditorNewHref } from "@client/lib/petEditorPath";
+import { cn } from "@client/lib/utils";
 import { PawPrint, Plus } from "lucide-react";
+import Link from "next/link";
 
 type PetsEmptyStateProps = {
-  onAddPet: () => void;
+  from?: string;
 };
 
-export function PetsEmptyState({ onAddPet }: PetsEmptyStateProps) {
+export function PetsEmptyState({ from }: PetsEmptyStateProps) {
   return (
     <div className="border-border flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-10 text-center">
       <span className="bg-muted text-muted-foreground flex size-12 items-center justify-center rounded-full">
@@ -20,10 +23,10 @@ export function PetsEmptyState({ onAddPet }: PetsEmptyStateProps) {
           collar tag.
         </p>
       </div>
-      <Button type="button" size="sm" onClick={onAddPet}>
+      <Link href={petEditorNewHref(from)} className={cn(buttonVariants({ size: "sm" }))}>
         <Plus aria-hidden />
         Add your first pet
-      </Button>
+      </Link>
     </div>
   );
 }

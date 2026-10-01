@@ -1,8 +1,21 @@
 "use client";
 
+import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
+import { buttonVariants } from "@client/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@client/components/ui/card";
 import { ExpandableInquiryForm } from "@client/features/inquiries";
+import { petEditorEditHref } from "@client/lib/petEditorPath";
+import { cn } from "@client/lib/utils";
 import { FosterStatusCard } from "@client/pages/pets/FosterStatusCard";
 import { ShareLinkCard } from "@client/pages/pets/ShareLinkCard";
+import { Pencil } from "lucide-react";
+import Link from "next/link";
 
 export const FOSTER_ME_QR_DESCRIPTION =
   "Print this on a tag or flyer. Scanning it always opens whoever this foster is listing now — not one specific pet.";
@@ -48,6 +61,28 @@ export function FosterMeSidebar({
             heading="Contact the foster"
           />
         </>
+      ) : null}
+      {isOwner && petId && petName ? (
+        <Card size="sm">
+          <CardHeader>
+            <div className="space-y-1">
+              <OwnerOnlyLabel />
+              <CardTitle>Edit {petName}&apos;s bio</CardTitle>
+            </div>
+            <CardDescription>
+              Change what visitors and adopters see on this public page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link
+              href={petEditorEditHref(petId, fosterMePath)}
+              className={cn(buttonVariants({ size: "sm" }), "w-full")}
+            >
+              <Pencil aria-hidden />
+              Edit {petName}
+            </Link>
+          </CardContent>
+        </Card>
       ) : null}
       {isOwner ? (
         <ShareLinkCard
