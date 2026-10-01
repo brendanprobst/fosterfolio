@@ -170,6 +170,8 @@ test.describe("Fosterfolio product smoke", () => {
         `/profile/pets/edit?petId=${E2E_SEED.petId}&from=${encodeURIComponent(E2E_PATHS.petBio)}`,
       );
       await expect(page.getByRole("form", { name: "Contact the foster" })).toHaveCount(0);
+      await expect(page.getByRole("form", { name: "Contact the foster (preview)" })).toBeVisible();
+      await expect(page.getByRole("button", { name: /send inquiry/i })).toBeDisabled();
       await expect(page.getByRole("img", { name: /QR code/i })).toHaveCount(0);
       await page.getByRole("button", { name: "QR code" }).click();
       const dialog = page.getByRole("dialog");
@@ -192,7 +194,7 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(page.getByText("Interested in adopting?")).toHaveCount(0);
     });
 
-    test("owner foster-me shows share without inquiry", async ({ page }) => {
+    test("owner foster-me shows share and a locked inquiry preview", async ({ page }) => {
       await page.goto(E2E_PATHS.fosterMe);
       await expect(page).toHaveURL(/\/foster-me\/?$/);
       await expect(
@@ -200,6 +202,8 @@ test.describe("Fosterfolio product smoke", () => {
       ).toBeVisible();
       await expect(page.getByText('"Foster Me" Link')).toBeVisible();
       await expect(page.getByRole("form", { name: "Contact the foster" })).toHaveCount(0);
+      await expect(page.getByRole("form", { name: "Contact the foster (preview)" })).toBeVisible();
+      await expect(page.getByRole("button", { name: /send inquiry/i })).toBeDisabled();
       await expect(page.getByRole("button", { name: "Expand" })).toHaveCount(0);
       await page.getByRole("button", { name: "QR code" }).click();
       await expect(page.getByRole("heading", { name: "Foster-me QR" })).toBeVisible();

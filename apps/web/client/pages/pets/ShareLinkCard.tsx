@@ -13,7 +13,7 @@ import {
 import { Check, Copy, QrCode } from "lucide-react";
 import { useState } from "react";
 
-type ShareLinkCardProps = {
+export type ShareLinkCardProps = {
   title: string;
   description: string;
   path: string;

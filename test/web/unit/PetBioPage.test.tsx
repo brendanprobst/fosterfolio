@@ -195,6 +195,13 @@ describe("PetBioPage", () => {
 
     expect(screen.getByText("Edit Mochi's bio")).toBeInTheDocument();
     expect(screen.getAllByText("Visible only to you")).toHaveLength(2);
+    expect(screen.getByText("Locked for you, open to visitors")).toBeInTheDocument();
+    expect(
+      screen.getByRole("form", { name: "Contact the foster (preview)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /send inquiry/i })).toBeDisabled();
+    expect(screen.queryByRole("form", { name: "Contact the foster" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Expand" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Edit bio" })).toHaveAttribute(
       "href",
       petEditorEditHref(petId, `/@owner-1/pet/${petId}`),
