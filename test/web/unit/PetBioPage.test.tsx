@@ -90,7 +90,7 @@ describe("PetBioPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Mochi" })).toBeInTheDocument();
     expect(screen.getByText("actively fostering")).toBeInTheDocument();
     expect(screen.getByLabelText("Age: 2 years")).toBeInTheDocument();
-    expect(screen.getByLabelText("Size: medium")).toBeInTheDocument();
+    expect(screen.getByLabelText("Weight: medium")).toBeInTheDocument();
     expect(screen.getByLabelText("Gender: male")).toBeInTheDocument();
     expect(screen.getByText("mutt")).toBeInTheDocument();
     expect(screen.queryByText("dog")).not.toBeInTheDocument();

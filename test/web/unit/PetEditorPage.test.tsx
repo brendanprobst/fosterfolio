@@ -47,6 +47,20 @@ vi.mock("@client/features/storage", () => ({
   useMediaUpload: () => ({ mutateAsync: vi.fn(), isPending: false, error: null }),
 }));
 
+vi.mock("@client/features/users", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@client/features/users")>();
+  return {
+    ...actual,
+    useOwnUser: () => ({ data: null, isLoading: false, isError: false, error: null }),
+    useUpdateUserMutation: () => ({
+      mutate: vi.fn(),
+      isPending: false,
+      isError: false,
+      error: null,
+    }),
+  };
+});
+
 const listed: PetPublic = {
   id: "pet-1",
   ownerId: "u1",

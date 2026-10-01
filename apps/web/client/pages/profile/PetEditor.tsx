@@ -1,9 +1,11 @@
 "use client";
 
+import { useAuth } from "@client/auth";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
-import { Button, buttonVariants } from "@client/components/ui/button";
+import { Button } from "@client/components/ui/button";
 import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
+import { Separator } from "@client/components/ui/separator";
 import { Textarea } from "@client/components/ui/textarea";
 import {
   PET_SPECIES,
@@ -15,9 +17,16 @@ import {
   useUpdatePetMutation,
 } from "@client/features/pets";
 import { useMediaUpload } from "@client/features/storage";
+import { useOwnUser, useUpdateUserMutation } from "@client/features/users";
 import { humanizeToken } from "@client/lib/humanizeToken";
-import { cn } from "@client/lib/utils";
+import { parseShelterLinks, serializeShelterLinks, type ShelterLink } from "@client/lib/shelterLinks";
+import { Check, Trash2, X } from "lucide-react";
 import { FormEvent, useState } from "react";
+import { AddPetShelterDialog } from "./AddPetShelterDialog";
+import { AgeUnitToggle } from "./AgeUnitToggle";
+import { PetPhotoDropzone } from "./PetPhotoDropzone";
+import { PetShelterPicker } from "./PetShelterPicker";
+import { SexToggle } from "./SexToggle";
 
 type PetEditorProps = {
   pet: PetPublic | null;
@@ -25,10 +34,13 @@ type PetEditorProps = {
 };
 
 export function PetEditor({ pet, onClose }: PetEditorProps) {
+  const { user } = useAuth();
+  const own = useOwnUser(user?.id ?? null);
   const createPet = useCreatePetMutation();
   const updatePet = useUpdatePetMutation();
   const deletePet = useDeletePetMutation();
   const upload = useMediaUpload();
+  const updateUser = useUpdateUserMutation();
   const [name, setName] = useState(pet?.name ?? "");
   const [species, setSpecies] = useState(pet?.species ?? "dog");
   const [breed, setBreed] = useState(pet?.breed ?? "");
@@ -47,11 +59,17 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
     pet?.shelterLinkName ?? "",
   );
   const [shelterLinkUrl, setShelterLinkUrl] = useState(pet?.shelterLinkUrl ?? "");
+  const [manualShelterOpen, setManualShelterOpen] = useState(false);
 
   const pending =
-    createPet.isPending || updatePet.isPending || deletePet.isPending || upload.isPending;
+    createPet.isPending ||
+    updatePet.isPending ||
+    deletePet.isPending ||
+    upload.isPending ||
+    updateUser.isPending;
   const error =
     createPet.error ?? updatePet.error ?? deletePet.error ?? upload.error;
+  const profileShelters = parseShelterLinks(own.data?.sheltersText);
 
   function payload(): PetWritePayload {
     const ageNumber = ageValue.trim() ? Number.parseInt(ageValue, 10) : null;
@@ -80,178 +98,186 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
     createPet.mutate(payload(), { onSuccess: onClose });
   }
 
-  async function onPickFile(file: File | undefined) {
-    if (!file) return;
+  async function onPickFile(file: File) {
     const result = await upload.mutateAsync(file);
     setPrimaryPhotoUrl(result.publicUrl);
   }
 
+  function selectShelter(shelter: ShelterLink | null) {
+    setShelterLinkName(shelter?.name ?? "");
+    setShelterLinkUrl(shelter?.url ?? "");
+  }
+
+  function addShelterToProfile(shelter: ShelterLink) {
+    if (!own.data) return;
+    const next = [...profileShelters];
+    const exists = next.some(
+      (row) => row.name === shelter.name && row.url === shelter.url,
+    );
+    if (!exists) next.push(shelter);
+    updateUser.mutate(
+      {
+        id: own.data.id,
+        payload: { sheltersText: serializeShelterLinks(next) },
+      },
+      {
+        onSuccess: () => {
+          selectShelter(shelter);
+          setManualShelterOpen(false);
+        },
+      },
+    );
+  }
+
   return (
-    <form
-      onSubmit={onSubmit}
-      className="space-y-3"
-      aria-label={pet ? `Edit ${pet.name}` : "Add pet"}
-    >
-      {error instanceof Error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not save pet</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
-      ) : null}
-      <div className="space-y-1.5">
-        <Label htmlFor="pet-name">Name</Label>
-        <Input
-          id="pet-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="pet-species">Species</Label>
-          <select
-            id="pet-species"
-            className="border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm capitalize"
-            value={species}
-            onChange={(e) => setSpecies(e.target.value)}
-          >
-            {PET_SPECIES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="pet-status">Status</Label>
-          <select
-            id="pet-status"
-            className="border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            {PET_STATUSES.map((value) => (
-              <option key={value} value={value}>
-                {humanizeToken(value)}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="pet-breed">Breed</Label>
-        <Input id="pet-breed" value={breed} onChange={(e) => setBreed(e.target.value)} />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="pet-age">Age</Label>
-          <Input
-            id="pet-age"
-            inputMode="numeric"
-            value={ageValue}
-            onChange={(e) => setAgeValue(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="pet-age-unit">Age unit</Label>
-          <select
-            id="pet-age-unit"
-            className="border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm"
-            value={ageUnit}
-            onChange={(e) => setAgeUnit(e.target.value)}
-          >
-            <option value="years">years</option>
-            <option value="months">months</option>
-            <option value="weeks">weeks</option>
-          </select>
-        </div>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="pet-sex">Sex</Label>
-          <Input id="pet-sex" value={sex} onChange={(e) => setSex(e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="pet-size">Size</Label>
-          <Input id="pet-size" value={size} onChange={(e) => setSize(e.target.value)} />
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="pet-bio">Bio (markdown)</Label>
-        <Textarea
-          id="pet-bio"
-          value={bioMarkdown}
-          onChange={(e) => setBioMarkdown(e.target.value)}
-          rows={6}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="pet-photo">Primary photo</Label>
-        <div className="flex flex-wrap items-center gap-2">
-          <label
-            htmlFor="pet-photo-file"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "cursor-pointer")}
-          >
-            {upload.isPending ? "Uploading…" : "Upload photo"}
-          </label>
-          <input
-            id="pet-photo-file"
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(e) => void onPickFile(e.target.files?.[0])}
-          />
-        </div>
-        {primaryPhotoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={primaryPhotoUrl}
-            alt=""
-            className="border-border max-h-40 rounded-md border object-cover"
-          />
+    <>
+      <form
+        onSubmit={onSubmit}
+        className="space-y-6"
+        aria-label={pet ? `Edit ${pet.name}` : "Add pet"}
+      >
+        {error instanceof Error ? (
+          <Alert variant="destructive">
+            <AlertTitle>Could not save pet</AlertTitle>
+            <AlertDescription>{error.message}</AlertDescription>
+          </Alert>
         ) : null}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="pet-shelter-name">Shelter name</Label>
-          <Input
-            id="pet-shelter-name"
-            value={shelterLinkName}
-            onChange={(e) => setShelterLinkName(e.target.value)}
-          />
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="pet-name">Name</Label>
+            <Input
+              id="pet-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="pet-species">Species</Label>
+              <select
+                id="pet-species"
+                className="border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm capitalize"
+                value={species}
+                onChange={(e) => setSpecies(e.target.value)}
+              >
+                {PET_SPECIES.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pet-status">Status</Label>
+              <select
+                id="pet-status"
+                className="border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                {PET_STATUSES.map((value) => (
+                  <option key={value} value={value}>
+                    {humanizeToken(value)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pet-breed">Breed</Label>
+            <Input id="pet-breed" value={breed} onChange={(e) => setBreed(e.target.value)} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+            <div className="space-y-1.5">
+              <Label htmlFor="pet-age">Age</Label>
+              <Input
+                id="pet-age"
+                inputMode="numeric"
+                value={ageValue}
+                onChange={(e) => setAgeValue(e.target.value)}
+              />
+            </div>
+            <AgeUnitToggle value={ageUnit} onChange={setAgeUnit} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+            <div className="space-y-1.5">
+              <Label htmlFor="pet-weight">Weight</Label>
+              <Input
+                id="pet-weight"
+                value={size}
+                onChange={(e) => setSize(e.target.value)}
+                placeholder="e.g. 28 lb (please include your unit)"
+              />
+            </div>
+            <SexToggle value={sex} onChange={setSex} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pet-bio">Bio (markdown)</Label>
+            <Textarea
+              id="pet-bio"
+              value={bioMarkdown}
+              onChange={(e) => setBioMarkdown(e.target.value)}
+              rows={6}
+            />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="pet-shelter-url">Shelter URL</Label>
-          <Input
-            id="pet-shelter-url"
-            value={shelterLinkUrl}
-            onChange={(e) => setShelterLinkUrl(e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2 pt-2">
-        <Button type="submit" disabled={pending}>
-          {pet ? "Save pet" : "Create pet"}
-        </Button>
-        <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
-          Cancel
-        </Button>
-        {pet ? (
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={pending}
-            onClick={() => {
-              if (window.confirm(`Remove ${pet.name} from Fosterfolio?`)) {
-                deletePet.mutate(pet.id, { onSuccess: onClose });
-              }
-            }}
-          >
-            Delete
-          </Button>
-        ) : null}
-      </div>
-    </form>
+
+        <PetPhotoDropzone
+          photoUrl={primaryPhotoUrl}
+          pending={upload.isPending}
+          onFile={onPickFile}
+          onRemove={() => setPrimaryPhotoUrl("")}
+        />
+
+        <PetShelterPicker
+          shelters={profileShelters}
+          selectedName={shelterLinkName}
+          selectedUrl={shelterLinkUrl}
+          onSelect={selectShelter}
+          onAddManually={() => setManualShelterOpen(true)}
+        />
+
+        <Separator />
+
+        <footer className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            {pet ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                disabled={pending}
+                onClick={() => {
+                  if (window.confirm(`Remove ${pet.name} from Fosterfolio?`)) {
+                    deletePet.mutate(pet.id, { onSuccess: onClose });
+                  }
+                }}
+              >
+                <Trash2 aria-hidden />
+                Delete
+              </Button>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={pending}>
+              <X aria-hidden />
+              Cancel
+            </Button>
+            <Button type="submit" size="lg" disabled={pending}>
+              <Check aria-hidden />
+              {pet ? "Save pet" : "Create pet"}
+            </Button>
+          </div>
+        </footer>
+      </form>
+      <AddPetShelterDialog
+        open={manualShelterOpen}
+        onOpenChange={setManualShelterOpen}
+        pending={updateUser.isPending}
+        error={updateUser.error instanceof Error ? updateUser.error : null}
+        onSave={addShelterToProfile}
+      />
+    </>
   );
 }

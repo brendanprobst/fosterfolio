@@ -25,10 +25,16 @@ describe("PetCard", () => {
     );
     expect(screen.getByText("actively fostering")).toBeInTheDocument();
     expect(screen.getByLabelText("Age: 2 years")).toBeInTheDocument();
-    expect(screen.getByLabelText("Size: medium")).toBeInTheDocument();
+    expect(screen.getByLabelText("Weight: medium")).toBeInTheDocument();
     expect(screen.getByLabelText("Gender: male")).toBeInTheDocument();
     expect(screen.getByText("Husky")).toBeInTheDocument();
     expect(screen.queryByText("dog")).not.toBeInTheDocument();
+  });
+
+  it("shows an unsure sex as a gender pill", () => {
+    render(<PetCard pet={{ ...pet, sex: "unsure" }} href="/@u1/pet/pet-1" />);
+
+    expect(screen.getByLabelText("Gender: unsure")).toBeInTheDocument();
   });
 
   it("keeps overlay actions outside the bio link", () => {

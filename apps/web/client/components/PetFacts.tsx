@@ -1,6 +1,6 @@
 import { Badge } from "@client/components/ui/badge";
 import { humanizeToken } from "@client/lib/humanizeToken";
-import { Cake, Mars, Ruler, Venus, VenusAndMars } from "lucide-react";
+import { Cake, CircleHelp, Mars, Ruler, Venus, VenusAndMars } from "lucide-react";
 import type { ReactNode } from "react";
 
 type PetFactsPet = {
@@ -29,6 +29,7 @@ function GenderIcon({ sex }: { sex: string }) {
   const key = sex.trim().toLowerCase();
   if (key === "male") return <Mars aria-hidden />;
   if (key === "female") return <Venus aria-hidden />;
+  if (key === "unsure") return <CircleHelp aria-hidden />;
   return <VenusAndMars aria-hidden />;
 }
 
@@ -73,7 +74,7 @@ export function PetFacts({ pet, title }: PetFactsProps) {
               <Badge
                 variant="outline"
                 className="capitalize"
-                aria-label={`Size: ${humanizeToken(size)}`}
+                aria-label={`Weight: ${humanizeToken(size)}`}
               >
                 <Ruler aria-hidden />
                 {humanizeToken(size)}
