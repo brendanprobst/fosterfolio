@@ -137,6 +137,7 @@ describe("PetEditor", () => {
       shelterLinkName: null,
       shelterLinkUrl: null,
       primaryPhotoUrl: "https://cdn.example.com/fido.jpg",
+      photos: [],
       bioMarkdown: null,
       importantLinks: [],
       createdAt: "2026-08-01T00:00:00.000Z",
@@ -147,19 +148,19 @@ describe("PetEditor", () => {
 
     renderWithQueryClient(<PetEditor pet={listed} onClose={vi.fn()} />);
 
-    expect(screen.getByRole("img", { name: "Current pet photo" })).toHaveAttribute(
+    expect(screen.getByRole("img", { name: "Pet photo 1" })).toHaveAttribute(
       "src",
       "https://cdn.example.com/fido.jpg",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Remove photo" }));
-    expect(screen.queryByRole("img", { name: "Current pet photo" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Remove photo" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Delete photo 1" }));
+    expect(screen.queryByRole("img", { name: "Pet photo 1" })).not.toBeInTheDocument();
+    expect(screen.getByText("No photos yet.")).toBeInTheDocument();
 
     fireEvent.submit(screen.getByRole("form", { name: "Edit Fido" }));
     expect(updateMutate).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "pet-1",
-        payload: expect.objectContaining({ primaryPhotoUrl: null }),
+        payload: expect.objectContaining({ photos: [], primaryPhotoUrl: null }),
       }),
       expect.any(Object),
     );
@@ -177,6 +178,39 @@ describe("PetEditor", () => {
     await waitFor(() => {
       expect(uploadMutate).toHaveBeenCalledWith(file);
     });
+  });
+
+  it("uploads several dropped images and saves them in list order", async () => {
+    uploadMutate.mockImplementation(async (file: File) => ({
+      publicUrl: `https://cdn.example.com/${file.name}`,
+    }));
+    renderWithQueryClient(<PetEditor pet={null} onClose={vi.fn()} />);
+
+    const drop = screen.getByLabelText("Photo drop area");
+    const first = new File(["a"], "a.png", { type: "image/png" });
+    const second = new File(["b"], "b.png", { type: "image/png" });
+    fireEvent.drop(drop, {
+      dataTransfer: { files: [first, second], types: ["Files"] },
+    });
+
+    expect(await screen.findByRole("img", { name: "Pet photo 2" })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/b.png",
+    );
+    fireEvent.click(screen.getAllByRole("button", { name: "Move up" })[1]!);
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Nova" } });
+    fireEvent.submit(screen.getByRole("form", { name: "Add pet" }));
+
+    expect(createMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        photos: [
+          { url: "https://cdn.example.com/b.png" },
+          { url: "https://cdn.example.com/a.png" },
+        ],
+        primaryPhotoUrl: "https://cdn.example.com/b.png",
+      }),
+      expect.any(Object),
+    );
   });
 
   it("uploads an image from the clipboard and rejects a clipboard with no photo", async () => {

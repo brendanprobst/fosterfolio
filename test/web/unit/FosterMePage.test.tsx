@@ -75,6 +75,7 @@ function pet(overrides: Partial<PetPublic> = {}): PetPublic {
     shelterLinkName: null,
     shelterLinkUrl: null,
     primaryPhotoUrl: null,
+    photos: [],
     bioMarkdown: null,
     importantLinks: [],
     createdAt: "2026-08-01T00:00:00.000Z",

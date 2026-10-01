@@ -2,12 +2,13 @@ export type {
   ImportantLink,
   PetMeta,
   PetOwnerSummary,
+  PetPhoto,
   PetPublic,
   PetSpecies,
   PetUpdateSummary,
   PetWritePayload,
 } from "./types";
-export { PET_SPECIES, PET_STATUSES } from "./types";
+export { MAX_PET_PHOTOS, PET_SPECIES, PET_STATUSES } from "./types";
 export { petsKeys } from "./petsKeys";
 export {
   createPet,

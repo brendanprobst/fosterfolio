@@ -3,6 +3,30 @@ export type PetSpecies = (typeof PET_SPECIES)[number];
 
 export type ImportantLink = { label: string; url: string };
 
+export const MAX_PET_PHOTOS = 10;
+
+export type PetPhoto = { url: string };
+
+export function normalizePetPhotos(
+  input: unknown
+): { ok: true; photos: PetPhoto[] } | { ok: false; reason: 'invalid' | 'limit' } {
+  if (input == null) return { ok: true, photos: [] };
+  if (!Array.isArray(input)) return { ok: false, reason: 'invalid' };
+  const photos: PetPhoto[] = [];
+  for (const item of input) {
+    if (!item || typeof item !== 'object' || !('url' in item)) {
+      return { ok: false, reason: 'invalid' };
+    }
+    const url = (item as { url: unknown }).url;
+    if (typeof url !== 'string') return { ok: false, reason: 'invalid' };
+    const trimmed = url.trim();
+    if (!trimmed) continue;
+    photos.push({ url: trimmed });
+  }
+  if (photos.length > MAX_PET_PHOTOS) return { ok: false, reason: 'limit' };
+  return { ok: true, photos };
+}
+
 export type PetMetaDto = {
   title: string;
   description: string;
@@ -41,6 +65,7 @@ export type PetPublicDto = {
   shelterLinkName: string | null;
   shelterLinkUrl: string | null;
   primaryPhotoUrl: string | null;
+  photos: PetPhoto[];
   bioMarkdown: string | null;
   importantLinks: ImportantLink[];
   createdAt: string;
@@ -66,6 +91,7 @@ export type PetProps = {
   shelterLinkName: string | null;
   shelterLinkUrl: string | null;
   primaryPhotoUrl: string | null;
+  photos: PetPhoto[];
   bioMarkdown: string | null;
   importantLinks: ImportantLink[];
   createdAt: Date;
@@ -128,6 +154,7 @@ export class Pet {
     shelterLinkName?: string | null;
     shelterLinkUrl?: string | null;
     primaryPhotoUrl?: string | null;
+    photos?: PetPhoto[];
     bioMarkdown?: string | null;
     importantLinks?: ImportantLink[] | null;
   }): void {
@@ -164,7 +191,10 @@ export class Pet {
           ? null
           : input.shelterLinkUrl.trim() || null;
     }
-    if (input.primaryPhotoUrl !== undefined) {
+    if (input.photos !== undefined) {
+      this.props.photos = input.photos;
+      this.props.primaryPhotoUrl = input.photos[0]?.url ?? null;
+    } else if (input.primaryPhotoUrl !== undefined) {
       this.props.primaryPhotoUrl =
         input.primaryPhotoUrl === null
           ? null
@@ -200,6 +230,7 @@ export class Pet {
       shelterLinkName: this.props.shelterLinkName,
       shelterLinkUrl: this.props.shelterLinkUrl,
       primaryPhotoUrl: this.props.primaryPhotoUrl,
+      photos: this.props.photos,
       bioMarkdown: this.props.bioMarkdown,
       importantLinks: this.props.importantLinks,
       createdAt: this.props.createdAt.toISOString(),
@@ -239,6 +270,7 @@ export class Pet {
       shelter_link_name: this.props.shelterLinkName,
       shelter_link_url: this.props.shelterLinkUrl,
       primary_photo_url: this.props.primaryPhotoUrl,
+      photos: this.props.photos,
       bio_markdown: this.props.bioMarkdown,
       important_links: this.props.importantLinks,
       created_at: this.props.createdAt.toISOString(),

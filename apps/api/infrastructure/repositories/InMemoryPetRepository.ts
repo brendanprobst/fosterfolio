@@ -50,6 +50,7 @@ export class InMemoryPetRepository implements IPetRepository {
       shelterLinkName: input.shelterLinkName ?? null,
       shelterLinkUrl: input.shelterLinkUrl ?? null,
       primaryPhotoUrl: input.primaryPhotoUrl ?? null,
+      photos: input.photos ?? [],
       bioMarkdown: input.bioMarkdown ?? null,
       importantLinks: input.importantLinks ?? [],
       createdAt: now,

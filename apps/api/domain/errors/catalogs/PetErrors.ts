@@ -30,4 +30,16 @@ export class PetErrors {
     'Species must be one of: dog, cat, rabbit, bird, other.',
     400
   );
+
+  static readonly PHOTOS_INVALID = ResultError.create(
+    'PET_PHOTOS_INVALID',
+    'Each photo must be an object with a url string.',
+    400
+  );
+
+  static readonly PHOTOS_LIMIT = ResultError.create(
+    'PET_PHOTOS_LIMIT',
+    'A pet can have up to 10 photos.',
+    400
+  );
 }

@@ -1,6 +1,7 @@
 import {
   Pet,
   type ImportantLink,
+  type PetPhoto,
   type PetSpecies,
   type PetUpdateSummaryDto,
   isPetSpecies,
@@ -26,6 +27,7 @@ type PetRecord = {
   shelter_link_name: string | null;
   shelter_link_url: string | null;
   primary_photo_url: string | null;
+  photos: PetPhoto[] | null;
   bio_markdown: string | null;
   important_links: ImportantLink[] | null;
   created_at: string;
@@ -42,7 +44,7 @@ type PostUpdateRecord = {
 };
 
 const PET_SELECT =
-  'id,owner_id,name,species,breed,age_value,age_unit,sex,size,status,sub_status,shelter_link_name,shelter_link_url,primary_photo_url,bio_markdown,important_links,created_at,updated_at,deleted_at';
+  'id,owner_id,name,species,breed,age_value,age_unit,sex,size,status,sub_status,shelter_link_name,shelter_link_url,primary_photo_url,photos,bio_markdown,important_links,created_at,updated_at,deleted_at';
 
 function toPet(row: PetRecord): Pet {
   const species = isPetSpecies(row.species) ? row.species : 'other';
@@ -61,6 +63,7 @@ function toPet(row: PetRecord): Pet {
     shelterLinkName: row.shelter_link_name,
     shelterLinkUrl: row.shelter_link_url,
     primaryPhotoUrl: row.primary_photo_url,
+    photos: Array.isArray(row.photos) ? row.photos : [],
     bioMarkdown: row.bio_markdown,
     importantLinks: Array.isArray(row.important_links) ? row.important_links : [],
     createdAt: new Date(row.created_at),
@@ -108,6 +111,7 @@ export class PetRepository implements IPetRepository {
       shelter_link_name: input.shelterLinkName ?? null,
       shelter_link_url: input.shelterLinkUrl ?? null,
       primary_photo_url: input.primaryPhotoUrl ?? null,
+      photos: input.photos ?? [],
       bio_markdown: input.bioMarkdown ?? null,
       important_links: input.importantLinks ?? [],
     };

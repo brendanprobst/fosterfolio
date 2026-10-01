@@ -15,6 +15,7 @@ export type CreatePetInput = {
   shelterLinkName?: string | null;
   shelterLinkUrl?: string | null;
   primaryPhotoUrl?: string | null;
+  photos?: { url: string }[] | null;
   bioMarkdown?: string | null;
   importantLinks?: { label: string; url: string }[] | null;
 };

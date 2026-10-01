@@ -29,6 +29,8 @@ export class ErrorCatalog {
   static readonly PET_INVALID_INPUT = PetErrors.INVALID_INPUT;
   static readonly PET_NAME_REQUIRED = PetErrors.NAME_REQUIRED;
   static readonly PET_SPECIES_INVALID = PetErrors.SPECIES_INVALID;
+  static readonly PET_PHOTOS_INVALID = PetErrors.PHOTOS_INVALID;
+  static readonly PET_PHOTOS_LIMIT = PetErrors.PHOTOS_LIMIT;
 
   static readonly POST_NOT_FOUND = PostErrors.NOT_FOUND;
   static readonly POST_FORBIDDEN = PostErrors.FORBIDDEN;

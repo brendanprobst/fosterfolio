@@ -1,16 +1,16 @@
 "use client";
 
 import { Button } from "@client/components/ui/button";
+import { MAX_PET_PHOTOS } from "@client/features/pets";
 import { isAllowedImageFile } from "@client/lib/media/isAllowedImageFile";
 import { cn } from "@client/lib/utils";
-import { ClipboardPaste, ImagePlus, X } from "lucide-react";
+import { ClipboardPaste, ImagePlus } from "lucide-react";
 import { DragEvent, useId, useRef, useState } from "react";
 
 type PetPhotoDropzoneProps = {
-  photoUrl: string;
   pending: boolean;
-  onFile: (file: File) => void | Promise<void>;
-  onRemove: () => void;
+  disabled?: boolean;
+  onFiles: (files: File[]) => void | Promise<void>;
 };
 
 async function imageFileFromClipboard(): Promise<File | null> {
@@ -31,71 +31,67 @@ async function imageFileFromClipboard(): Promise<File | null> {
   return null;
 }
 
-export function PetPhotoDropzone({
-  photoUrl,
-  pending,
-  onFile,
-  onRemove,
-}: PetPhotoDropzoneProps) {
+export function PetPhotoDropzone({ pending, disabled = false, onFiles }: PetPhotoDropzoneProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const blocked = pending || disabled;
 
-  async function accept(file: File | undefined) {
+  async function accept(files: File[]) {
     setLocalError(null);
-    if (!file) return;
-    if (!isAllowedImageFile(file)) {
+    if (files.length === 0) return;
+    const allowed = files.filter(isAllowedImageFile);
+    if (allowed.length !== files.length) {
       setLocalError("Only JPEG, PNG, WebP, and GIF images are supported.");
-      return;
     }
-    await onFile(file);
+    if (allowed.length === 0) return;
+    await onFiles(allowed);
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setDragOver(false);
-    void accept(event.dataTransfer.files?.[0]);
+    void accept(Array.from(event.dataTransfer.files ?? []));
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">Primary photo</p>
+      <p className="text-sm font-medium">Photos</p>
       <div
         role="group"
         aria-label="Photo drop area"
         onDragOver={(event) => {
           event.preventDefault();
+          if (blocked) return;
           setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
+        onDrop={(event) => {
+          if (blocked) {
+            event.preventDefault();
+            return;
+          }
+          onDrop(event);
+        }}
         className={cn(
-          "border-border bg-muted/30 flex min-h-44 flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-4 py-6 text-center transition-colors",
+          "border-border bg-muted/30 flex min-h-36 flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-4 py-6 text-center transition-colors",
           dragOver && "border-primary bg-primary/5",
+          disabled && "opacity-60",
         )}
       >
-        {photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photoUrl}
-            alt="Current pet photo"
-            className="border-border max-h-40 rounded-md border object-cover"
-          />
-        ) : (
-          <ImagePlus className="text-muted-foreground size-8" aria-hidden />
-        )}
+        <ImagePlus className="text-muted-foreground size-8" aria-hidden />
         <p className="text-muted-foreground max-w-sm text-sm">
           {pending
             ? "Uploading…"
-            : "Drop a photo here, or click browse. You can also paste from the clipboard."}
+            : `Drop photos here, or click browse. Up to ${MAX_PET_PHOTOS}. You can also paste from the clipboard.`}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            disabled={pending}
+            disabled={blocked}
             onClick={() => inputRef.current?.click()}
           >
             Browse files
@@ -104,7 +100,7 @@ export function PetPhotoDropzone({
             type="button"
             variant="outline"
             size="sm"
-            disabled={pending}
+            disabled={blocked}
             onClick={() => {
               void (async () => {
                 try {
@@ -113,7 +109,7 @@ export function PetPhotoDropzone({
                     setLocalError("No image on the clipboard.");
                     return;
                   }
-                  await accept(file);
+                  await accept([file]);
                 } catch (error) {
                   setLocalError(
                     error instanceof Error
@@ -127,30 +123,16 @@ export function PetPhotoDropzone({
             <ClipboardPaste aria-hidden />
             Upload from clipboard
           </Button>
-          {photoUrl ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={pending}
-              onClick={() => {
-                setLocalError(null);
-                onRemove();
-              }}
-            >
-              <X aria-hidden />
-              Remove photo
-            </Button>
-          ) : null}
         </div>
         <input
           id={inputId}
           ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
+          multiple
           className="sr-only"
           onChange={(event) => {
-            void accept(event.target.files?.[0]);
+            void accept(Array.from(event.target.files ?? []));
             event.target.value = "";
           }}
         />

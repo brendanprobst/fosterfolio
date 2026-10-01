@@ -264,6 +264,7 @@ describe("ProfilePage", () => {
       shelterLinkName: null,
       shelterLinkUrl: null,
       primaryPhotoUrl: "https://cdn.example.com/fido.jpg",
+      photos: [],
       bioMarkdown: null,
       importantLinks: [],
       createdAt: "2026-08-01T00:00:00.000Z",

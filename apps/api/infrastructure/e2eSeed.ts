@@ -77,6 +77,7 @@ export function seedFosterfolioE2eData(input: {
     shelterLinkName: null,
     shelterLinkUrl: null,
     primaryPhotoUrl: null,
+    photos: [],
     bioMarkdown: 'A very good boy from the E2E seed.',
     importantLinks: [],
     createdAt: now,

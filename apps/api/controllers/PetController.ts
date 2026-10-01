@@ -25,6 +25,9 @@ function readPetBody(body: Record<string, unknown>): UpdatePetCommand {
   if ('primaryPhotoUrl' in body) {
     input.primaryPhotoUrl = body.primaryPhotoUrl as string | null;
   }
+  if ('photos' in body) {
+    input.photos = (body.photos as CreatePetCommand['photos']) ?? null;
+  }
   if ('bioMarkdown' in body) input.bioMarkdown = body.bioMarkdown as string | null;
   if ('importantLinks' in body) {
     input.importantLinks =

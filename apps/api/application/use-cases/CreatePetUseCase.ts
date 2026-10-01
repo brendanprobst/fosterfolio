@@ -1,5 +1,5 @@
-import type { ImportantLink, PetOwnerDto } from '@api/domain/entities/Pet';
-import { isPetSpecies } from '@api/domain/entities/Pet';
+import type { ImportantLink, PetOwnerDto, PetPhoto } from '@api/domain/entities/Pet';
+import { isPetSpecies, normalizePetPhotos } from '@api/domain/entities/Pet';
 import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
@@ -17,6 +17,7 @@ export type CreatePetCommand = {
   shelterLinkName?: string | null;
   shelterLinkUrl?: string | null;
   primaryPhotoUrl?: string | null;
+  photos?: PetPhoto[] | null;
   bioMarkdown?: string | null;
   importantLinks?: ImportantLink[] | null;
 };
@@ -31,6 +32,21 @@ export class CreatePetUseCase {
     }
     if (!isPetSpecies(input.species)) {
       return Result.failure(ErrorCatalog.PET_SPECIES_INVALID);
+    }
+
+    let photos: PetPhoto[] | undefined;
+    let primaryPhotoUrl = input.primaryPhotoUrl;
+    if (input.photos !== undefined) {
+      const normalized = normalizePetPhotos(input.photos);
+      if (!normalized.ok) {
+        return Result.failure(
+          normalized.reason === 'limit'
+            ? ErrorCatalog.PET_PHOTOS_LIMIT
+            : ErrorCatalog.PET_PHOTOS_INVALID
+        );
+      }
+      photos = normalized.photos;
+      primaryPhotoUrl = normalized.photos[0]?.url ?? null;
     }
 
     try {
@@ -51,9 +67,8 @@ export class CreatePetUseCase {
         ...(input.shelterLinkUrl !== undefined
           ? { shelterLinkUrl: input.shelterLinkUrl }
           : {}),
-        ...(input.primaryPhotoUrl !== undefined
-          ? { primaryPhotoUrl: input.primaryPhotoUrl }
-          : {}),
+        ...(primaryPhotoUrl !== undefined ? { primaryPhotoUrl } : {}),
+        ...(photos !== undefined ? { photos } : {}),
         ...(input.bioMarkdown !== undefined
           ? { bioMarkdown: input.bioMarkdown }
           : {}),

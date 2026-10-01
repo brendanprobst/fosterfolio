@@ -114,6 +114,39 @@ describe('Pets API', () => {
     ]);
   });
 
+  it('stores an ordered photo list and uses the first url as the cover', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+
+    const created = await createOwnedPet(app, ownerId, {
+      primaryPhotoUrl: 'https://cdn.example.com/ignored.jpg',
+      photos: [
+        { url: ' https://cdn.example.com/cover.jpg ' },
+        { url: 'https://cdn.example.com/second.jpg' },
+      ],
+    });
+
+    const res = await request(app).get(`/pets/${created.id}`).expect(200);
+    expect(res.body.photos).toEqual([
+      { url: 'https://cdn.example.com/cover.jpg' },
+      { url: 'https://cdn.example.com/second.jpg' },
+    ]);
+    expect(res.body.primaryPhotoUrl).toBe('https://cdn.example.com/cover.jpg');
+    expect(res.body.meta.imageUrl).toBe('https://cdn.example.com/cover.jpg');
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const tooMany = await request(app)
+      .put(`/pets/${created.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        photos: Array.from({ length: 11 }, (_, index) => ({
+          url: `https://cdn.example.com/${index}.jpg`,
+        })),
+      })
+      .expect(400);
+    expect(tooMany.body.error.code).toBe('PET_PHOTOS_LIMIT');
+  });
+
   it('rejects unauthenticated create', async () => {
     const { app } = createTestAppWithContainer();
     await request(app)

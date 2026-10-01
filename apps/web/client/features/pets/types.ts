@@ -33,6 +33,10 @@ export type PetOwnerSummary = {
 
 export type ImportantLink = { label: string; url: string };
 
+export const MAX_PET_PHOTOS = 10;
+
+export type PetPhoto = { url: string };
+
 export type PetPublic = {
   id: string;
   ownerId: string;
@@ -49,6 +53,7 @@ export type PetPublic = {
   shelterLinkName: string | null;
   shelterLinkUrl: string | null;
   primaryPhotoUrl: string | null;
+  photos: PetPhoto[];
   bioMarkdown: string | null;
   importantLinks: ImportantLink[];
   createdAt: string;
@@ -70,6 +75,7 @@ export type PetWritePayload = {
   shelterLinkName?: string | null;
   shelterLinkUrl?: string | null;
   primaryPhotoUrl?: string | null;
+  photos?: PetPhoto[] | null;
   bioMarkdown?: string | null;
   importantLinks?: ImportantLink[] | null;
 };

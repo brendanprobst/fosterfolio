@@ -8,8 +8,10 @@ import { Label } from "@client/components/ui/label";
 import { Separator } from "@client/components/ui/separator";
 import { Textarea } from "@client/components/ui/textarea";
 import {
+  MAX_PET_PHOTOS,
   PET_SPECIES,
   PET_STATUSES,
+  type PetPhoto,
   type PetPublic,
   type PetWritePayload,
   useCreatePetMutation,
@@ -25,6 +27,7 @@ import { FormEvent, useState } from "react";
 import { AddPetShelterDialog } from "./AddPetShelterDialog";
 import { AgeUnitToggle } from "./AgeUnitToggle";
 import { PetPhotoDropzone } from "./PetPhotoDropzone";
+import { PetPhotoList } from "./PetPhotoList";
 import { PetShelterPicker } from "./PetShelterPicker";
 import { SexToggle } from "./SexToggle";
 
@@ -32,6 +35,12 @@ type PetEditorProps = {
   pet: PetPublic | null;
   onClose: () => void;
 };
+
+function initialPhotos(pet: PetPublic | null): PetPhoto[] {
+  if (pet?.photos?.length) return pet.photos;
+  if (pet?.primaryPhotoUrl) return [{ url: pet.primaryPhotoUrl }];
+  return [];
+}
 
 export function PetEditor({ pet, onClose }: PetEditorProps) {
   const { user } = useAuth();
@@ -52,9 +61,8 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
   const [sex, setSex] = useState(pet?.sex ?? "");
   const [size, setSize] = useState(pet?.size ?? "");
   const [bioMarkdown, setBioMarkdown] = useState(pet?.bioMarkdown ?? "");
-  const [primaryPhotoUrl, setPrimaryPhotoUrl] = useState(
-    pet?.primaryPhotoUrl ?? "",
-  );
+  const [photos, setPhotos] = useState<PetPhoto[]>(() => initialPhotos(pet));
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [shelterLinkName, setShelterLinkName] = useState(
     pet?.shelterLinkName ?? "",
   );
@@ -83,7 +91,8 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
       sex: sex.trim() || null,
       size: size.trim() || null,
       bioMarkdown: bioMarkdown.trim() || null,
-      primaryPhotoUrl: primaryPhotoUrl.trim() || null,
+      photos,
+      primaryPhotoUrl: photos[0]?.url ?? null,
       shelterLinkName: shelterLinkName.trim() || null,
       shelterLinkUrl: shelterLinkUrl.trim() || null,
     };
@@ -98,9 +107,41 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
     createPet.mutate(payload(), { onSuccess: onClose });
   }
 
-  async function onPickFile(file: File) {
-    const result = await upload.mutateAsync(file);
-    setPrimaryPhotoUrl(result.publicUrl);
+  async function onPickFiles(files: File[]) {
+    setPhotoNotice(null);
+    let room = MAX_PET_PHOTOS - photos.length;
+    if (room <= 0) {
+      setPhotoNotice(`A pet can have up to ${MAX_PET_PHOTOS} photos.`);
+      return;
+    }
+    const batch = files.slice(0, room);
+    if (files.length > room) {
+      setPhotoNotice(`A pet can have up to ${MAX_PET_PHOTOS} photos.`);
+    }
+    for (const file of batch) {
+      const result = await upload.mutateAsync(file);
+      setPhotos((current) => {
+        if (current.length >= MAX_PET_PHOTOS) return current;
+        return [...current, { url: result.publicUrl }];
+      });
+      room -= 1;
+    }
+  }
+
+  function deletePhoto(index: number) {
+    setPhotos((current) => current.filter((_, i) => i !== index));
+  }
+
+  function movePhoto(index: number, direction: -1 | 1) {
+    setPhotos((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.length) return current;
+      const next = [...current];
+      const [item] = next.splice(index, 1);
+      if (!item) return current;
+      next.splice(target, 0, item);
+      return next;
+    });
   }
 
   function selectShelter(shelter: ShelterLink | null) {
@@ -223,12 +264,22 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
           </div>
         </div>
 
-        <PetPhotoDropzone
-          photoUrl={primaryPhotoUrl}
-          pending={upload.isPending}
-          onFile={onPickFile}
-          onRemove={() => setPrimaryPhotoUrl("")}
-        />
+        <div className="space-y-3">
+          {photos.length < MAX_PET_PHOTOS ? (
+            <PetPhotoDropzone pending={upload.isPending} onFiles={onPickFiles} />
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {MAX_PET_PHOTOS} photos is the maximum.
+            </p>
+          )}
+          {photoNotice ? <p className="text-destructive text-sm">{photoNotice}</p> : null}
+          <PetPhotoList
+            photos={photos}
+            pending={upload.isPending}
+            onDelete={deletePhoto}
+            onMove={movePhoto}
+          />
+        </div>
 
         <PetShelterPicker
           shelters={profileShelters}
