@@ -8,6 +8,7 @@ type ContactFosterBlockProps = {
   targetUserId: string;
   targetPetId?: string | null;
   petName?: string;
+  fosterName?: string;
 };
 
 /** Live inquiry for visitors; locked preview when the foster is looking at their own page. */
@@ -16,6 +17,7 @@ export function ContactFosterBlock({
   targetUserId,
   targetPetId,
   petName,
+  fosterName,
 }: ContactFosterBlockProps) {
   if (!petName) return null;
   if (isOwner) {
@@ -26,6 +28,7 @@ export function ContactFosterBlock({
       targetUserId={targetUserId}
       targetPetId={targetPetId}
       heading="Contact the foster"
+      fosterName={fosterName}
     />
   );
 }

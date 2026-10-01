@@ -21,6 +21,20 @@ const emptyDraft: InquiryDraft = {
   message: "",
 };
 
+export function inquirySentDescription(fosterName?: string): string {
+  const recipient = fosterName?.trim() || "The foster";
+  return `${recipient} will get your message by email. You can reply if they write back.`;
+}
+
+export function InquirySentAlert({ fosterName }: { fosterName?: string }) {
+  return (
+    <Alert>
+      <AlertTitle>Inquiry sent</AlertTitle>
+      <AlertDescription>{inquirySentDescription(fosterName)}</AlertDescription>
+    </Alert>
+  );
+}
+
 function lockedDraft(petName?: string): InquiryDraft {
   const subject = petName?.trim() || "this pet";
   return {
@@ -40,6 +54,8 @@ type InquiryFormProps = {
   /** Owner preview: sample values, no submit. */
   locked?: boolean;
   petName?: string;
+  fosterName?: string;
+  onSuccess?: () => void;
 };
 
 export function InquiryForm({
@@ -51,6 +67,8 @@ export function InquiryForm({
   onDraftChange,
   locked = false,
   petName,
+  fosterName,
+  onSuccess,
 }: InquiryFormProps) {
   const mutation = useCreateInquiryMutation();
   const [localDraft, setLocalDraft] = useState(emptyDraft);
@@ -72,25 +90,20 @@ export function InquiryForm({
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (locked) return;
-    mutation.mutate({
-      targetUserId,
-      senderName,
-      senderEmail,
-      message,
-      ...(targetPetId ? { targetPetId } : {}),
-    });
+    mutation.mutate(
+      {
+        targetUserId,
+        senderName,
+        senderEmail,
+        message,
+        ...(targetPetId ? { targetPetId } : {}),
+      },
+      { onSuccess },
+    );
   }
 
   if (mutation.isSuccess) {
-    return (
-      <Alert>
-        <AlertTitle>Inquiry sent</AlertTitle>
-        <AlertDescription>
-          The foster will get your message by email. You can reply if they write
-          back.
-        </AlertDescription>
-      </Alert>
-    );
+    return <InquirySentAlert fosterName={fosterName} />;
   }
 
   return (
@@ -106,7 +119,7 @@ export function InquiryForm({
           </AlertDescription>
         </Alert>
       ) : null}
-      <fieldset disabled={locked} className="min-w-0 space-y-4 border-0 p-0">
+      <fieldset disabled={locked || mutation.isPending} className="min-w-0 space-y-4 border-0 p-0">
         <legend className="sr-only">{formLabel}</legend>
         <div className="space-y-1.5">
           <Label htmlFor={`inquiry-name${idSuffix}`}>Your name</Label>
@@ -116,7 +129,7 @@ export function InquiryForm({
             value={senderName}
             onChange={(e) => updateDraft({ senderName: e.target.value })}
             required
-            disabled={locked}
+            disabled={locked || mutation.isPending}
             autoComplete="name"
           />
         </div>
@@ -129,7 +142,7 @@ export function InquiryForm({
             value={senderEmail}
             onChange={(e) => updateDraft({ senderEmail: e.target.value })}
             required
-            disabled={locked}
+            disabled={locked || mutation.isPending}
             autoComplete="email"
           />
         </div>
@@ -141,7 +154,7 @@ export function InquiryForm({
             value={message}
             onChange={(e) => updateDraft({ message: e.target.value })}
             required
-            disabled={locked}
+            disabled={locked || mutation.isPending}
             rows={5}
           />
         </div>

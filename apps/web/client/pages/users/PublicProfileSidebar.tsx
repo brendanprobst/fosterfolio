@@ -83,7 +83,11 @@ export function PublicProfileSidebar({
           <PawPrint aria-hidden />
           See who they’re fostering now
         </Link>
-        <InquiryForm targetUserId={userId} heading="Contact this foster" />
+        <InquiryForm
+          targetUserId={userId}
+          heading="Contact this foster"
+          fosterName={displayName}
+        />
       </CardContent>
     </Card>
   );

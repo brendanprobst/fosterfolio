@@ -4,7 +4,7 @@ State as of 2026-09-30 evening. Checkpoints 0–6 of the [MVP plan](fosterfolio_
 
 The authoritative runbook is [`docs/playbooks/private-beta.md`](../playbooks/private-beta.md); this file only tracks what is still outstanding and what each item is blocked on.
 
-**Product work is tracked separately.** Pressing coding work is [§6](#6-pressing--last-product-slice-before-pre-deploy). Feed/search are flagged off and `/` is the info page. Remaining before items 1–2 is **public multi-photo gallery** and **inquiry submit + UX**. Older product nits remain in §3–4. See [user handles (vanity URLs)](vanity_urls.plan.md) for that already-shipped slice.
+**Product work is tracked separately.** Pressing coding work is [§6](#6-pressing--last-product-slice-before-pre-deploy). Feed/search are flagged off, `/` is the info page, and inquiry UX is polished. Remaining before items 1–2 is **public multi-photo gallery**. Older product nits remain in §3–4. See [user handles (vanity URLs)](vanity_urls.plan.md) for that already-shipped slice.
 
 ---
 
@@ -81,6 +81,7 @@ Raised after a demo with a target-demographic user. Grounded against the current
 - ~~The vanity URL should default to the owner's most recent foster, not their profile~~ — **resolved, superseded by [`vanity_urls.plan.md`](vanity_urls.plan.md).** Rather than changing what the root vanity URL points at, the root stays the profile and gets a dedicated sibling, `/@handle/foster-me`, for this exact use case. See that plan for the selection rule (still a defaulted, not fully confirmed, decision) and why it must not redirect to a fixed pet permalink.
 - **Pets should support multiple photos, not one.** — **Write path in; public gallery still open (item 6.1).** `photos jsonb` migration + create/update + the pet editor list (add / remove / reorder, `primaryPhotoUrl` = cover / first) are in. Pet bio, cards, and search still render only `primaryPhotoUrl`. Existing single-URL pets should keep working as a one-item array.
 - **Basic page-view analytics per pet, and maybe per profile.** PostHog is already wired (`apps/web/client/lib/analytics/`, `docs/playbooks/posthog-analytics.md`), but that's third-party event/session analytics with no read path back into the product — it can't power a number shown on `/profile` today. A real "views" count needs its own counter: most likely a small table incremented on `GET /pets/:id` / `GET /users/:id` (mirroring how `profile_stars` already counts something per-user), surfaced as a number or tiny chart in the owner-only view of `PetBioPage.tsx` and somewhere on `/profile`. No existing seam covers this — it's new end-to-end work, not a wiring change.
+- **`/@handle/foster-me` and the pet bio (`/@handle/pet/{id}`) should not be the same page.** Today `FosterMePage` renders `PetBioView`, so a flyer scan and a permalink look identical. They have different jobs. Foster-me is the stable "whoever I'm fostering now" address (it must not redirect to a pet id — see [vanity URLs](vanity_urls.plan.md)). Optimize that page for the two actions a visitor should take on the spot: **submit an inquiry**, and/or **save the current pet's permalink** so they can reopen `/@handle/pet/{id}` later in the adoption process. The pet bio stays the durable detail page (gallery, bio, facts) for that one animal. A save/bookmark of the pet page is not the same as the post-MVP "add Fosterfolio to the home screen" item below — this one is "keep this pet," and it can be a copy-link / share-sheet / browser-bookmark prompt pointed at the pet URL. Do not encode the foster-me URL as the thing they save; that address will show a different animal later.
 - **Stretch, post-MVP — a bookmark/add-to-home-screen CTA on pet bio pages.** Nothing to build on yet: no `manifest.json` or install-prompt handling exists in `apps/web` today. Browser support is uneven — the `beforeinstallprompt` event Chrome/Android uses has no equivalent on iOS Safari, which only offers a manual "Add to Home Screen" via the share sheet, so the CTA would need to degrade to an instructional prompt there.
 - **Stretch, post-MVP — a resources section (unlisted YouTube videos) for new foster parents.** No existing embed component or resources route. No architectural blocker; scopes cleanly later as a new `client/pages/resources/` page wrapping `<iframe>` embeds.
 
@@ -114,12 +115,7 @@ Do these, in this order, **before** items 1–2 (allowlist + AWS). After they la
 
 ### 6.2 Inquiry form — actually submit it, then buff UX
 
-`InquiryForm` / `ExpandableInquiryForm` already POST via `useCreateInquiryMutation`. Success is an `Alert` (“Inquiry sent”). Failures surface the mutation error. Email is the logging adapter unless SES is wired. Owner preview is **not** a substitute for a real guest send.
-
-**Do:**
-- Guest-submit from public profile, pet bio (with `targetPetId`), and foster-me. Confirm the foster’s inbox (or API/server logs if email is still the logger). Cover empty fields, bad email, and double-submit.
-- Then UX: clearer pending/disabled send, keep the draft on error, success copy that names the foster when we have `displayName`, maybe collapse the expandable form after send. No captcha. No extra per-IP/email limiter — API Gateway stage throttling (`api_gateway_throttling_rate_limit` / burst, already in Terraform) is enough for private beta.
-- Tests: extend `InquiryForm.test.tsx` and the product e2e that already fills the dialog on pet bio; add a public-profile submit if missing.
+~~**Done 2026-10-01.**~~ Guest submit still uses the existing `POST /inquiries` form. Pending disables the whole fieldset; errors keep the draft; success names the foster; expand closes after send and still shows the success alert (including on small screens). E2E covers pet bio, public profile, and foster-me. Manual inbox check is still useful locally if you want to confirm the logger/SES adapter. No captcha; API Gateway throttle is enough.
 
 ### 6.3 Hide feed and search behind product flags (do not delete); `/` becomes the info page
 

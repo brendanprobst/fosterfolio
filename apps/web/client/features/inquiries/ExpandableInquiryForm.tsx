@@ -15,23 +15,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@client/components/ui/dialog";
+import { cn } from "@client/lib/utils";
 import { Maximize2 } from "lucide-react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { InquiryForm, type InquiryDraft } from "./InquiryForm";
+import { InquiryForm, InquirySentAlert, type InquiryDraft } from "./InquiryForm";
 
 type ExpandableInquiryFormProps = {
   targetUserId: string;
   targetPetId?: string | null;
   heading?: string;
+  fosterName?: string;
 };
 
 export function ExpandableInquiryForm({
   targetUserId,
   targetPetId,
   heading = "Contact the foster",
+  fosterName,
 }: ExpandableInquiryFormProps) {
   const [expanded, setExpanded] = useState(false);
+  const [sent, setSent] = useState(false);
   const [draft, setDraft] = useState<InquiryDraft>({
     senderName: "",
     senderEmail: "",
@@ -46,20 +50,22 @@ export function ExpandableInquiryForm({
       <Card size="sm">
         <CardHeader>
           <CardTitle>{heading}</CardTitle>
-          <CardAction>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Expand"
-              onClick={() => setExpanded(true)}
-            >
-              <Maximize2 aria-hidden />
-            </Button>
-          </CardAction>
+          {!sent ? (
+            <CardAction>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Expand"
+                onClick={() => setExpanded(true)}
+              >
+                <Maximize2 aria-hidden />
+              </Button>
+            </CardAction>
+          ) : null}
         </CardHeader>
-        <CardContent className="hidden lg:block">
-          <div ref={setCardSlot} />
+        <CardContent className={cn(!sent && "hidden lg:block")}>
+          {sent ? <InquirySentAlert fosterName={fosterName} /> : <div ref={setCardSlot} />}
         </CardContent>
       </Card>
       <Dialog open={expanded} onOpenChange={setExpanded}>
@@ -73,7 +79,7 @@ export function ExpandableInquiryForm({
           <div ref={setModalSlot} />
         </DialogContent>
       </Dialog>
-      {target
+      {!sent && target
         ? createPortal(
             <InquiryForm
               targetUserId={targetUserId}
@@ -82,6 +88,11 @@ export function ExpandableInquiryForm({
               showHeading={false}
               draft={draft}
               onDraftChange={setDraft}
+              fosterName={fosterName}
+              onSuccess={() => {
+                setExpanded(false);
+                setSent(true);
+              }}
             />,
             target,
           )

@@ -52,6 +52,7 @@ export function PublicPetSidebar({
           targetUserId={ownerId}
           targetPetId={petId}
           petName={petName}
+          fosterName={ownerName}
         />
       </>
     );

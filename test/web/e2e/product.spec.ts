@@ -9,6 +9,9 @@ async function submitInquiry(scope: Page | Locator) {
   await scope.getByLabel("Message").fill("Can I meet Mochi this weekend?");
   await scope.getByRole("button", { name: /send inquiry/i }).click();
   await expect(scope.getByText("Inquiry sent")).toBeVisible();
+  await expect(
+    scope.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+  ).toBeVisible();
 }
 
 test.describe("Fosterfolio product smoke", () => {
@@ -65,7 +68,23 @@ test.describe("Fosterfolio product smoke", () => {
       await dialog.getByLabel("Your email").fill("jamie@example.com");
       await dialog.getByLabel("Message").fill("Can I meet Mochi this weekend?");
       await dialog.getByRole("button", { name: /send inquiry/i }).click();
-      await expect(dialog.getByText("Inquiry sent")).toBeVisible();
+      await expect(page.getByText("Inquiry sent")).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(
+        page.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+      ).toBeVisible();
+    });
+
+    test("inquiry form on the public profile shows success after submit", async ({
+      page,
+    }) => {
+      await page.goto(E2E_PATHS.publicProfile);
+      await submitInquiry(page);
+    });
+
+    test("inquiry form on foster-me shows success after submit", async ({ page }) => {
+      await page.goto(E2E_PATHS.fosterMe);
+      await submitInquiry(page);
     });
 
     test("public profile shows guest sidebar and pets", async ({ page }) => {
@@ -118,7 +137,15 @@ test.describe("Fosterfolio product smoke", () => {
       await page.getByRole("button", { name: "Expand" }).click();
       const dialog = page.getByRole("dialog");
       await expect(dialog.getByRole("form", { name: "Contact the foster" })).toBeVisible();
-      await submitInquiry(dialog);
+      await dialog.getByLabel("Your name").fill("Jamie");
+      await dialog.getByLabel("Your email").fill("jamie@example.com");
+      await dialog.getByLabel("Message").fill("Can I meet Mochi this weekend?");
+      await dialog.getByRole("button", { name: /send inquiry/i }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page.getByText("Inquiry sent")).toBeVisible();
+      await expect(
+        page.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+      ).toBeVisible();
     });
   });
 
@@ -163,7 +190,9 @@ test.describe("Fosterfolio product smoke", () => {
         "href",
         `/profile/pets/edit?petId=${E2E_SEED.petId}&from=${encodeURIComponent(E2E_PATHS.petBio)}`,
       );
-      await expect(page.getByRole("form", { name: "Contact the foster" })).toHaveCount(0);
+      await expect(page.getByRole("form", { name: "Contact the foster", exact: true })).toHaveCount(
+        0,
+      );
       await expect(page.getByRole("form", { name: "Contact the foster (preview)" })).toBeVisible();
       await expect(page.getByRole("button", { name: /send inquiry/i })).toBeDisabled();
       await expect(page.getByRole("img", { name: /QR code/i })).toHaveCount(0);
@@ -195,7 +224,9 @@ test.describe("Fosterfolio product smoke", () => {
         page.getByRole("heading", { level: 1, name: E2E_SEED.petName }),
       ).toBeVisible();
       await expect(page.getByText('"Foster Me" Link')).toBeVisible();
-      await expect(page.getByRole("form", { name: "Contact the foster" })).toHaveCount(0);
+      await expect(page.getByRole("form", { name: "Contact the foster", exact: true })).toHaveCount(
+        0,
+      );
       await expect(page.getByRole("form", { name: "Contact the foster (preview)" })).toBeVisible();
       await expect(page.getByRole("button", { name: /send inquiry/i })).toBeDisabled();
       await expect(page.getByRole("button", { name: "Expand" })).toHaveCount(0);
