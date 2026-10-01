@@ -1,0 +1,77 @@
+---
+description: Session next — /session-next or @Rules to append the session stop to docs/plans/sessions/log.md and commit it with a SESSION trailer
+alwaysApply: false
+---
+# Session next (global)
+
+Write the stop record and commit it. Do not start the next session's work. Do not put code fixes in this commit.
+
+## Inputs
+
+- The window from the review (`user`, `session-marker`, `time-gap`, or `reflog`), with start and stop timestamps.
+- The brain dump, in the user's words. If this chat has none, ask once (same question as in `agents/prompts/session-review.md`). "Skip" is allowed. `missing` if they never answered.
+- **Next session** items from the review. If this chat has no review, read `agents/prompts/session-review.md` and run it first.
+- Omit anything **session fix** already changed. Mention those under **Fix now** as done.
+
+## Order the itinerary
+
+1. What the brain dump says to focus on next.
+2. Review leftovers that support that focus.
+3. Other leftovers, smallest useful slice first.
+
+Drop items that are noise. Say what you dropped in one line.
+
+## Write the log
+
+Append one entry to `docs/plans/sessions/log.md`. Create the file, with a single heading `# Session log`, when it is missing. Do not edit older entries. Do not edit any other plan or todo file unless the user names it.
+
+New file when the log does not exist yet. Addition to that doc when it does.
+
+```markdown
+## <stop-iso> — stop — <slug>
+
+- Start: <start-iso>
+- Stop: <stop-iso>
+- Bound: <user | session-marker | time-gap | reflog>
+- Previous: <sha of the prior SESSION commit, or none>
+
+### Brain dump
+<Their words, "skipped", or "missing".>
+
+### This session
+- <What the stretch actually changed, one line per concern.>
+
+### Fix now
+- <Done in this close-out, or still open for /session-fix.>
+
+### Next
+1. **<title>** — why it matters, likely files, what done looks like.
+
+### Left on the table
+- <Deferred or dropped, one line each.>
+```
+
+Use ISO-8601 times with the local offset from `git log`. `<slug>` is a few words from the focus. Each **Next** item must be startable in a fresh chat without this conversation.
+
+`SESSION` values for the trailer are `stop` (this close-out), `start` (only when they explicitly ask to mark a start), and `note` (only when they ask for a mid-session marker). Default is `stop`.
+
+## Commit
+
+Commit only `docs/plans/sessions/log.md`. Leave every other path unstaged, including quick fixes. Do not update git config. Do not push. Do not use `--no-verify` or `--amend`. Pass the message with a heredoc:
+
+```
+docs(session): stop <slug>
+
+SESSION: stop
+Start: <start-iso>
+Stop: <stop-iso>
+```
+
+The blank line before `SESSION:` is required so git treats it as a trailer. `Start` and `Stop` stay on their own trailer lines.
+
+## If the record fails
+
+- Cannot write the log: paste the entry in the chat. Do not commit. Do not pick a different path.
+- The log did not change: do not create an empty commit. Say the last stop already covers this stretch.
+- The commit is rejected by a hook: fix the log, then create a new commit. Do not amend. Do not skip the hook.
+- Git itself fails (not a repository, no identity, index locked): leave the log on disk, show the message above, and stop. The next close-out can commit it.

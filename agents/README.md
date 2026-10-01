@@ -45,7 +45,7 @@ with all parent-directory files also loaded. Expert guidance is injected automat
 | `apps/api/`, `apps/web/client/`, `apps/web/app/`, `test/api/`, `test/web/` | Test expert |
 | `apps/api/infrastructure/`, `apps/api/config/`, `apps/web/client/lib/` | Infrastructure expert |
 
-Global experts are available as slash commands: `/debug` and `/janitor`.
+Global experts are available as slash commands: `/debug`, `/janitor`, `/session`, `/session-review`, `/session-fix`, and `/session-next`. Humans: [How to close out a work session](../docs/playbooks/how-to-close-out-a-work-session.md).
 
 ## Layout
 
@@ -58,6 +58,10 @@ agents/
     infra-expert.md
     debugger-expert.md
     code-janitor.md
+    session.md         ← /session close-out (reads the three below)
+    session-review.md
+    session-fix.md
+    session-next.md
     _template.md       ← copy when adding a new expert
 ```
 

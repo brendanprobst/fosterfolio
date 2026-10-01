@@ -60,7 +60,7 @@ const GLOBAL_AGENTS = [
     id: "session",
     prompt: "agents/prompts/session.md",
     description:
-      "Session close-out — /session or @Rules after a stretch of agent work to re-review every file touched, take a brain dump, and split quick fixes from the next session",
+      "Session close-out — /session or @Rules after a stretch of agent work to re-review files touched, take a brain dump, and commit a session-log stop with a SESSION trailer",
     command: "session",
   },
   {
@@ -80,7 +80,7 @@ const GLOBAL_AGENTS = [
     id: "session-next",
     prompt: "agents/prompts/session-next.md",
     description:
-      "Session next — /session-next or @Rules to turn a session review and brain dump into the next work session itinerary",
+      "Session next — /session-next or @Rules to append the session stop to docs/plans/sessions/log.md and commit it with a SESSION trailer",
     command: "session-next",
   },
 ];
@@ -169,10 +169,10 @@ Type \`/\` in Claude Code to attach a global expert:
 |---------|----------|
 | \`/debug\` | Investigating failures, flakes, or non-obvious errors |
 | \`/janitor\` | Consistency audits, dead code, dependency hygiene |
-| \`/session\` | Close out a stretch of work: re-review files touched, brain dump, then fix or plan |
+| \`/session\` | Close out a stretch of work: re-review, brain dump, then a SESSION stop commit |
 | \`/session-review\` | Re-read the work session without editing |
 | \`/session-fix\` | Apply only the quick fixes from a session review |
-| \`/session-next\` | Write the next-session itinerary from the review and brain dump |
+| \`/session-next\` | Append the session stop to the log and commit it with a SESSION trailer |
 
 ---
 _Managed by \`npm run use:claude\` / \`npm run agents:sync\`._

@@ -15,6 +15,7 @@
 - **[Supabase migrations](playbooks/supabase-migrations.md)** — CLI / psql workflow; one Supabase project per spawn repo (planned `supabase/` layout).
 - **[Development seed data](playbooks/dev-seed-data.md)** — `npm run supabase:seed`: sign-in-ready fosters, pets, and a pageable feed in `supabase/seed/` (not a migration).
 - **[Upstream harvest](playbooks/upstream-harvest.md)** — Pull platform work from a **child app** into the template (`npm run lattice:harvest-index`); harvest reports live in ecosystem `cursor/research/harvests/`.
+- **[How to close out a work session](playbooks/how-to-close-out-a-work-session.md)** — `/session` after a stretch of agent work: re-read the files touched, keep a brain dump, and commit a `SESSION` stop in `docs/plans/sessions/log.md`.
 - **[Scaffold vs adapters](research/scaffold-agents-and-adapters.md)** — Why `npm run scaffold` does not generate adapters; how agent rules scope to API infra vs web analytics.
 - **`research/`** — Exploratory notes (not ADRs), e.g. [Supabase access patterns](research/supabase-access-patterns.md) (client SDK vs API vs ORM) and the canonical [security-first Supabase Auth default](research/supabase-auth-security-first.md) for API/client separation.
 
