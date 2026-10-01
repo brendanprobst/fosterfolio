@@ -93,8 +93,9 @@ describe("PetBioPage", () => {
     expect(screen.getByLabelText("Age: 2 years")).toBeInTheDocument();
     expect(screen.getByLabelText("Weight: medium")).toBeInTheDocument();
     expect(screen.getByLabelText("Gender: male")).toBeInTheDocument();
-    expect(screen.getByText("mutt")).toBeInTheDocument();
-    expect(screen.queryByText("dog")).not.toBeInTheDocument();
+    expect(
+      screen.getByText((_, node) => node?.tagName === "P" && node.textContent === "dog · mutt"),
+    ).toBeInTheDocument();
     expect(screen.getByText(/interested in mochi/i)).toBeInTheDocument();
     expect(screen.getByText("Fostered by")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Alex Foster" })).toHaveAttribute(

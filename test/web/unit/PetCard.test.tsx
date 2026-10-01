@@ -31,6 +31,18 @@ describe("PetCard", () => {
     expect(screen.queryByText("dog")).not.toBeInTheDocument();
   });
 
+  it("shows a free-text weight as typed and a singular age", () => {
+    render(
+      <PetCard
+        pet={{ ...pet, ageValue: 1, ageUnit: "years", size: "28 lb" }}
+        href="/@u1/pet/pet-1"
+      />,
+    );
+
+    expect(screen.getByLabelText("Age: 1 year")).toBeInTheDocument();
+    expect(screen.getByLabelText("Weight: 28 lb")).toBeInTheDocument();
+  });
+
   it("shows an unsure sex as a gender pill", () => {
     render(<PetCard pet={{ ...pet, sex: "unsure" }} href="/@u1/pet/pet-1" />);
 

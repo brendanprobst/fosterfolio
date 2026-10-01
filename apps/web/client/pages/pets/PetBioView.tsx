@@ -4,6 +4,7 @@ import { PetFacts } from "@client/components/PetFacts";
 import { Markdown } from "@client/components/markdown";
 import type { PetPublic } from "@client/features/pets";
 import { useEffect } from "react";
+import { PetPhotoGallery } from "./PetPhotoGallery";
 
 type PetBioViewProps = {
   pet: PetPublic;
@@ -27,17 +28,16 @@ export function PetBioView({
   return (
     <>
       <header className="space-y-4">
-        {pet.primaryPhotoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- static export; absolute Supabase URLs
-          <img
-            src={pet.primaryPhotoUrl}
-            alt={pet.name}
-            className="border-border aspect-[4/3] w-full rounded-xl border object-cover"
-          />
-        ) : null}
+        <PetPhotoGallery
+          key={pet.id}
+          name={pet.name}
+          photos={pet.photos}
+          primaryPhotoUrl={pet.primaryPhotoUrl}
+        />
         <div className="space-y-3">
           <PetFacts
             pet={pet}
+            showSpecies
             title={
               <h1 className="text-3xl font-semibold tracking-tight">{pet.name}</h1>
             }

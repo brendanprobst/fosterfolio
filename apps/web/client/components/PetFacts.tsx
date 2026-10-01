@@ -1,6 +1,6 @@
 import { Badge } from "@client/components/ui/badge";
 import { humanizeToken } from "@client/lib/humanizeToken";
-import { Cake, CircleHelp, Mars, Ruler, Venus, VenusAndMars } from "lucide-react";
+import { Cake, CircleHelp, Mars, Scale, Venus, VenusAndMars } from "lucide-react";
 import type { ReactNode } from "react";
 
 type PetFactsPet = {
@@ -11,12 +11,15 @@ type PetFactsPet = {
   sex: string | null;
   size: string | null;
   breed?: string | null;
+  species?: string | null;
 };
 
 type PetFactsProps = {
   pet: PetFactsPet;
   /** Name (or other identity) — the most important line. */
   title: ReactNode;
+  /** Public bio shows species with the breed. Cards leave it off. */
+  showSpecies?: boolean;
 };
 
 function statusVariant(status: string): "default" | "secondary" | "outline" {
@@ -33,16 +36,29 @@ function GenderIcon({ sex }: { sex: string }) {
   return <VenusAndMars aria-hidden />;
 }
 
-function ageLabel(pet: PetFactsPet): string | null {
-  if (pet.ageValue == null) return null;
-  return `${pet.ageValue} ${pet.ageUnit ?? "years"}`;
+function ageUnitWord(value: number, unit: string): string {
+  if (value !== 1) return unit;
+  return unit.endsWith("s") ? unit.slice(0, -1) : unit;
 }
 
-export function PetFacts({ pet, title }: PetFactsProps) {
+function ageLabel(pet: PetFactsPet): string | null {
+  if (pet.ageValue == null) return null;
+  const unit = pet.ageUnit ?? "years";
+  return `${pet.ageValue} ${ageUnitWord(pet.ageValue, unit)}`;
+}
+
+/** Free-text weight stays as typed. Legacy tokens only lose underscores. */
+function weightLabel(size: string): string {
+  return size.replaceAll("_", " ");
+}
+
+export function PetFacts({ pet, title, showSpecies = false }: PetFactsProps) {
   const age = ageLabel(pet);
   const sex = pet.sex?.trim() ? pet.sex : null;
   const size = pet.size?.trim() ? pet.size : null;
   const breed = pet.breed?.trim() ? pet.breed : null;
+  const species = showSpecies && pet.species?.trim() ? pet.species.trim() : null;
+  const weight = size ? weightLabel(size) : null;
 
   return (
     <div className="space-y-2">
@@ -69,15 +85,11 @@ export function PetFacts({ pet, title }: PetFactsProps) {
               </Badge>
             </li>
           ) : null}
-          {size ? (
+          {weight ? (
             <li>
-              <Badge
-                variant="outline"
-                className="capitalize"
-                aria-label={`Weight: ${humanizeToken(size)}`}
-              >
-                <Ruler aria-hidden />
-                {humanizeToken(size)}
+              <Badge variant="outline" aria-label={`Weight: ${weight}`}>
+                <Scale aria-hidden />
+                {weight}
               </Badge>
             </li>
           ) : null}
@@ -95,8 +107,12 @@ export function PetFacts({ pet, title }: PetFactsProps) {
           ) : null}
         </ul>
       ) : null}
-      {breed ? (
-        <p className="text-muted-foreground/70 text-xs tracking-wide italic">{breed}</p>
+      {species || breed ? (
+        <p className="text-muted-foreground/70 text-xs tracking-wide italic">
+          {species ? <span className="capitalize">{humanizeToken(species)}</span> : null}
+          {species && breed ? " · " : null}
+          {breed}
+        </p>
       ) : null}
     </div>
   );
