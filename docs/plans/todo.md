@@ -4,7 +4,7 @@ State as of commit `9cd1da2`. Checkpoints 0–6 of the [MVP plan](fosterfolio_mv
 
 The authoritative runbook is [`docs/playbooks/private-beta.md`](../playbooks/private-beta.md); this file only tracks what is still outstanding and what each item is blocked on.
 
-**Product work is tracked separately.** Next coding session is [§6](#6-next-session--last-product-slice-before-pre-deploy-2026-09-30) (pet editor UX, inquiry submit + UX, flag off feed/search). After that, go-live is mostly items 1–2. Older product nits remain in §3–4. See [user handles (vanity URLs)](vanity_urls.plan.md) for that already-shipped slice.
+**Product work is tracked separately.** Next coding session is [§6](#6-next-session--last-product-slice-before-pre-deploy-2026-09-30) (pet editor page + multi-photo, inquiry submit + UX, flag off feed/search, `/` as an info page). After that, go-live is mostly items 1–2. Older product nits remain in §3–4. See [user handles (vanity URLs)](vanity_urls.plan.md) for that already-shipped slice.
 
 ---
 
@@ -79,7 +79,7 @@ Raised after a demo with a target-demographic user. Grounded against the current
 - **Promote shelter links off `shelters_text` JSON into their own table.** Today `public.users.shelters_text` is still a `text` column; the web app writes a JSON array of `{ name, url }` into it (legacy plain-name strings still parse as a single row). That is enough for multiple shelters without a migration. A real `user_shelters` (or similar) table should come later: one row per shelter, FK to `users`, typed `url`, so we can query, validate, and join without `JSON.parse`. Until then do not add a CHECK constraint or jsonb column — keep the text-column contract the API already has (`sheltersText: string | null`).
 - **A profile-level "share" box below the public-profile preview, generating the profile's link as a QR code with visual options.** `PetQrDownload.tsx` is exactly this capability, already built and working for pets (`qrcode`, single PNG download at a fixed 320px/dark-on-light) — this is the same thing one level up, for the user's own public URL, plus exposing the options it hardcodes today (size, colors, margin). Suggest a new `ProfileLinkCard.tsx` in the sidebar, below "Private editor," reusing `PetQrDownload`'s `qrcode` import pattern rather than the pet-specific component itself.
 - ~~The vanity URL should default to the owner's most recent foster, not their profile~~ — **resolved, superseded by [`vanity_urls.plan.md`](vanity_urls.plan.md).** Rather than changing what the root vanity URL points at, the root stays the profile and gets a dedicated sibling, `/@handle/foster-me`, for this exact use case. See that plan for the selection rule (still a defaulted, not fully confirmed, decision) and why it must not redirect to a fixed pet permalink.
-- **Pets should support multiple photos, not one.** Today a pet has exactly one image: `primaryPhotoUrl` (`primary_photo_url` column, `Pet` entity, `PetWritePayload`). The repo already has precedent for a JSONB array on this same entity — `important_links` — so a `photos jsonb` column following that shape is the natural extension; `primaryPhotoUrl` could stay as the first/cover photo or be derived from it. The upload plumbing (`useMediaUpload`, `POST /storage/sign`) is already per-file and needs no change; `PetEditor.tsx` and `PetBioPage.tsx` are the two places that currently assume a single image.
+- **Pets should support multiple photos, not one.** — **In beta / next session (item 6.1).** Today a pet has exactly one image: `primaryPhotoUrl`. Precedent: `important_links` JSONB on the same entity. `photos jsonb` + keep `primaryPhotoUrl` as cover (first photo). Upload plumbing (`useMediaUpload`, `POST /storage/sign`) is already per-file.
 - **Basic page-view analytics per pet, and maybe per profile.** PostHog is already wired (`apps/web/client/lib/analytics/`, `docs/playbooks/posthog-analytics.md`), but that's third-party event/session analytics with no read path back into the product — it can't power a number shown on `/profile` today. A real "views" count needs its own counter: most likely a small table incremented on `GET /pets/:id` / `GET /users/:id` (mirroring how `profile_stars` already counts something per-user), surfaced as a number or tiny chart in the owner-only view of `PetBioPage.tsx` and somewhere on `/profile`. No existing seam covers this — it's new end-to-end work, not a wiring change.
 - **Stretch, post-MVP — a bookmark/add-to-home-screen CTA on pet bio pages.** Nothing to build on yet: no `manifest.json` or install-prompt handling exists in `apps/web` today. Browser support is uneven — the `beforeinstallprompt` event Chrome/Android uses has no equivalent on iOS Safari, which only offers a manual "Add to Home Screen" via the share sheet, so the CTA would need to degrade to an instructional prompt there.
 - **Stretch, post-MVP — a resources section (unlisted YouTube videos) for new foster parents.** No existing embed component or resources route. No architectural blocker; scopes cleanly later as a new `client/pages/resources/` page wrapping `<iframe>` embeds.
@@ -96,16 +96,19 @@ Raised after a demo with a target-demographic user. Grounded against the current
 
 ## 6. Next session — last product slice before pre-deploy (2026-09-30)
 
-Do these three, in this order, **before** items 1–2 (allowlist + AWS). Do not start the code until that session. After they land, the remaining work is mostly operator/deploy (plus leftover product nits in §3–4 that are not required for a private-beta cut).
+Do these, in this order, **before** items 1–2 (allowlist + AWS). Do not start the code until that session. After they land, the remaining work is mostly operator/deploy (plus leftover product nits in §3–4 that are not required for a private-beta cut).
 
 ### 6.1 Pet bio edit UX
 
-Today add/edit is a single wide `PetEditorDialog` wrapping a long `PetEditor` form (`name` through `shelterLinkUrl` in one scroll). Owner entry is `/profile` only. Pet bio and foster-me still have no “edit this pet” path (see the last bullet in §5).
+Today add/edit is a single wide `PetEditorDialog` wrapping a long `PetEditor` form. Owner entry is `/profile` only. Pet bio and foster-me still have no “edit this pet” path (see the last bullet in §5).
+
+**Decided 2026-09-30:** one big form is fine — no tabs or steps yet. Move it off the dialog onto **its own page** (product “edit in Dialog” rule does not apply here; pet editor is the exception). `/profile` “Add pet” / “Edit” and owner-only controls on `PetBioPage` + `FosterMePage` should navigate to that page (create vs edit routes), then back to where the user started.
 
 **Do:**
-- Keep edit-in-`Dialog` (product UX rule). Split the wall of fields: identity + photo first, facts (species/age/sex/size/status) second, bio markdown third, shelter link last — tabs, steppers, or stacked sections with sticky Save, not one undifferentiated column.
-- Add an owner-only Edit control on `PetBioPage` and on the current pet on `FosterMePage` that opens the same dialog (or a thin wrapper) so `/profile` is not the only start.
-- Verify: create, edit, photo upload, delete, and both new entry points. Desktop + a narrow viewport (the current dialog is already `max-w-4xl` for pets).
+- Dedicated route(s), e.g. `/profile/pets/new` and `/profile/pets/[petId]/edit` (or equivalent). Reuse `PetEditor` as the page body, not `PetEditorDialog`.
+- Keep the current single-scroll form. Light grouping/labels are ok; no wizard.
+- **Multiple photos in the beta:** `photos jsonb` on `pets` (same idea as `important_links`); `primaryPhotoUrl` stays the cover / first. Editor: add/remove/reorder uploads on that one page. Pet bio (and cards) show a small gallery, cover first. Existing single-URL pets migrate as a one-item array.
+- Verify: create, edit, multi-upload, delete, and all three entry points. Desktop + a narrow viewport.
 
 ### 6.2 Inquiry form — actually submit it, then buff UX
 
@@ -113,18 +116,20 @@ Today add/edit is a single wide `PetEditorDialog` wrapping a long `PetEditor` fo
 
 **Do:**
 - Guest-submit from public profile, pet bio (with `targetPetId`), and foster-me. Confirm the foster’s inbox (or API/server logs if email is still the logger). Cover empty fields, bad email, and double-submit.
-- Then UX: clearer pending/disabled Save, keep the draft on error, success copy that names the foster when we have `displayName`, maybe collapse the expandable form after send. Honeypot / rate-limit stay deferred for private beta (MVP plan).
+- Then UX: clearer pending/disabled Save, keep the draft on error, success copy that names the foster when we have `displayName`, maybe collapse the expandable form after send. No captcha. No extra per-IP/email limiter — API Gateway stage throttling (`api_gateway_throttling_rate_limit` / burst, already in Terraform) is enough for private beta.
 - Tests: extend `InquiryForm.test.tsx` and the product e2e that already fills the dialog on pet bio; add a public-profile submit if missing.
 
-### 6.3 Hide feed and search behind product flags (do not delete)
+### 6.3 Hide feed and search behind product flags (do not delete); `/` becomes the info page
 
-`HomePage` (`/`) and `SearchPage` (`/search`) stay in the repo. `AppHeader` always links Home + Search. Foster-me empty copy links `/search`.
+`HomePage` (today `/`) and `SearchPage` (`/search`) stay in the repo. `AppHeader` always links Home + Search. Foster-me empty copy links `/search`.
 
-**Do not** use `config/repo-features.json` — that only gates CI/Dependabot. Use the existing `apps/web/client/lib/latticeFeatureFlags.ts` seam (`NEXT_PUBLIC_LATTICE_*`), e.g. `NEXT_PUBLIC_LATTICE_FEED=1` / `NEXT_PUBLIC_LATTICE_SEARCH=1`, **default off** for beta. When off: drop header (and any other) nav to `/` and `/search`; those routes can 404 or show a short “not in this beta” shell so bookmarks do not look broken. Keep unit/e2e that cover feed/search, but skip or gate them when the flag is off (Playwright already uses `NEXT_PUBLIC_LATTICE_E2E` — same pattern). API list/search endpoints can stay; this is a web chrome cut, not a backend deletion.
+**Decided 2026-09-30:** new `/` is an **info page** explaining what Fosterfolio is (not a stub, not a redirect to `/profile`). Logo/Home can keep pointing at `/`. Move the chronological feed off `/` (e.g. `/feed`) so it can sit behind a flag.
+
+**Do not** use `config/repo-features.json` (CI/Dependabot only) and **do not** name product flags `LATTICE`. New helpers, e.g. `isFosterfolioFeedEnabled()` / `isFosterfolioSearchEnabled()`, reading `NEXT_PUBLIC_FOSTERFOLIO_FEED` / `NEXT_PUBLIC_FOSTERFOLIO_SEARCH`, **default off** for beta. Keep `NEXT_PUBLIC_LATTICE_E2E` as-is (Playwright/Lattice). When flags are off: hide Search (and Feed, if you add a nav item) from the header and other in-product links; `/search` and `/feed` can 404 or show a short “not in this beta” shell. Gate unit/e2e that assume the feed. API list/search endpoints stay; this is a web chrome cut.
 
 ### After 6.x
 
-Pre-deploy prep = item 2 (`terraform.tfvars` + `deploy:aws`) and item 1 (allowlist emails), then the browser checklist in [private-beta.md §5](../playbooks/private-beta.md). Still later, not this slice: connected-site warning modal, theme switcher, multi-photo pets, view counts, `user_shelters` table.
+Pre-deploy prep = item 2 (`terraform.tfvars` + `deploy:aws`) and item 1 (allowlist emails), then the browser checklist in [private-beta.md §5](../playbooks/private-beta.md). Still later, not this slice: connected-site warning modal, theme switcher, view counts, `user_shelters` table.
 
 ---
 
