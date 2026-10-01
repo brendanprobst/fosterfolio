@@ -14,6 +14,11 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams("q=mochi"),
 }));
 
+vi.mock("@client/lib/fosterfolioFeatureFlags", () => ({
+  isFosterfolioFeedEnabled: () => false,
+  isFosterfolioSearchEnabled: vi.fn(() => true),
+}));
+
 vi.mock("@client/features/search", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@client/features/search")>();
   return {
@@ -23,8 +28,19 @@ vi.mock("@client/features/search", async (importOriginal) => {
 });
 
 describe("SearchPage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());
+    const flags = await import("@client/lib/fosterfolioFeatureFlags");
+    vi.mocked(flags.isFosterfolioSearchEnabled).mockReturnValue(true);
+  });
+
+  it("shows the beta shell when the flag is off", async () => {
+    const flags = await import("@client/lib/fosterfolioFeatureFlags");
+    vi.mocked(flags.isFosterfolioSearchEnabled).mockReturnValue(false);
+    render(<SearchPage />);
+    expect(screen.getByRole("heading", { level: 1, name: "Search" })).toBeInTheDocument();
+    expect(screen.getByText(/isn.t in this private beta/i)).toBeInTheDocument();
+    expect(screen.queryByRole("search")).not.toBeInTheDocument();
   });
 
   it("lists pet and user hits for the query", () => {

@@ -227,10 +227,7 @@ describe("FosterMePage", () => {
       "href",
       "/@alex",
     );
-    expect(screen.getByRole("link", { name: /browse other pets/i })).toHaveAttribute(
-      "href",
-      "/search",
-    );
+    expect(screen.queryByRole("link", { name: /browse other pets/i })).not.toBeInTheDocument();
     expect(
       screen.queryByText(/always opens whoever this foster is listing now/i),
     ).not.toBeInTheDocument();

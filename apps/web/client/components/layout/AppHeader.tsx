@@ -2,7 +2,7 @@
 
 import { useAuth } from "@client/auth";
 import { UserAvatar } from "@client/components/UserAvatar";
-import { Button, buttonVariants } from "@client/components/ui/button";
+import { buttonVariants } from "@client/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,16 +20,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@client/components/ui/sheet";
+import {
+  isFosterfolioFeedEnabled,
+  isFosterfolioSearchEnabled,
+} from "@client/lib/fosterfolioFeatureFlags";
 import { cn } from "@client/lib/utils";
 import { LogOut, Menu, PawPrint, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 
 type AppHeaderProps = {
   /** Highlight the active primary nav item. */
-  active?: "home" | "profile" | "search";
+  active?: "home" | "profile" | "search" | "feed";
 };
-
-const navItems = [{ href: "/", id: "home" as const, label: "Feed" }];
 
 function navLinkClass(isActive: boolean) {
   return cn(
@@ -47,6 +49,8 @@ export function AppHeader({ active }: AppHeaderProps) {
   const { user, signOut, loading } = useAuth();
   const signedIn = !!user && !loading;
   const accountLabel = user?.email ?? "Account";
+  const showFeed = isFosterfolioFeedEnabled();
+  const showSearch = isFosterfolioSearchEnabled();
 
   return (
     <header className="border-border bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
@@ -64,39 +68,37 @@ export function AppHeader({ active }: AppHeaderProps) {
           </span>
         </Link>
 
-        <nav
-          aria-label="Primary"
-          className="hidden items-center gap-1 md:flex"
-        >
-          {navItems.map((item) => {
-            const isActive = active === item.id;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={navLinkClass(isActive)}
-                aria-current={isActive ? "page" : undefined}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        {showFeed ? (
+          <nav
+            aria-label="Primary"
+            className="hidden items-center gap-1 md:flex"
+          >
+            <Link
+              href="/feed"
+              className={navLinkClass(active === "feed")}
+              aria-current={active === "feed" ? "page" : undefined}
+            >
+              Feed
+            </Link>
+          </nav>
+        ) : null}
 
         <div className="ml-auto flex items-center gap-2">
-          <Link
-            href="/search"
-            aria-label="Search"
-            className={cn(
-              "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground inline-flex h-9 items-center gap-2 rounded-lg border px-2.5 text-sm transition-colors sm:w-52 sm:px-3",
-              active === "search" && "border-foreground/20 text-foreground",
-            )}
-          >
-            <Search aria-hidden className="size-4 shrink-0" />
-            <span aria-hidden className="hidden truncate sm:inline">
-              Search
-            </span>
-          </Link>
+          {showSearch ? (
+            <Link
+              href="/search"
+              aria-label="Search"
+              className={cn(
+                "border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground inline-flex h-9 items-center gap-2 rounded-lg border px-2.5 text-sm transition-colors sm:w-52 sm:px-3",
+                active === "search" && "border-foreground/20 text-foreground",
+              )}
+            >
+              <Search aria-hidden className="size-4 shrink-0" />
+              <span aria-hidden className="hidden truncate sm:inline">
+                Search
+              </span>
+            </Link>
+          ) : null}
 
           {signedIn ? (
             <DropdownMenu>
@@ -154,8 +156,22 @@ export function AppHeader({ active }: AppHeaderProps) {
                     />
                   }
                 >
-                  Feed
+                  Home
                 </SheetClose>
+                {showFeed ? (
+                  <SheetClose
+                    nativeButton={false}
+                    render={
+                      <Link
+                        href="/feed"
+                        className={navLinkClass(active === "feed")}
+                        aria-current={active === "feed" ? "page" : undefined}
+                      />
+                    }
+                  >
+                    Feed
+                  </SheetClose>
+                ) : null}
                 {signedIn ? (
                   <SheetClose
                     nativeButton={false}

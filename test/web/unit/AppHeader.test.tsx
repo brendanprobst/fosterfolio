@@ -8,27 +8,47 @@ vi.mock("@client/auth", () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock("@client/lib/fosterfolioFeatureFlags", () => ({
+  isFosterfolioFeedEnabled: vi.fn(() => false),
+  isFosterfolioSearchEnabled: vi.fn(() => false),
+}));
+
 describe("AppHeader", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());
+    const flags = await import("@client/lib/fosterfolioFeatureFlags");
+    vi.mocked(flags.isFosterfolioFeedEnabled).mockReturnValue(false);
+    vi.mocked(flags.isFosterfolioSearchEnabled).mockReturnValue(false);
   });
 
-  it("shows brand, primary nav, search, and sign in when logged out", () => {
+  it("shows brand and sign in, and hides feed and search when flags are off", () => {
     render(<AppHeader active="home" />);
 
     expect(screen.getByRole("link", { name: "Fosterfolio" })).toHaveAttribute("href", "/");
-    const nav = screen.getByRole("navigation", { name: "Primary" });
-    expect(within(nav).getByRole("link", { name: "Feed" })).toHaveAttribute("href", "/");
-    expect(within(nav).getByRole("link", { name: "Feed" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(screen.getByRole("link", { name: "Search" })).toHaveAttribute("href", "/search");
+    expect(screen.queryByRole("navigation", { name: "Primary" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Feed" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Search" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/auth/sign-in",
     );
     expect(screen.queryByRole("button", { name: /account/i })).not.toBeInTheDocument();
+  });
+
+  it("shows feed and search nav when those flags are on", async () => {
+    const flags = await import("@client/lib/fosterfolioFeatureFlags");
+    vi.mocked(flags.isFosterfolioFeedEnabled).mockReturnValue(true);
+    vi.mocked(flags.isFosterfolioSearchEnabled).mockReturnValue(true);
+
+    render(<AppHeader active="feed" />);
+
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).getByRole("link", { name: "Feed" })).toHaveAttribute("href", "/feed");
+    expect(within(nav).getByRole("link", { name: "Feed" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "Search" })).toHaveAttribute("href", "/search");
   });
 
   it("opens an account menu with profile and sign out when signed in", () => {

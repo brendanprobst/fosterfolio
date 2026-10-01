@@ -4,6 +4,7 @@ import { useAuth } from "@client/auth";
 import { AppShell, PageWithSidebar } from "@client/components/layout";
 import { useOwnerPets, usePet } from "@client/features/pets";
 import { useUser } from "@client/features/users";
+import { isFosterfolioSearchEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { selectFosterMePet } from "@client/lib/selectFosterMePet";
 import {
   fosterMeHref,
@@ -101,7 +102,8 @@ export function FosterMePage() {
                 {displayName} isn’t listed as fostering anyone right now.
               </h1>
               <p className="text-muted-foreground text-sm">
-                You can still visit their profile or browse other pets.
+                You can still visit their profile
+                {isFosterfolioSearchEnabled() ? " or browse other pets" : ""}.
               </p>
               <p className="flex flex-wrap gap-3 text-sm">
                 <Link
@@ -110,9 +112,11 @@ export function FosterMePage() {
                 >
                   View {displayName}’s profile
                 </Link>
-                <Link href="/search" className="text-primary hover:underline">
-                  Browse other pets
-                </Link>
+                {isFosterfolioSearchEnabled() ? (
+                  <Link href="/search" className="text-primary hover:underline">
+                    Browse other pets
+                  </Link>
+                ) : null}
               </p>
             </section>
           </PageWithSidebar>

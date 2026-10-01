@@ -17,24 +17,18 @@ test.describe("Fosterfolio product smoke", () => {
       await browseAsGuest(page);
     });
 
-    test("feed shows the seeded chronological post", async ({ page }) => {
-      await page.goto("/");
+    test("feed and search stay behind product flags", async ({ page }) => {
+      await page.goto("/feed");
       await expect(page.getByRole("heading", { level: 1, name: "Feed" })).toBeVisible();
-      await expect(page.getByText(E2E_SEED.generalPostBody)).toBeVisible();
-      await expect(page.getByRole("link", { name: E2E_SEED.petName })).toBeVisible();
-    });
+      await expect(page.getByText(/isn.t in this private beta/i)).toBeVisible();
+      await expect(page.getByText(E2E_SEED.generalPostBody)).toHaveCount(0);
 
-    test("search finds the seeded pet and foster", async ({ page }) => {
       await page.goto(`/search?q=${encodeURIComponent(E2E_SEED.petName)}`);
       await expect(page.getByRole("heading", { level: 1, name: "Search" })).toBeVisible();
+      await expect(page.getByText(/isn.t in this private beta/i)).toBeVisible();
       await expect(
         page.getByRole("link", { name: new RegExp(E2E_SEED.petName, "i") }),
-      ).toHaveAttribute("href", E2E_PATHS.petBio);
-
-      await page.goto(`/search?q=${encodeURIComponent("Alex")}`);
-      await expect(
-        page.getByRole("link", { name: new RegExp(E2E_SEED.userDisplayName, "i") }),
-      ).toHaveAttribute("href", E2E_PATHS.publicProfile);
+      ).toHaveCount(0);
     });
 
     test("pet bio shows foster status and inquiry without a QR", async ({ page }) => {

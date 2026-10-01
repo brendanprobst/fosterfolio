@@ -14,10 +14,10 @@
   - **`@lattice/api`** on **3100** — in-memory repositories + HS256 JWT (`test/web/e2e/support/e2eAuthConstants.ts`).
   - **`@lattice/web`** on **3101** — `NEXT_PUBLIC_LATTICE_E2E=1` and a pre-minted `NEXT_PUBLIC_LATTICE_E2E_ACCESS_TOKEN` (synthetic session; no real Supabase).
 - **Specs**
-  - **`product.spec.ts`** — Fosterfolio surfaces against the in-memory `LATTICE_E2E` seed. Guest vs signed-in (the JWT user owns the seeded pet): feed, search, pet bio, public profile, foster-me, inquiry + expand, owner QR-on-demand, profile editor.
-  - **`auth-guard.spec.ts`** — signs out, then asserts `/profile` redirects to `/auth/sign-in` while `/search` stays public.
+  - **`product.spec.ts`** — Fosterfolio surfaces against the in-memory `LATTICE_E2E` seed. Guest vs signed-in (the JWT user owns the seeded pet): gated feed/search shells, pet bio, public profile, foster-me, inquiry + expand, owner QR-on-demand, profile editor.
+  - **`auth-guard.spec.ts`** — signs out, then asserts `/profile` redirects to `/auth/sign-in` while `/search` stays public (beta-unavailable shell when the search flag is off).
   - **`full-stack.spec.ts`** — signed-in `/profile` loads the seeded foster from the API.
-  - **`home.spec.ts`**, **`ui-gallery.spec.ts`** — public routes.
+  - **`home.spec.ts`**, **`ui-gallery.spec.ts`** — public routes (`/` is the info page; feed/search are not in the header by default).
 - **Auth:** the default session is **signed in** as `E2E_SEED.userId`. Guest tests set `lattice-e2e-signed-out` via `browseAsGuest` (`test/web/e2e/support/e2eSession.ts`).
 - **Run:** `npm run test:web:e2e` (install browsers once: `npx playwright install`).
 - **Artifacts:** traces, videos, and test output go under **`test/web/test-results/`** (gitignored; **`outputDir`** in `playwright.config.ts`). **`npm run clean`** removes that folder (and caches).

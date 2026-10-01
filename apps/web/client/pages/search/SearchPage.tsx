@@ -1,11 +1,13 @@
 "use client";
 
+import { FeatureUnavailable } from "@client/components/FeatureUnavailable";
 import { AppShell } from "@client/components/layout";
 import { UserAvatar } from "@client/components/UserAvatar";
 import { Button } from "@client/components/ui/button";
 import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
 import { useSearch } from "@client/features/search";
+import { isFosterfolioSearchEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { humanizeToken } from "@client/lib/humanizeToken";
 import { petHref } from "@client/lib/petBioPath";
 import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
@@ -139,6 +141,14 @@ function SearchPageInner() {
 }
 
 export function SearchPage() {
+  if (!isFosterfolioSearchEnabled()) {
+    return (
+      <AppShell active="search">
+        <FeatureUnavailable title="Search" />
+      </AppShell>
+    );
+  }
+
   return (
     <Suspense
       fallback={
