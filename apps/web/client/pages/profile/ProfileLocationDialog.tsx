@@ -24,7 +24,7 @@ import {
   serializeShelterLinks,
   type ShelterLink,
 } from "@client/lib/shelterLinks";
-import { Info, Plus, X } from "lucide-react";
+import { Info, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 type ProfileLocationDialogProps = {
@@ -146,10 +146,11 @@ export function ProfileLocationDialog({
                 <span>Website</span>
                 <span className="sr-only">Remove</span>
               </div>
+              <div className="divide-y divide-border lg:divide-y-0">
               {shelters.map((row, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-1 items-center gap-2 lg:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)_auto]"
+                  className="grid grid-cols-1 items-center gap-2 py-3 first:pt-0 last:pb-0 lg:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)_auto] lg:py-0"
                 >
                   <Input
                     aria-label={`Shelter ${index + 1} name`}
@@ -167,8 +168,8 @@ export function ProfileLocationDialog({
                   <Button
                     type="button"
                     variant="ghost"
-                    size="icon-sm"
-                    className="justify-self-end lg:justify-self-auto"
+                    size="sm"
+                    className="text-muted-foreground justify-self-end lg:size-7 lg:justify-self-auto lg:px-0"
                     aria-label={`Remove shelter ${index + 1}`}
                     onClick={() =>
                       setShelters((current) =>
@@ -178,10 +179,12 @@ export function ProfileLocationDialog({
                       )
                     }
                   >
-                    <X aria-hidden />
+                    <Trash2 aria-hidden />
+                    <span className="lg:sr-only">Remove</span>
                   </Button>
                 </div>
               ))}
+              </div>
             </div>
             <Button
               type="button"

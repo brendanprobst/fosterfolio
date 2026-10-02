@@ -51,6 +51,11 @@ describe("SocialLinksDialog", () => {
       "flex-col",
       "lg:flex-row",
     );
+    expect(screen.getByLabelText("Link 1 label").parentElement?.parentElement).toHaveClass(
+      "divide-y",
+      "lg:divide-y-0",
+    );
+    expect(screen.getByText("Remove")).toBeInTheDocument();
   });
 
   it("adds a link and saves only fully-filled links", async () => {

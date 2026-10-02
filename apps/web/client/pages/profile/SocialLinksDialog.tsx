@@ -13,7 +13,7 @@ import {
 import { Input } from "@client/components/ui/input";
 import { useUpdateUserMutation } from "@client/features/users";
 import type { SocialLink, UserOwner } from "@client/features/users";
-import { Plus, X } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 type SocialLinksDialogProps = {
@@ -71,8 +71,9 @@ export function SocialLinksDialog({ user, open, onOpenChange }: SocialLinksDialo
             </Alert>
           ) : null}
           <div className="space-y-2">
+            <div className="divide-y divide-border lg:divide-y-0">
             {socialLinks.map((link, index) => (
-              <div key={index} className="flex flex-col gap-2 lg:flex-row lg:items-center">
+              <div key={index} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 lg:flex-row lg:items-center lg:py-0">
                 <Input
                   aria-label={`Link ${index + 1} label`}
                   placeholder="Label"
@@ -98,15 +99,17 @@ export function SocialLinksDialog({ user, open, onOpenChange }: SocialLinksDialo
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-sm"
-                  className="self-end lg:self-center"
+                  size="sm"
+                  className="text-muted-foreground self-end lg:size-7 lg:self-center lg:px-0"
                   aria-label={`Remove link ${index + 1}`}
                   onClick={() => setSocialLinks(socialLinks.filter((_, i) => i !== index))}
                 >
-                  <X aria-hidden />
+                  <Trash2 aria-hidden />
+                  <span className="lg:sr-only">Remove</span>
                 </Button>
               </div>
             ))}
+            </div>
             <Button
               type="button"
               variant="outline"
