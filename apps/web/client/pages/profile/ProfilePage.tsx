@@ -89,7 +89,7 @@ export function ProfilePage() {
                   </p>
                 ) : profile ? (
                   <p className="text-muted-foreground text-sm">
-                    No handle yet — public links use your id until you pick one.
+                    No handle yet — public links use a random address until you pick one.
                   </p>
                 ) : null}
                 {profile?.bio ? (

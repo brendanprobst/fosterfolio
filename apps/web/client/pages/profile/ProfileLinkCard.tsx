@@ -141,17 +141,16 @@ export function ProfileLinkCard({ handleOrId, hasHandle }: ProfileLinkCardProps)
       <CardHeader>
         <CardTitle>Sharing your profile</CardTitle>
         <CardDescription>
-          This editor is private. Preview, copy, or print the public URL that
-          matches what the flyer should do.
+          Preview, copy, or print the public link you want to share.
           {!hasHandle
-            ? " Public links use your id until you pick a handle."
+            ? " Public links use a random address until you pick a handle."
             : null}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {!hasHandle ? (
           <p className="text-muted-foreground text-xs">
-            Add a handle in Edit name and bio so these become /@your-name.
+            Add a handle in Edit name and bio so your address reads /@your-name.
           </p>
         ) : null}
         <ShareRow

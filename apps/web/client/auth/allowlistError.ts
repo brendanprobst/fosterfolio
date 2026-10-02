@@ -1,5 +1,8 @@
 const NOT_APPROVED_FRIENDLY_MESSAGE =
-  "This email is not yet approved for access. Ask the owner to add you to the allowlist.";
+  "This email isn't approved for Fosterfolio yet. Ask the person who invited you to add your address.";
+
+export const AUTH_UNAVAILABLE_MESSAGE =
+  "Sign-in isn't available right now. Try again in a moment.";
 
 /**
  * The `auth.enforce_allowed_email` Postgres trigger raises an exception with the
@@ -21,6 +24,9 @@ export function friendlyAuthErrorMessage(message: string | null | undefined): st
   }
   if (isEmailNotApprovedError(message)) {
     return NOT_APPROVED_FRIENDLY_MESSAGE;
+  }
+  if (/supabase|jwt|environment variable|not configured/i.test(message)) {
+    return AUTH_UNAVAILABLE_MESSAGE;
   }
   return message;
 }

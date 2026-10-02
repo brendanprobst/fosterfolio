@@ -84,8 +84,8 @@ export function HomePage() {
                   You&apos;re in
                 </h2>
                 <CardDescription>
-                  This editor is private. Visitors see the public bio and can send an
-                  inquiry — they never land on this signed-in view.
+                  Visitors see the public bio and can send a message. This signed-in
+                  page stays yours.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">

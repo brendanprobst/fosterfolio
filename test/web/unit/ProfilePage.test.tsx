@@ -91,10 +91,10 @@ describe("ProfilePage", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText("Sharing your profile")).toBeInTheDocument();
     expect(
-      screen.getByText(/this editor is private/i),
+      screen.getByText(/preview, copy, or print the public link/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/no handle yet — public links use your id/i),
+      screen.getByText(/no handle yet — public links use a random address/i),
     ).toBeInTheDocument();
     expect(screen.getByText("/@u1")).toBeInTheDocument();
     expect(screen.getByText("/@u1/foster-me")).toBeInTheDocument();

@@ -2,7 +2,6 @@
 
 import { friendlyAuthErrorMessage, useAuth } from "@client/auth";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
-import { Badge } from "@client/components/ui/badge";
 import { Button } from "@client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@client/components/ui/card";
 import { Input } from "@client/components/ui/input";
@@ -15,7 +14,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type SubmitEvent, useEffect, useMemo, useState } from "react";
 import { AuthPageShell } from "./AuthPageShell";
-import { getOauthProvider } from "./oauth";
+import { getOauthProvider, oauthProviderLabel } from "./oauth";
 import { SignedInCard } from "./SignedInCard";
 
 export function SignInPage() {
@@ -75,17 +74,16 @@ export function SignInPage() {
     <AuthPageShell>
       <Card>
         <CardHeader>
-          <Badge variant="secondary" className="w-fit">Authentication</Badge>
-          <CardTitle className="text-2xl">Sign in to Fosterfolio App Smoke Test</CardTitle>
+          <CardTitle className="text-2xl">Sign in to Fosterfolio</CardTitle>
           <CardDescription>
-            Security-first auth: Supabase handles identity, API handles authorization.
+            Use your email and password, or continue with {oauthProviderLabel()}.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {message || configError ? (
             <Alert variant="destructive">
               <AlertCircle />
-              <AlertTitle>Authentication note</AlertTitle>
+              <AlertTitle>Could not sign in</AlertTitle>
               <AlertDescription>{configError || message}</AlertDescription>
             </Alert>
           ) : null}
@@ -150,7 +148,7 @@ export function SignInPage() {
             onClick={handleSocialSignIn}
           >
             {busy ? <Loader2 className="animate-spin" /> : null}
-            Continue with {getOauthProvider()}
+            Continue with {oauthProviderLabel()}
           </Button>
         </CardContent>
       </Card>

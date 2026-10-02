@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Fosterfolio",
-  description: "Fosterfolio web app (Next.js)",
+  description: "Public pet bios and QR collar tags for foster homes.",
 };
 
 export default function RootLayout({

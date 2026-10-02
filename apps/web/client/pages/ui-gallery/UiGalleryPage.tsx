@@ -34,13 +34,12 @@ export function UiGalleryPage() {
       <header className="border-b">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-6">
           <div>
-            <p className="text-muted-foreground text-sm">Fosterfolio · @lattice/web</p>
+            <p className="text-muted-foreground text-sm">Fosterfolio</p>
             <h1 className="font-heading text-2xl font-semibold tracking-tight">
               Component gallery
             </h1>
             <p className="text-muted-foreground mt-1 max-w-xl text-sm">
-              Live samples of Tailwind, shadcn/ui (Base UI), and lucide-react used
-              in this template. Use this page for visual QA.
+              Samples of the buttons, forms, and cards used across Fosterfolio.
             </p>
           </div>
           <Link
@@ -58,7 +57,7 @@ export function UiGalleryPage() {
             Buttons
           </h2>
           <p className="text-muted-foreground mb-4 text-sm">
-            Variants and sizes from <code className="rounded bg-muted px-1">Button</code>.
+            Variants and sizes.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button>Default</Button>
@@ -96,10 +95,7 @@ export function UiGalleryPage() {
           <Card className="max-w-md">
             <CardHeader>
               <CardTitle>Sample field</CardTitle>
-              <CardDescription>
-                <code className="rounded bg-muted px-1">Label</code> +{" "}
-                <code className="rounded bg-muted px-1">Input</code>
-              </CardDescription>
+              <CardDescription>A labeled text field.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <Label htmlFor="gallery-email">Email</Label>
@@ -167,10 +163,7 @@ export function UiGalleryPage() {
             <Alert>
               <Info />
               <AlertTitle>Default alert</AlertTitle>
-              <AlertDescription>
-                Use alerts for inline messages. Icons come from{" "}
-                <code className="rounded bg-muted px-1">lucide-react</code>.
-              </AlertDescription>
+              <AlertDescription>Use alerts for inline messages.</AlertDescription>
             </Alert>
             <Alert variant="destructive">
               <AlertCircle />

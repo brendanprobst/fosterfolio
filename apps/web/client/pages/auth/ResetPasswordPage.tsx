@@ -1,8 +1,7 @@
 "use client";
 
-import { useAuth } from "@client/auth";
+import { friendlyAuthErrorMessage, useAuth } from "@client/auth";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
-import { Badge } from "@client/components/ui/badge";
 import { Button, buttonVariants } from "@client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@client/components/ui/card";
 import { Input } from "@client/components/ui/input";
@@ -48,7 +47,7 @@ export function ResetPasswordPage() {
     setBusy(true);
     const error = await updatePassword(password);
     if (error) {
-      setMessage(error.message);
+      setMessage(friendlyAuthErrorMessage(error.message));
     } else {
       router.replace(destination);
     }
@@ -59,7 +58,7 @@ export function ResetPasswordPage() {
     return (
       <main className="bg-background flex min-h-screen flex-col items-center justify-center px-4">
         <Loader2 className="text-muted-foreground size-8 animate-spin" aria-hidden />
-        <p className="text-muted-foreground mt-3 text-sm font-medium">Verifying reset link…</p>
+        <p className="text-muted-foreground mt-3 text-sm font-medium">Checking your reset link…</p>
       </main>
     );
   }
@@ -71,10 +70,9 @@ export function ResetPasswordPage() {
           <BackToSignInLink />
           <Card>
             <CardHeader>
-              <Badge variant="secondary" className="w-fit">Authentication</Badge>
-              <CardTitle className="text-2xl">Reset link invalid</CardTitle>
+              <CardTitle className="text-2xl">This reset link isn't valid</CardTitle>
               <CardDescription>
-                This password reset link is missing, expired, or was already used. Request a new one from the forgot-password flow.
+                The link is missing, expired, or was already used. Request a new one and we'll email it to you.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -94,17 +92,16 @@ export function ResetPasswordPage() {
         <BackToSignInLink />
         <Card>
           <CardHeader>
-            <Badge variant="secondary" className="w-fit">Authentication</Badge>
             <CardTitle className="text-2xl">Choose a new password</CardTitle>
             <CardDescription>
-              Enter a new password for your account. You will stay signed in after you save.
+              Enter a new password for your account. You'll stay signed in after you save.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {configError ? (
               <Alert variant="destructive">
                 <AlertCircle />
-                <AlertTitle>Configuration</AlertTitle>
+                <AlertTitle>Couldn't update your password</AlertTitle>
                 <AlertDescription>{configError}</AlertDescription>
               </Alert>
             ) : null}

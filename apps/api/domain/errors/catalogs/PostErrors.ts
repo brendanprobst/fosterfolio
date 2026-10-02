@@ -21,13 +21,13 @@ export class PostErrors {
 
   static readonly TYPE_INVALID = ResultError.create(
     'POST_TYPE_INVALID',
-    'postType must be general or pet_update.',
+    'Choose a general update or a pet update.',
     400
   );
 
   static readonly PET_REQUIRED = ResultError.create(
     'POST_PET_REQUIRED',
-    'pet_update posts require a petId for a pet you own.',
+    'A pet update needs one of your pets.',
     400
   );
 }

@@ -4,13 +4,13 @@ import { ResultError } from '@api/domain/errors/ResultError';
 export class AuthErrors {
   static readonly EMAIL_NOT_APPROVED = ResultError.create(
     'EMAIL_NOT_APPROVED',
-    'Account email is not approved for access.',
+    "This email isn't approved for Fosterfolio yet.",
     403
   );
 
   static readonly ALLOWLIST_UNAVAILABLE = ResultError.create(
     'ALLOWLIST_UNAVAILABLE',
-    'Access check temporarily unavailable.',
+    "We couldn't confirm your access just now. Try again in a moment.",
     503
   );
 }

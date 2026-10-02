@@ -3,13 +3,13 @@ import { ResultError } from '@api/domain/errors/ResultError';
 export class StorageErrors {
   static readonly INVALID_INPUT = ResultError.create(
     'STORAGE_INVALID_INPUT',
-    'filename and contentType are required.',
+    'Choose an image file to upload.',
     400
   );
 
   static readonly CONTENT_TYPE_INVALID = ResultError.create(
     'STORAGE_CONTENT_TYPE_INVALID',
-    'Only image/jpeg, image/png, image/webp, and image/gif uploads are allowed.',
+    'Upload a JPEG, PNG, WebP, or GIF.',
     400
   );
 

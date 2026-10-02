@@ -33,7 +33,7 @@ export class PetErrors {
 
   static readonly PHOTOS_INVALID = ResultError.create(
     'PET_PHOTOS_INVALID',
-    'Each photo must be an object with a url string.',
+    'Each photo needs a valid image.',
     400
   );
 

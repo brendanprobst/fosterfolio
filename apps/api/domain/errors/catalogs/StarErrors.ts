@@ -3,7 +3,7 @@ import { ResultError } from '@api/domain/errors/ResultError';
 export class StarErrors {
   static readonly INVALID_INPUT = ResultError.create(
     'STAR_INVALID_INPUT',
-    'session_token is required.',
+    "We couldn't save that star. Try again.",
     400
   );
 

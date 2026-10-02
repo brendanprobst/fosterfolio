@@ -2,7 +2,6 @@
 
 import { friendlyAuthErrorMessage, useAuth } from "@client/auth";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
-import { Badge } from "@client/components/ui/badge";
 import { Button } from "@client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@client/components/ui/card";
 import { Input } from "@client/components/ui/input";
@@ -15,7 +14,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type SubmitEvent, useMemo, useState } from "react";
 import { AuthPageShell } from "./AuthPageShell";
-import { getOauthProvider } from "./oauth";
+import { getOauthProvider, oauthProviderLabel } from "./oauth";
 import { SignedInCard } from "./SignedInCard";
 
 export function SignUpPage() {
@@ -39,7 +38,7 @@ export function SignUpPage() {
     if (error) {
       setErrorMessage(friendlyAuthErrorMessage(error.message));
     } else {
-      setInfoMessage("Account created. Check your email if confirmation is required, then sign in.");
+      setInfoMessage("Account created. Check your email for a confirmation link, then sign in.");
     }
     setBusy(false);
   }
@@ -71,17 +70,16 @@ export function SignUpPage() {
     <AuthPageShell>
       <Card>
         <CardHeader>
-          <Badge variant="secondary" className="w-fit">Authentication</Badge>
           <CardTitle className="text-2xl">Create an account</CardTitle>
           <CardDescription>
-            Sign up with email or {getOauthProvider()}. Same security model as sign-in.
+            Sign up with your email, or continue with {oauthProviderLabel()}.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {configError || errorMessage ? (
             <Alert variant="destructive">
               <AlertCircle />
-              <AlertTitle>Authentication note</AlertTitle>
+              <AlertTitle>Could not create account</AlertTitle>
               <AlertDescription>{configError || errorMessage}</AlertDescription>
             </Alert>
           ) : null}
@@ -145,7 +143,7 @@ export function SignUpPage() {
             onClick={handleSocialSignIn}
           >
             {busy ? <Loader2 className="animate-spin" /> : null}
-            Continue with {getOauthProvider()}
+            Continue with {oauthProviderLabel()}
           </Button>
         </CardContent>
       </Card>

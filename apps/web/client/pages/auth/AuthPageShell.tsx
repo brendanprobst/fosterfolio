@@ -11,7 +11,7 @@ export function AuthBackHomeLink() {
       className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1.5 text-sm transition-colors"
     >
       <ArrowLeft className="size-4 shrink-0" aria-hidden />
-      Back to project home page
+      Back home
     </Link>
   );
 }
