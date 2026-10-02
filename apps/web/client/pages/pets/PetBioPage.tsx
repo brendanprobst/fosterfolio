@@ -1,11 +1,12 @@
 "use client";
 
-import { AppShell, PageWithSidebar } from "@client/components/layout";
+import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
 import { useAuth } from "@client/auth";
 import { usePet } from "@client/features/pets";
 import { petHref, petIdFromPathname } from "@client/lib/petBioPath";
 import { publicHandle } from "@client/lib/userProfilePath";
 import { usePathname } from "next/navigation";
+import { petSidebarMobileSummary } from "./PublicPetSidebar";
 import { PetBioSidebar } from "./PetBioSidebar";
 import { PetBioView } from "./PetBioView";
 
@@ -30,9 +31,7 @@ export function PetBioPage() {
           </p>
         ) : null}
         {petId && isLoading ? (
-          <p className="text-muted-foreground mx-auto max-w-5xl px-4 py-8 text-sm">
-            Loading pet…
-          </p>
+          <DataPageSkeleton variant="pet" label="Loading pet" />
         ) : null}
         {petId && isError ? (
           <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
@@ -41,6 +40,12 @@ export function PetBioPage() {
         ) : null}
         {pet ? (
           <PageWithSidebar
+            mobileSummary={petSidebarMobileSummary({
+              isOwner,
+              petName: pet.name,
+              fosterName: pet.owner?.displayName || "Foster",
+              variant: "permalink",
+            })}
             sidebar={
               <PetBioSidebar
                 petName={pet.name}

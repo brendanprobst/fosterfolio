@@ -1,5 +1,6 @@
 "use client";
 
+import type { SidebarMobileSummary } from "@client/components/layout/PageWithSidebar";
 import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
 import { buttonVariants } from "@client/components/ui/button";
 import {
@@ -21,6 +22,24 @@ type PublicProfileSidebarProps = {
   userId: string;
   isOwner: boolean;
 };
+
+/** Short mobile launcher copy for the public-profile side panel. */
+export function publicProfileMobileSummary(
+  isOwner: boolean,
+  displayName: string,
+): SidebarMobileSummary {
+  if (isOwner) {
+    return {
+      title: "Your page tools",
+      description: "Edit your profile, or preview the Foster Me page visitors land on.",
+    };
+  }
+  const name = displayName || "this foster";
+  return {
+    title: `Contact ${name}`,
+    description: "See who they’re fostering now, or send a message about adopting.",
+  };
+}
 
 export function PublicProfileSidebar({
   handleOrId,

@@ -130,21 +130,23 @@ test.describe("Fosterfolio product smoke", () => {
       await browseAsGuest(page);
     });
 
-    test("pet bio hides the inline inquiry and requires expand", async ({ page }) => {
+    test("pet bio inquiry can be sent from the side panel", async ({ page }) => {
       await page.goto(E2E_PATHS.petBio);
-      await expect(page.getByRole("button", { name: "Expand" })).toBeVisible();
-      await expect(page.getByRole("form", { name: "Contact the foster" })).toBeHidden();
-      await page.getByRole("button", { name: "Expand" }).click();
-      const dialog = page.getByRole("dialog");
-      await expect(dialog.getByRole("form", { name: "Contact the foster" })).toBeVisible();
-      await dialog.getByLabel("Your name").fill("Jamie");
-      await dialog.getByLabel("Your email").fill("jamie@example.com");
-      await dialog.getByLabel("Message").fill("Can I meet Mochi this weekend?");
-      await dialog.getByRole("button", { name: /send inquiry/i }).click();
-      await expect(page.getByRole("dialog")).toHaveCount(0);
-      await expect(page.getByText("Inquiry sent")).toBeVisible();
+      const openPanel = page.getByRole("button", {
+        name: `Open Ask about ${E2E_SEED.petName}`,
+      });
+      await expect(openPanel).toBeVisible();
+      await openPanel.click();
+      const panel = page.getByRole("dialog", { name: `Ask about ${E2E_SEED.petName}` });
+      const form = panel.getByRole("form", { name: "Contact the foster" });
+      await expect(form).toBeVisible();
+      await form.getByLabel("Your name").fill("Jamie");
+      await form.getByLabel("Your email").fill("jamie@example.com");
+      await form.getByLabel("Message").fill("Can I meet Mochi this weekend?");
+      await form.getByRole("button", { name: /send inquiry/i }).click();
+      await expect(panel.getByText("Inquiry sent")).toBeVisible();
       await expect(
-        page.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+        panel.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
       ).toBeVisible();
     });
   });

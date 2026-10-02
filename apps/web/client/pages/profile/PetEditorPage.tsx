@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth, useRequireAuth } from "@client/auth";
-import { AppShell } from "@client/components/layout";
+import { AppShell, DataPageSkeleton } from "@client/components/layout";
 import { Button } from "@client/components/ui/button";
 import { usePet } from "@client/features/pets";
 import { petEditorReturnPath } from "@client/lib/petEditorPath";
@@ -31,7 +31,9 @@ export function PetEditorPage({ mode }: PetEditorPageProps) {
   if (loading || !user) {
     return (
       <AppShell active="profile">
-        <main className="p-8">Loading profile...</main>
+        <main>
+          <DataPageSkeleton variant="editor" label="Loading profile" />
+        </main>
       </AppShell>
     );
   }
@@ -52,7 +54,9 @@ export function PetEditorPage({ mode }: PetEditorPageProps) {
   if (mode === "edit" && petQuery.isLoading) {
     return (
       <AppShell active="profile">
-        <main className="p-8">Loading pet...</main>
+        <main>
+          <DataPageSkeleton variant="editor" label="Loading pet" />
+        </main>
       </AppShell>
     );
   }

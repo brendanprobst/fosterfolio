@@ -236,6 +236,25 @@ describe("ProfilePage", () => {
     expect(screen.getByLabelText("ZIP code")).toHaveValue("78701");
   });
 
+  it("shows a profile skeleton instead of the empty state while data is loading", () => {
+    vi.mocked(useOwnUser).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof useOwnUser>);
+    vi.mocked(useOwnerPets).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    } as ReturnType<typeof useOwnerPets>);
+
+    renderWithQueryClient(<ProfilePage />);
+
+    expect(screen.getByRole("status", { name: "Loading profile" })).toBeInTheDocument();
+    expect(screen.queryByText("Add your name")).not.toBeInTheDocument();
+    expect(screen.queryByText("No pets yet")).not.toBeInTheDocument();
+  });
+
   it("shows an empty state with a call to action when there are no pets", async () => {
     renderWithQueryClient(<ProfilePage />);
 

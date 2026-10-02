@@ -1,5 +1,6 @@
 "use client";
 
+import { useInSidebarPanel } from "@client/components/layout/sidebarPanelContext";
 import { Button } from "@client/components/ui/button";
 import {
   Card,
@@ -41,6 +42,7 @@ export function ExpandableInquiryForm({
     senderEmail: "",
     message: "",
   });
+  const inPanel = useInSidebarPanel();
   const [cardSlot, setCardSlot] = useState<HTMLDivElement | null>(null);
   const [modalSlot, setModalSlot] = useState<HTMLDivElement | null>(null);
   const target = expanded && modalSlot ? modalSlot : cardSlot;
@@ -50,7 +52,7 @@ export function ExpandableInquiryForm({
       <Card size="sm">
         <CardHeader>
           <CardTitle>{heading}</CardTitle>
-          {!sent ? (
+          {!sent && !inPanel ? (
             <CardAction>
               <Button
                 type="button"
@@ -64,7 +66,7 @@ export function ExpandableInquiryForm({
             </CardAction>
           ) : null}
         </CardHeader>
-        <CardContent className={cn(!sent && "hidden lg:block")}>
+        <CardContent className={cn(!sent && !inPanel && "hidden lg:block")}>
           {sent ? <InquirySentAlert fosterName={fosterName} /> : <div ref={setCardSlot} />}
         </CardContent>
       </Card>

@@ -1,7 +1,7 @@
 "use client";
 
 import { FeatureUnavailable } from "@client/components/FeatureUnavailable";
-import { AppShell } from "@client/components/layout";
+import { AppShell, DataPageSkeleton } from "@client/components/layout";
 import { UserAvatar } from "@client/components/UserAvatar";
 import { Button } from "@client/components/ui/button";
 import { Input } from "@client/components/ui/input";
@@ -60,7 +60,7 @@ function SearchPageInner() {
           </p>
         ) : null}
         {query && search.isLoading ? (
-          <p className="text-muted-foreground text-sm">Searching…</p>
+          <DataPageSkeleton embedded variant="list" label="Searching" />
         ) : null}
         {query && search.isError ? (
           <p className="text-destructive text-sm">
@@ -153,8 +153,8 @@ export function SearchPage() {
     <Suspense
       fallback={
         <AppShell active="search">
-          <main className="mx-auto max-w-2xl px-4 py-8">
-            <p className="text-muted-foreground text-sm">Loading search…</p>
+          <main>
+            <DataPageSkeleton variant="list" label="Loading search" />
           </main>
         </AppShell>
       }

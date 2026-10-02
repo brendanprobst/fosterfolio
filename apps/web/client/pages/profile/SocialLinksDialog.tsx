@@ -72,11 +72,11 @@ export function SocialLinksDialog({ user, open, onOpenChange }: SocialLinksDialo
           ) : null}
           <div className="space-y-2">
             {socialLinks.map((link, index) => (
-              <div key={index} className="flex items-center gap-2">
+              <div key={index} className="flex flex-col gap-2 lg:flex-row lg:items-center">
                 <Input
                   aria-label={`Link ${index + 1} label`}
                   placeholder="Label"
-                  className="flex-1"
+                  className="w-full lg:flex-1"
                   value={link.label}
                   onChange={(e) => {
                     const next = [...socialLinks];
@@ -87,7 +87,7 @@ export function SocialLinksDialog({ user, open, onOpenChange }: SocialLinksDialo
                 <Input
                   aria-label={`Link ${index + 1} URL`}
                   placeholder="https://"
-                  className="flex-1"
+                  className="w-full lg:flex-1"
                   value={link.url}
                   onChange={(e) => {
                     const next = [...socialLinks];
@@ -99,6 +99,7 @@ export function SocialLinksDialog({ user, open, onOpenChange }: SocialLinksDialo
                   type="button"
                   variant="ghost"
                   size="icon-sm"
+                  className="self-end lg:self-center"
                   aria-label={`Remove link ${index + 1}`}
                   onClick={() => setSocialLinks(socialLinks.filter((_, i) => i !== index))}
                 >

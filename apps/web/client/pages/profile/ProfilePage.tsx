@@ -2,7 +2,7 @@
 
 import { useAuth, useRequireAuth } from "@client/auth";
 import { PetCard } from "@client/components/PetCard";
-import { AppShell, PageWithSidebar } from "@client/components/layout";
+import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
 import { BioPreview } from "@client/components/BioPreview";
 import { Button, buttonVariants } from "@client/components/ui/button";
 import { Separator } from "@client/components/ui/separator";
@@ -33,10 +33,12 @@ export function ProfilePage() {
   const [locationOpen, setLocationOpen] = useState(false);
   const [socialOpen, setSocialOpen] = useState(false);
 
-  if (loading || !user) {
+  if (loading || !user || own.isLoading || pets.isLoading) {
     return (
       <AppShell active="profile">
-        <main className="p-8">Loading profile...</main>
+        <main>
+          <DataPageSkeleton variant="profile" label="Loading profile" />
+        </main>
       </AppShell>
     );
   }
@@ -49,6 +51,11 @@ export function ProfilePage() {
     <AppShell active="profile">
       <main>
         <PageWithSidebar
+          mobileSummary={{
+            title: "Share your pages",
+            description:
+              "Preview, copy, or open a QR code for your profile and Foster Me links.",
+          }}
           sidebar={
             <ProfileLinkCard
               handleOrId={shareRef}

@@ -50,6 +50,10 @@ describe("ProfileLocationDialog", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Location & shelters" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Shelter 1 name").parentElement).toHaveClass(
+      "grid-cols-1",
+      "lg:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)_auto]",
+    );
     expect(screen.getByLabelText("ZIP code")).toHaveValue("78701");
     expect(screen.getByText(/help find adopters in your area/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Shelter 1 name")).toHaveValue("Austin Pets Alive");

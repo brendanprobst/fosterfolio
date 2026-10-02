@@ -47,6 +47,10 @@ describe("SocialLinksDialog", () => {
     expect(screen.getByRole("heading", { name: "Where you share" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("Instagram")).toBeInTheDocument();
     expect(screen.getByDisplayValue("https://example.com/alex")).toBeInTheDocument();
+    expect(screen.getByLabelText("Link 1 label").parentElement).toHaveClass(
+      "flex-col",
+      "lg:flex-row",
+    );
   });
 
   it("adds a link and saves only fully-filled links", async () => {

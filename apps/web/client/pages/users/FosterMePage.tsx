@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@client/auth";
-import { AppShell, PageWithSidebar } from "@client/components/layout";
+import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
 import { useOwnerPets, usePet } from "@client/features/pets";
 import { useUser } from "@client/features/users";
 import { isFosterfolioSearchEnabled } from "@client/lib/fosterfolioFeatureFlags";
@@ -13,6 +13,7 @@ import {
   userProfileHref,
 } from "@client/lib/userProfilePath";
 import { PetBioView } from "@client/pages/pets/PetBioView";
+import { petSidebarMobileSummary } from "@client/pages/pets/PublicPetSidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo } from "react";
@@ -77,9 +78,7 @@ export function FosterMePage() {
           </p>
         ) : null}
         {handle && (userQuery.isLoading || petsQuery.isLoading) ? (
-          <p className="text-muted-foreground mx-auto max-w-5xl px-4 py-8 text-sm">
-            Loading…
-          </p>
+          <DataPageSkeleton variant="pet" label="Loading foster" />
         ) : null}
         {handle && userQuery.isError ? (
           <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
@@ -96,7 +95,14 @@ export function FosterMePage() {
           </p>
         ) : null}
         {handle && user && petsQuery.isSuccess && selection.kind === "empty" ? (
-          <PageWithSidebar sidebar={sidebar}>
+          <PageWithSidebar
+            sidebar={sidebar}
+            mobileSummary={petSidebarMobileSummary({
+              isOwner,
+              fosterName: displayName,
+              variant: "foster-me",
+            })}
+          >
             <section className="space-y-3" aria-label="No foster listed">
               <h1 className="text-2xl font-semibold tracking-tight">
                 {displayName} isn’t listed as fostering anyone right now.
@@ -121,10 +127,11 @@ export function FosterMePage() {
             </section>
           </PageWithSidebar>
         ) : null}
-        {selectedId && petQuery.isLoading ? (
-          <p className="text-muted-foreground mx-auto max-w-5xl px-4 py-8 text-sm">
-            Loading pet…
-          </p>
+        {selectedId &&
+        petQuery.isLoading &&
+        !userQuery.isLoading &&
+        !petsQuery.isLoading ? (
+          <DataPageSkeleton variant="pet" label="Loading pet" />
         ) : null}
         {selectedId && petQuery.isError ? (
           <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
@@ -134,7 +141,15 @@ export function FosterMePage() {
           </p>
         ) : null}
         {pet && (selection.kind === "active" || selection.kind === "fallback") ? (
-          <PageWithSidebar sidebar={sidebar}>
+          <PageWithSidebar
+            sidebar={sidebar}
+            mobileSummary={petSidebarMobileSummary({
+              isOwner,
+              petName: pet.name,
+              fosterName: displayName,
+              variant: "foster-me",
+            })}
+          >
             <PetBioView pet={pet} setDocumentTitle={false} />
           </PageWithSidebar>
         ) : null}

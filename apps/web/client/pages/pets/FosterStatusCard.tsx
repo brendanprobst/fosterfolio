@@ -1,13 +1,7 @@
 "use client";
 
 import { buttonVariants } from "@client/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@client/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@client/components/ui/card";
 import { cn } from "@client/lib/utils";
 import { fosterMeHref } from "@client/lib/userProfilePath";
 import { PawPrint } from "lucide-react";
@@ -38,7 +32,6 @@ export function FosterStatusCard({
     <Card size="sm">
       <CardHeader>
         <CardTitle>Interested in {petName}?</CardTitle>
-        <CardDescription>Ask {fosterName} about this pet.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <FosteredBy

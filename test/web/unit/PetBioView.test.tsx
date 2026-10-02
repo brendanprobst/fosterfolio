@@ -68,6 +68,25 @@ describe("PetBioView", () => {
     );
   });
 
+  it("swipes the main photo forward and back", () => {
+    render(<PetBioView pet={pet()} />);
+    const main = screen.getByRole("img", { name: "Mochi" });
+
+    fireEvent.touchStart(main, { changedTouches: [{ clientX: 200, clientY: 80 }] });
+    fireEvent.touchEnd(main, { changedTouches: [{ clientX: 40, clientY: 90 }] });
+    expect(screen.getByRole("img", { name: "Mochi" })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/second.jpg",
+    );
+
+    fireEvent.touchStart(main, { changedTouches: [{ clientX: 40, clientY: 80 }] });
+    fireEvent.touchEnd(main, { changedTouches: [{ clientX: 200, clientY: 80 }] });
+    expect(screen.getByRole("img", { name: "Mochi" })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/cover.jpg",
+    );
+  });
+
   it("keeps a single primary URL as one photo with no thumbnail strip", () => {
     render(
       <PetBioView

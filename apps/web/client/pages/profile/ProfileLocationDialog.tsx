@@ -141,7 +141,7 @@ export function ProfileLocationDialog({
               </p>
             </div>
             <div className="space-y-2">
-              <div className="text-muted-foreground hidden gap-2 text-xs font-medium sm:grid sm:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)_auto]">
+              <div className="text-muted-foreground hidden gap-2 text-xs font-medium lg:grid lg:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)_auto]">
                 <span>Name</span>
                 <span>Website</span>
                 <span className="sr-only">Remove</span>
@@ -149,7 +149,7 @@ export function ProfileLocationDialog({
               {shelters.map((row, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)_auto]"
+                  className="grid grid-cols-1 items-center gap-2 lg:grid-cols-[minmax(7rem,10rem)_minmax(0,1fr)_auto]"
                 >
                   <Input
                     aria-label={`Shelter ${index + 1} name`}
@@ -168,6 +168,7 @@ export function ProfileLocationDialog({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
+                    className="justify-self-end lg:justify-self-auto"
                     aria-label={`Remove shelter ${index + 1}`}
                     onClick={() =>
                       setShelters((current) =>

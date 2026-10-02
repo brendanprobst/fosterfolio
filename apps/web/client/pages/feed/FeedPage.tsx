@@ -2,7 +2,7 @@
 
 import { useAuth } from "@client/auth";
 import { FeatureUnavailable } from "@client/components/FeatureUnavailable";
-import { AppShell } from "@client/components/layout";
+import { AppShell, DataPageSkeleton } from "@client/components/layout";
 import { Button, buttonVariants } from "@client/components/ui/button";
 import { PostCard, useFeed } from "@client/features/posts";
 import { isFosterfolioFeedEnabled } from "@client/lib/fosterfolioFeatureFlags";
@@ -52,7 +52,7 @@ function FeedPageInner() {
         )}
 
         {feed.isLoading ? (
-          <p className="text-muted-foreground text-sm">Loading feed…</p>
+          <DataPageSkeleton embedded variant="list" label="Loading feed" />
         ) : null}
         {feed.isError ? (
           <p className="text-destructive text-sm">

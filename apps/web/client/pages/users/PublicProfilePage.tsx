@@ -3,7 +3,7 @@
 import { useAuth } from "@client/auth";
 import { PetCard } from "@client/components/PetCard";
 import { UserAvatar } from "@client/components/UserAvatar";
-import { AppShell, PageWithSidebar } from "@client/components/layout";
+import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
 import { useOwnerPets } from "@client/features/pets";
 import { PostCard, useAuthorPosts } from "@client/features/posts";
 import { useUser } from "@client/features/users";
@@ -17,7 +17,7 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { PublicBio } from "./PublicBio";
 import { PublicLocationCard } from "./PublicLocationCard";
-import { PublicProfileSidebar } from "./PublicProfileSidebar";
+import { PublicProfileSidebar, publicProfileMobileSummary } from "./PublicProfileSidebar";
 import { PublicShareCard } from "./PublicShareCard";
 
 export function PublicProfilePage() {
@@ -48,9 +48,7 @@ export function PublicProfilePage() {
           </p>
         ) : null}
         {userId && userQuery.isLoading ? (
-          <p className="text-muted-foreground mx-auto max-w-5xl px-4 py-8 text-sm">
-            Loading profile…
-          </p>
+          <DataPageSkeleton variant="profile" label="Loading profile" />
         ) : null}
         {userId && userQuery.isError ? (
           <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
@@ -61,6 +59,10 @@ export function PublicProfilePage() {
         ) : null}
         {user ? (
           <PageWithSidebar
+            mobileSummary={publicProfileMobileSummary(
+              isOwner,
+              user.displayName || "this foster",
+            )}
             sidebar={
               <PublicProfileSidebar
                 handleOrId={shareRef}
@@ -102,7 +104,9 @@ export function PublicProfilePage() {
 
             <section className="space-y-3" aria-label="Fostered pets">
               <h2 className="text-lg font-medium">Pets</h2>
-              {(petsQuery.data ?? []).length === 0 ? (
+              {petsQuery.isLoading ? (
+                <DataPageSkeleton embedded variant="list" label="Loading pets" />
+              ) : (petsQuery.data ?? []).length === 0 ? (
                 <p className="text-muted-foreground text-sm">No pets listed yet.</p>
               ) : (
                 <ul className="grid gap-3 sm:grid-cols-2">
