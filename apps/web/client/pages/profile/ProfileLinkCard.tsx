@@ -11,7 +11,7 @@ import {
 } from "@client/components/ui/card";
 import { cn } from "@client/lib/utils";
 import { fosterMeHref, userProfileHref } from "@client/lib/userProfilePath";
-import { Check, Copy, Eye, PawPrint, QrCode, User } from "lucide-react";
+import { Check, Copy, Eye, Link2, PawPrint, QrCode, User } from "lucide-react";
 import Link from "next/link";
 import { useState, type ComponentType } from "react";
 
@@ -165,13 +165,26 @@ export function ProfileLinkCard({ handleOrId, hasHandle }: ProfileLinkCardProps)
         />
         <ShareRow
           title={`\"Foster Me\" Link`}
-          description="Always opens whoever you’re fostering now — not one specific pet. Find a pet-specific share link on the pet bio page."
+          description="Always opens whoever you’re fostering now — not one specific pet."
           path={fosterMePath}
           qrTitle="Foster-me QR"
           downloadName={`${handleOrId}-foster-me`}
           imageAlt="QR code for your current-foster page"
           tone="fosterMe"
         />
+        <section
+          aria-label="Pet-specific links"
+          className="bg-muted/40 ring-foreground/10 space-y-2 rounded-xl p-3 ring-1"
+        >
+          <div className="flex items-center gap-2">
+            <Link2 aria-hidden className="size-4 shrink-0" />
+            <h3 className="text-sm font-semibold tracking-tight">Pet-specific links</h3>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            For a stable link that stays on one pet, open that pet’s page. The share
+            link there will not follow the next foster.
+          </p>
+        </section>
       </CardContent>
     </Card>
   );

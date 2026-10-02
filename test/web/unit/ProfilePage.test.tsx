@@ -112,8 +112,9 @@ describe("ProfilePage", () => {
     expect(
       screen.getByText(/always opens whoever you’re fostering now/i),
     ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Pet-specific links" })).toBeInTheDocument();
     expect(
-      screen.getByText(/pet-specific share link on the pet bio page/i),
+      screen.getByText(/stable link that stays on one pet/i),
     ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /QR code/i })).not.toBeInTheDocument();
