@@ -156,6 +156,7 @@ describe("ProfilePage", () => {
 
     expect(screen.getByText("Austin, TX")).toBeInTheDocument();
     expect(screen.getByText("Austin Pets Alive")).toBeInTheDocument();
+    expect(screen.queryByText(/help find adopters in your area/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("term")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("ZIP code")).not.toBeInTheDocument();
   });
@@ -164,6 +165,7 @@ describe("ProfilePage", () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(screen.getByText("Where you share")).toBeInTheDocument();
+    expect(screen.queryByText(/anywhere you post/i)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
       "href",
       "https://example.com/alex",
@@ -174,6 +176,7 @@ describe("ProfilePage", () => {
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
+    expect(screen.getByText(/anywhere you post/i)).toBeInTheDocument();
     expect(screen.getByDisplayValue("Instagram")).toBeInTheDocument();
     // Location/shelters and the name/bio dialog stay closed.
     expect(screen.queryByLabelText("Display name")).not.toBeInTheDocument();
@@ -240,6 +243,7 @@ describe("ProfilePage", () => {
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(screen.getByLabelText("ZIP code")).toHaveValue("78701");
+    expect(screen.getByText(/help find adopters in your area/i)).toBeInTheDocument();
   });
 
   it("shows a profile skeleton instead of the empty state while data is loading", () => {

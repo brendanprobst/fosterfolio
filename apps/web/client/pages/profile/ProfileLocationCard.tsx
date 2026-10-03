@@ -1,12 +1,11 @@
 "use client";
 
+import { Badge } from "@client/components/ui/badge";
 import { Button } from "@client/components/ui/button";
 import type { UserOwner } from "@client/features/users";
 import { parseShelterLinks } from "@client/lib/shelterLinks";
 import { cn } from "@client/lib/utils";
 import { Building2, MapPin, Pencil } from "lucide-react";
-
-const PROFILE_ZIP_HELP = "Used to help find adopters in your area.";
 
 type ProfileLocationCardProps = {
   user: UserOwner;
@@ -14,7 +13,8 @@ type ProfileLocationCardProps = {
 };
 
 /**
- * Read-only ZIP and shelter summary. Editing opens `ProfileLocationDialog`.
+ * Read-only ZIP and shelter summary. Editing opens `ProfileLocationDialog`,
+ * which is where the ZIP and shelter explanations live.
  */
 export function ProfileLocationCard({ user, onManage }: ProfileLocationCardProps) {
   const location = [user.city, user.state].filter(Boolean).join(", ") || user.zipCode;
@@ -35,43 +35,43 @@ export function ProfileLocationCard({ user, onManage }: ProfileLocationCardProps
         </Button>
       </div>
 
-      <div className="mt-3 space-y-3 text-sm">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <MapPin className="text-muted-foreground size-4 shrink-0" aria-hidden />
-            <span className={cn(!location && "text-muted-foreground")}>
-              {location || "Add your location"}
-            </span>
-          </div>
-          <p className="text-muted-foreground pl-6 text-xs">{PROFILE_ZIP_HELP}</p>
-        </div>
+      <ul className="mt-3 flex flex-wrap gap-1.5">
+        <li>
+          <Badge variant="outline" className={cn(!location && "text-muted-foreground")}>
+            <MapPin aria-hidden />
+            {location || "Add your location"}
+          </Badge>
+        </li>
         {savedShelters.length > 0 ? (
-          <ul className="space-y-1.5">
-            {savedShelters.map((shelter) => (
-              <li key={`${shelter.name}-${shelter.url}`} className="flex items-center gap-2">
-                <Building2 className="text-muted-foreground size-4 shrink-0" aria-hidden />
-                {shelter.url ? (
-                  <a
-                    href={shelter.url}
-                    className="text-primary truncate hover:underline"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {shelter.name}
-                  </a>
-                ) : (
-                  <span className="truncate">{shelter.name}</span>
-                )}
-              </li>
-            ))}
-          </ul>
+          savedShelters.map((shelter) => (
+            <li key={`${shelter.name}-${shelter.url}`}>
+              {shelter.url ? (
+                <Badge
+                  variant="outline"
+                  render={
+                    <a href={shelter.url} rel="noopener noreferrer" target="_blank" />
+                  }
+                >
+                  <Building2 aria-hidden />
+                  {shelter.name}
+                </Badge>
+              ) : (
+                <Badge variant="outline">
+                  <Building2 aria-hidden />
+                  {shelter.name}
+                </Badge>
+              )}
+            </li>
+          ))
         ) : (
-          <div className="flex items-center gap-2">
-            <Building2 className="text-muted-foreground size-4 shrink-0" aria-hidden />
-            <span className="text-muted-foreground">Add the shelters you work with</span>
-          </div>
+          <li>
+            <Badge variant="outline" className="text-muted-foreground">
+              <Building2 aria-hidden />
+              Add the shelters you work with
+            </Badge>
+          </li>
         )}
-      </div>
+      </ul>
     </section>
   );
 }

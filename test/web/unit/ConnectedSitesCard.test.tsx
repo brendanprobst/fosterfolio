@@ -26,6 +26,7 @@ describe("ConnectedSitesCard", () => {
     render(<ConnectedSitesCard user={user} onManage={vi.fn()} />);
 
     expect(screen.getByText("Where you share")).toBeInTheDocument();
+    expect(screen.queryByText(/anywhere you post/i)).not.toBeInTheDocument();
     const link = screen.getByRole("link", { name: "Instagram" });
     expect(link).toHaveAttribute("href", "https://example.com/alex");
     expect(link).toHaveAttribute("target", "_blank");

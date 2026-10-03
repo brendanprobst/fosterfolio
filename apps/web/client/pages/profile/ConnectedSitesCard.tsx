@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@client/components/ui/badge";
 import { Button } from "@client/components/ui/button";
 import type { UserOwner } from "@client/features/users";
 import { Pencil } from "lucide-react";
@@ -11,7 +12,8 @@ type ConnectedSitesCardProps = {
 
 /**
  * Places this foster posts about their animals — Instagram, a diary, TikTok.
- * Shelter websites live on `ProfileLocationCard` instead.
+ * The explanation lives in `SocialLinksDialog`. Shelter websites live on
+ * `ProfileLocationCard` instead.
  */
 export function ConnectedSitesCard({ user, onManage }: ConnectedSitesCardProps) {
   return (
@@ -28,29 +30,24 @@ export function ConnectedSitesCard({ user, onManage }: ConnectedSitesCardProps) 
           <Pencil aria-hidden />
         </Button>
       </div>
-      <p className="text-muted-foreground mt-1 text-xs">
-        Instagram, a foster diary, anywhere you post about the animals you foster.
-      </p>
-      <div className="mt-3">
-        {user.socialLinks.length > 0 ? (
-          <ul className="space-y-1.5 text-sm">
-            {user.socialLinks.map((link) => (
-              <li key={`${link.label}-${link.url}`} className="truncate">
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground text-sm">No places listed yet.</p>
-        )}
-      </div>
+      {user.socialLinks.length > 0 ? (
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {user.socialLinks.map((link) => (
+            <li key={`${link.label}-${link.url}`}>
+              <Badge
+                variant="outline"
+                render={
+                  <a href={link.url} target="_blank" rel="noopener noreferrer" />
+                }
+              >
+                {link.label}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-muted-foreground mt-3 text-sm">No places listed yet.</p>
+      )}
     </section>
   );
 }

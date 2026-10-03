@@ -27,7 +27,7 @@ describe("ProfileLocationCard", () => {
 
     expect(screen.getByText("Austin, TX")).toBeInTheDocument();
     expect(screen.getByText("Austin Pets Alive")).toBeInTheDocument();
-    expect(screen.getByText(/help find adopters in your area/i)).toBeInTheDocument();
+    expect(screen.queryByText(/help find adopters in your area/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("term")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("ZIP code")).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
