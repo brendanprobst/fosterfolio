@@ -5,7 +5,7 @@ Checklist for critical infra: a new Supabase project and `infra/terraform/envs/p
 ## Decisions
 
 - **Schema is one migration, not a copy of dev.** `npm run supabase:push` applies `supabase/migrations/20261003120000_app_v1_schema.sql` to an empty prod project. Do not push that file at the current dev project until dev is dropped and re-seeded; its migration history still names the four files this one replaced. Do not `pg_dump` / restore the dev database. A dump would carry seed users (`@seed.fosterfolio.test`), auth identities, and storage paths that do not exist in the prod bucket. Sign up again on prod with an allowlisted email. Source: [Supabase migrations](supabase-migrations.md), [Development seed data](dev-seed-data.md).
-- **Google SSO is out of this go-live.** Email and password is enough for the closed beta. Add Google on the prod project later. Source: [Google SSO](google-sso.md). Hide the buttons in the prod bundle with `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO=1` (section 7) before the site upload. That flag is not in the app yet.
+- **Google SSO is out of this go-live.** Email and password is enough for the closed beta. Add Google on the prod project later. Source: [Google SSO](google-sso.md). Hide the buttons in the prod bundle with `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO=1` (section 7) before the site upload.
 - **Deploys stay on the CLI.** `npm run deploy:aws -- --env <env>` selects `infra/terraform/envs/<env>` (default `dev`). `--skip-web` updates the Lambda and leaves the site alone. `npm run deploy:aws:web -- --env <env>` uploads the site and leaves Terraform alone. Source: [Deploy to AWS](../deploy-aws.md).
 
 Squarespace nameservers already point at the dev-owned zone `Z086583512U74ZET8C9T8`. Prod only adds records in that zone. Leave the dev tfvars in create-zone mode.
@@ -168,9 +168,8 @@ This is the **prod** Supabase project. Do not change the dev project's Site URL.
 
 ## 7. Hide SSO buttons in the prod bundle
 
-Not implemented yet. Do this before the upload in section 8. `next build` bakes `NEXT_PUBLIC_*` into the static files, so a flag set only in Supabase does not hide the button.
+`isFosterfolioSsoHidden()` is on when `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO` is exactly `1`. The static build bakes that value in, so set it before the upload in section 8.
 
-- [ ] Add `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO`. When the value is exactly `1`, do not render **Continue with Google** on `/auth/sign-in` or `/auth/sign-up` (`SignInPage.tsx`, `SignUpPage.tsx`). Any other value, including unset, leaves the buttons visible. Same `1`-means-on shape as `NEXT_PUBLIC_FOSTERFOLIO_FEED` in `apps/web/client/lib/fosterfolioFeatureFlags.ts`. Comment it in `apps/web/.env.example` next to the other `NEXT_PUBLIC_FOSTERFOLIO_*` lines.
 - [ ] Set it in `apps/web/.env.prod.local` so the prod build hides the buttons:
 
 ```bash

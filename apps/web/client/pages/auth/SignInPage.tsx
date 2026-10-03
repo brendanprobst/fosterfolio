@@ -8,6 +8,7 @@ import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
 import { Separator } from "@client/components/ui/separator";
 import { authPaths } from "@client/lib/constants/authPaths";
+import { isFosterfolioSsoHidden } from "@client/lib/fosterfolioFeatureFlags";
 import { safeNextPath } from "@client/lib/safeNextPath";
 import { AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -27,6 +28,7 @@ export function SignInPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const hideSso = isFosterfolioSsoHidden();
 
   useEffect(() => {
     const description = searchParams.get("error_description") ?? searchParams.get("error");
@@ -76,7 +78,9 @@ export function SignInPage() {
         <CardHeader>
           <CardTitle className="text-2xl">Sign in to Fosterfolio</CardTitle>
           <CardDescription>
-            Use your email and password, or continue with {oauthProviderLabel()}.
+            {hideSso
+              ? "Use your email and password."
+              : `Use your email and password, or continue with ${oauthProviderLabel()}.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -138,18 +142,21 @@ export function SignInPage() {
             </Link>
           </p>
 
-          <Separator />
-
-          <Button
-            className="w-full"
-            variant="outline"
-            type="button"
-            disabled={busy || loading}
-            onClick={handleSocialSignIn}
-          >
-            {busy ? <Loader2 className="animate-spin" /> : null}
-            Continue with {oauthProviderLabel()}
-          </Button>
+          {hideSso ? null : (
+            <>
+              <Separator />
+              <Button
+                className="w-full"
+                variant="outline"
+                type="button"
+                disabled={busy || loading}
+                onClick={handleSocialSignIn}
+              >
+                {busy ? <Loader2 className="animate-spin" /> : null}
+                Continue with {oauthProviderLabel()}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
     </AuthPageShell>

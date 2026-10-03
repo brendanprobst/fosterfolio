@@ -16,3 +16,8 @@ export function isFosterfolioFeedEnabled(): boolean {
 export function isFosterfolioSearchEnabled(): boolean {
   return isFosterfolioBinaryEnv(process.env.NEXT_PUBLIC_FOSTERFOLIO_SEARCH);
 }
+
+/** Hide "Continue with …" on sign-in and sign-up. Default off (buttons visible). */
+export function isFosterfolioSsoHidden(): boolean {
+  return isFosterfolioBinaryEnv(process.env.NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO);
+}
