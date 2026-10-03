@@ -2,7 +2,7 @@
 
 Two ways to deploy:
 
-1. **Local / CI runner:** **`npm run deploy:aws`** (uses your AWS credentials and `infra/terraform/envs/dev/terraform.tfvars`).
+1. **Local / CI runner:** **`npm run deploy:aws`** (uses your AWS credentials and `infra/terraform/envs/<env>/terraform.tfvars`). **`--env`** defaults to **`dev`**.
 2. **GitHub Actions:** workflow **Deploy (AWS)** — **Actions → Deploy (AWS) → Run workflow** (manual only, `main` only).
 
 The script order is: **build API Lambda bundle → `terraform apply` → read `api_url` → build static web with `NEXT_PUBLIC_API_URL` → `aws s3 sync`**.
@@ -11,14 +11,15 @@ The script order is: **build API Lambda bundle → `terraform apply` → read `a
 
 - **AWS CLI** and credentials that can run Terraform and S3 sync (`aws sts get-caller-identity`).
 - **Terraform** `>= 1.6`.
-- **`terraform.tfvars`** in `infra/terraform/envs/dev/` (copy from `terraform.tfvars.example`). Do not commit secrets.
-- For the **web** build: **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** in the environment or in **`apps/web/.env.local`** / **`apps/web/.env.production.local`** (the deploy script loads those files if present).
+- **`terraform.tfvars`** in `infra/terraform/envs/<env>/` (copy from `terraform.tfvars.example`). Do not commit secrets. Default env is **`dev`**.
+- For the **web** build: **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`**. **`dev`** loads **`apps/web/.env.local`** / **`apps/web/.env.production.local`**. Any other **`--env`** loads only **`apps/web/.env.<env>.local`** and will not fall back to the dev file.
 
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `npm run deploy:aws` | Full deploy (interactive `terraform apply` when in a TTY). |
+| `npm run deploy:aws` | Full deploy of **`envs/dev`** (interactive `terraform apply` when in a TTY). |
+| `npm run deploy:aws -- --env prod` | Same pipeline against **`infra/terraform/envs/prod`**. Web build requires **`apps/web/.env.prod.local`**. |
 | `npm run deploy:aws -- --plan-only` | `terraform init` + `terraform plan` only. |
 | `npm run deploy:aws -- --skip-web` | Lambda + Terraform only (no static build, no S3 sync). |
 | `npm run deploy:aws -- --skip-api-build` | Reuse existing `apps/api/dist-lambda` (still runs Terraform + web). |

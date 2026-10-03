@@ -7,40 +7,23 @@
  * (run a full `npm run deploy:aws` at least once after infra changes).
  *
  *   npm run deploy:aws:web
+ *   npm run deploy:aws:web -- --env prod
  *
  * `NEXT_PUBLIC_API_URL` is taken from Terraform output (same as full deploy).
- * `NEXT_PUBLIC_SUPABASE_*` must be set in the environment or loaded from
- * `apps/web/.env.local` / `apps/web/.env.production.local` (this script loads those files).
+ * For `dev`, `NEXT_PUBLIC_SUPABASE_*` come from `apps/web/.env.local` /
+ * `apps/web/.env.production.local`. For any other `--env`, they come only from
+ * `apps/web/.env.<env>.local`.
  *
- * Prerequisites: AWS CLI, Terraform, `terraform.tfvars` in `infra/terraform/envs/dev/`.
+ * Prerequisites: AWS CLI, Terraform, `terraform.tfvars` in `infra/terraform/envs/<env>/`.
  * See docs/deploy-aws.md.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
+import { loadWebEnv, takeEnvArg, terraformDir } from "./deploy-env.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-
-function loadEnvFile(relPath) {
-  const full = join(root, relPath);
-  if (!existsSync(full)) return;
-  for (const line of readFileSync(full, "utf8").split("\n")) {
-    const t = line.trim();
-    if (!t || t.startsWith("#")) continue;
-    const eq = t.indexOf("=");
-    if (eq === -1) continue;
-    const key = t.slice(0, eq).trim();
-    let val = t.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    if (process.env[key] === undefined) process.env[key] = val;
-  }
-}
 
 function run(cmd, args) {
   const r = spawnSync(cmd, args, {
@@ -67,12 +50,16 @@ function capture(cmd, args) {
   return (r.stdout || "").trim();
 }
 
-const tfDir = join(root, "infra/terraform/envs/dev");
-const chdir = `-chdir=${tfDir}`;
-
 function main() {
-  loadEnvFile("apps/web/.env.production.local");
-  loadEnvFile("apps/web/.env.local");
+  const { env, argv } = takeEnvArg(process.argv.slice(2));
+  if (argv.length > 0) {
+    console.error(`Unknown argument: ${argv[0]}`);
+    process.exit(1);
+  }
+  const tfDir = terraformDir(root, env);
+  const chdir = `-chdir=${tfDir}`;
+  console.log(`→ env ${env} (${tfDir})\n`);
+  loadWebEnv(root, env);
 
   console.log("→ terraform init (read outputs only; no apply)\n");
   run("terraform", [chdir, "init", "-input=false"]);

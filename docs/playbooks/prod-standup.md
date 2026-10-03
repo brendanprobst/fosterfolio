@@ -1,0 +1,199 @@
+# Prod standup (Fosterfolio)
+
+Checklist for critical infra: a new Supabase project and `infra/terraform/envs/prod`, serving `https://fosterfolio.com`. Dev stays on the current Supabase project and `dev.fosterfolio.com`.
+
+## Decisions
+
+- **Schema is one migration, not a copy of dev.** `npm run supabase:push` applies `supabase/migrations/20261003120000_app_v1_schema.sql` to an empty prod project. Do not push that file at the current dev project until dev is dropped and re-seeded; its migration history still names the four files this one replaced. Do not `pg_dump` / restore the dev database. A dump would carry seed users (`@seed.fosterfolio.test`), auth identities, and storage paths that do not exist in the prod bucket. Sign up again on prod with an allowlisted email. Source: [Supabase migrations](supabase-migrations.md), [Development seed data](dev-seed-data.md).
+- **Google SSO is out of this go-live.** Email and password is enough for the closed beta. Add Google on the prod project later. Source: [Google SSO](google-sso.md). Hide the buttons in the prod bundle with `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO=1` (section 7) before the site upload. That flag is not in the app yet.
+- **Deploys stay on the CLI.** `npm run deploy:aws -- --env <env>` selects `infra/terraform/envs/<env>` (default `dev`). `--skip-web` updates the Lambda and leaves the site alone. `npm run deploy:aws:web -- --env <env>` uploads the site and leaves Terraform alone. Source: [Deploy to AWS](../deploy-aws.md).
+
+Squarespace nameservers already point at the dev-owned zone `Z086583512U74ZET8C9T8`. Prod only adds records in that zone. Leave the dev tfvars in create-zone mode.
+
+Do the Terraform apply on a stable network. A hotel resolver has dropped AWS API lookups mid-apply.
+
+---
+
+## 1. Create the prod Supabase project
+
+Source: [Supabase migrations](supabase-migrations.md).
+
+- [ ] In the [Supabase dashboard](https://supabase.com/dashboard), **New project**. Name it so it is obviously prod (for example `fosterfolio-prod`). Pick a region and save the database password.
+- [ ] Open **Project Settings → API**. Copy the project URL, the `anon` key, and the `service_role` key into a scratch note. These go in Terraform and `apps/web/.env.prod.local`, not into `apps/api/.env` or `apps/web/.env.local`.
+- [ ] Open **Connect** and copy the **Session pooler** URI (port **5432**, user `postgres.<project-ref>`). That is `SUPABASE_DB_URL`. Do not use the transaction pooler (port **6543**).
+
+## 2. Push schema to that project, then point the CLI back at dev
+
+Source: [Supabase migrations](supabase-migrations.md). `npm run supabase:*` reads `supabase/.env.local`, which today is the dev project. This is the net-new migration. It creates empty tables. It does not copy rows.
+
+- [ ] From the repo root, keep the dev CLI file:
+
+```bash
+cp supabase/.env.local supabase/.env.local.dev
+```
+
+- [ ] Edit `supabase/.env.local`. Set `SUPABASE_PROJECT_REF` to the new ref. Keep `SUPABASE_ACCESS_TOKEN` (it is your account token, not the project). Set `SUPABASE_DB_URL` to the session-pooler URI from step 1. URL-encode special characters in the password.
+- [ ] Dry-run, then push the v1 schema:
+
+```bash
+npm run supabase:push:dry
+npm run supabase:push
+npm run supabase:list
+```
+
+- [ ] Put the dev CLI file back so the next local command cannot hit prod:
+
+```bash
+mv supabase/.env.local.dev supabase/.env.local
+```
+
+- [ ] Do not run `npm run supabase:seed`.
+
+## 3. Turn on the email allowlist
+
+Source: [Email allowlist](email-allowlist.md), [Private beta](private-beta.md) §1.
+
+Do this in the **prod** project: dashboard → **SQL Editor** → New query. Run one statement at a time.
+
+- [ ] Enable the signup trigger:
+
+```sql
+select public.set_allowlist_enabled(true);
+```
+
+- [ ] Insert the operator and tester emails (one row per person). These are new rows, not a sync from dev:
+
+```sql
+insert into public.allowed_emails (email, note)
+values
+  ('you@example.com', 'operator')
+on conflict (email) do nothing;
+```
+
+- [ ] Confirm both gates:
+
+```sql
+select enabled from public.allowlist_settings where singleton = true;
+select email, note from public.allowed_emails order by created_at;
+```
+
+`enabled` must be `true`. If the trigger is missing, `npm run supabase:push` did not apply `20261003120000_app_v1_schema.sql`. Re-check step 2 before continuing. The API half of the gate is `email_allowlist_enabled = true` in the prod tfvars (step 4).
+
+## 4. Copy the Terraform root
+
+Source: [Deploy to AWS](../deploy-aws.md), [Route 53 custom domain](route53-custom-domain.md) (path B: zone already exists).
+
+- [ ] Copy the dev stack without its state or `.terraform` directory:
+
+```bash
+mkdir -p infra/terraform/envs/prod
+cp infra/terraform/envs/dev/*.tf \
+   infra/terraform/envs/dev/.terraform.lock.hcl \
+   infra/terraform/envs/dev/terraform.tfvars.example \
+   infra/terraform/envs/prod/
+cp infra/terraform/envs/dev/terraform.tfvars infra/terraform/envs/prod/terraform.tfvars
+```
+
+- [ ] Edit `infra/terraform/envs/prod/terraform.tfvars` (gitignored):
+
+```hcl
+environment = "prod"
+
+supabase_url              = "https://<prod-project-ref>.supabase.co"
+supabase_anon_key         = "<prod anon key>"
+supabase_service_role_key = "<prod service role key>"
+
+manage_supabase_credentials_in_ssm = true
+email_allowlist_enabled            = true
+
+web_custom_domain          = "fosterfolio.com"
+create_route53_hosted_zone = false
+route53_hosted_zone_id     = "Z086583512U74ZET8C9T8"
+```
+
+Comment out `route53_zone_name` if it was copied. Do not set `create_route53_hosted_zone = true`. That would create a second zone for `fosterfolio.com`.
+
+- [ ] Leave `apps/api/.env` and `apps/web/.env.local` on the dev project.
+- [ ] Create `apps/web/.env.prod.local` (gitignored). Leave feed and search unset so they stay off. The service role key does not belong in this file.
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://<prod-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<prod anon key>
+```
+
+## 5. Apply prod infra locally
+
+Source: [Deploy to AWS](../deploy-aws.md).
+
+`--skip-web` still builds the Lambda zip and runs Terraform. It does not build or upload the static site. The site upload is section 8. Later API-only releases are the same `--skip-web` command. Later site-only releases are `npm run deploy:aws:web -- --env prod`.
+
+- [ ] Review the plan. It should be creates only (Lambda, API Gateway, S3, CloudFront, an ACM cert for `fosterfolio.com`, an alias A record in zone `Z086583512U74ZET8C9T8`). It must not destroy the dev stack or the hosted zone.
+
+```bash
+npm run deploy:aws -- --env prod --plan-only
+```
+
+- [ ] Apply infra only:
+
+```bash
+npm run deploy:aws -- --env prod --skip-web
+```
+
+- [ ] If apply sits on `aws_acm_certificate_validation`, check that public DNS still answers from Route 53:
+
+```bash
+dig +short NS fosterfolio.com @8.8.8.8
+```
+
+Expect `ns-1870.awsdns-41.co.uk`, `ns-601.awsdns-11.net`, `ns-1531.awsdns-63.org`, and `ns-291.awsdns-36.com`. A `no such host` error for `*.amazonaws.com` is your network DNS, not the certificate. Stop, switch networks, and run the same command again. The cert and zone survive a killed apply.
+
+- [ ] From `infra/terraform/envs/prod`, confirm the public URL and save the API URL for the smoke check:
+
+```bash
+terraform output -raw web_public_base_url
+terraform output -raw api_url
+```
+
+`web_public_base_url` should be `https://fosterfolio.com`.
+
+## 6. Prod auth URLs (email and password only)
+
+Source: [Google SSO](google-sso.md) §3, for the redirect list. Password reset sends people to `https://fosterfolio.com/auth/reset-password`. Skip **Authentication → Providers → Google**.
+
+This is the **prod** Supabase project. Do not change the dev project's Site URL.
+
+- [ ] **Authentication** → **URL Configuration**.
+- [ ] **Site URL:** `https://fosterfolio.com`
+- [ ] **Redirect URLs:** add `https://fosterfolio.com/**`. You do not need `localhost` on this project.
+
+## 7. Hide SSO buttons in the prod bundle
+
+Not implemented yet. Do this before the upload in section 8. `next build` bakes `NEXT_PUBLIC_*` into the static files, so a flag set only in Supabase does not hide the button.
+
+- [ ] Add `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO`. When the value is exactly `1`, do not render **Continue with Google** on `/auth/sign-in` or `/auth/sign-up` (`SignInPage.tsx`, `SignUpPage.tsx`). Any other value, including unset, leaves the buttons visible. Same `1`-means-on shape as `NEXT_PUBLIC_FOSTERFOLIO_FEED` in `apps/web/client/lib/fosterfolioFeatureFlags.ts`. Comment it in `apps/web/.env.example` next to the other `NEXT_PUBLIC_FOSTERFOLIO_*` lines.
+- [ ] Set it in `apps/web/.env.prod.local` so the prod build hides the buttons:
+
+```bash
+NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO=1
+```
+
+- [ ] Leave it unset in `apps/web/.env.local`. Local dev keeps the Google button.
+
+## 8. Upload the site, then check it
+
+Source: [Deploy to AWS](../deploy-aws.md). This build reads `apps/web/.env.prod.local` and the prod Terraform outputs. It does not read `apps/web/.env.local`.
+
+- [ ] Upload:
+
+```bash
+npm run deploy:aws:web -- --env prod
+```
+
+Source for the checks: [Private beta](private-beta.md) §4 and §5. Feed and search are off unless those flags were `1` at build time, so `/feed` and `/search` show the private-beta shell. That is expected.
+
+- [ ] `https://fosterfolio.com` loads the info page over HTTPS.
+- [ ] `API_BASE_URL="<api_url>" npm run smoke` prints statuses and no tokens.
+- [ ] Sign **up** and sign **in** with email and password for an allowlisted address. `/profile` can edit and create a pet.
+- [ ] `/auth/sign-in` and `/auth/sign-up` have no **Continue with Google** button. An email that is not on the list gets the approved-access message on email signup.
+- [ ] `/@handle`, `/@handle/foster-me`, and `/@handle/pet/{id}` resolve (CloudFront rewrite), not the home page.
+- [ ] `http://localhost:3001` still talks to the dev Supabase project.
