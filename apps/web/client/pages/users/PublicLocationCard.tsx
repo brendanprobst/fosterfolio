@@ -1,5 +1,6 @@
 "use client";
 
+import { OutboundLink } from "@client/components/OutboundLink";
 import { parseShelterLinks } from "@client/lib/shelterLinks";
 import { Building2, MapPin } from "lucide-react";
 
@@ -38,14 +39,12 @@ export function PublicLocationCard({
               <li key={`${shelter.name}-${shelter.url}`} className="flex items-center gap-2">
                 <Building2 className="text-muted-foreground size-4 shrink-0" aria-hidden />
                 {shelter.url ? (
-                  <a
+                  <OutboundLink
                     href={shelter.url}
-                    className="text-primary truncate hover:underline"
-                    rel="noopener noreferrer"
-                    target="_blank"
+                    className="text-primary inline-flex items-center gap-1 truncate hover:underline"
                   >
                     {shelter.name}
-                  </a>
+                  </OutboundLink>
                 ) : (
                   <span className="truncate">{shelter.name}</span>
                 )}

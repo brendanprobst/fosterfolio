@@ -1,5 +1,6 @@
 "use client";
 
+import { OutboundLink } from "@client/components/OutboundLink";
 import { Badge } from "@client/components/ui/badge";
 import { Button } from "@client/components/ui/button";
 import type { UserOwner } from "@client/features/users";
@@ -34,12 +35,7 @@ export function ConnectedSitesCard({ user, onManage }: ConnectedSitesCardProps) 
         <ul className="mt-3 flex flex-wrap gap-1.5">
           {user.socialLinks.map((link) => (
             <li key={`${link.label}-${link.url}`}>
-              <Badge
-                variant="outline"
-                render={
-                  <a href={link.url} target="_blank" rel="noopener noreferrer" />
-                }
-              >
+              <Badge variant="outline" render={<OutboundLink href={link.url} />}>
                 {link.label}
               </Badge>
             </li>

@@ -1,5 +1,6 @@
 "use client";
 
+import { OutboundLink } from "@client/components/OutboundLink";
 import { Badge } from "@client/components/ui/badge";
 import { Button } from "@client/components/ui/button";
 import type { UserOwner } from "@client/features/users";
@@ -46,12 +47,7 @@ export function ProfileLocationCard({ user, onManage }: ProfileLocationCardProps
           savedShelters.map((shelter) => (
             <li key={`${shelter.name}-${shelter.url}`}>
               {shelter.url ? (
-                <Badge
-                  variant="outline"
-                  render={
-                    <a href={shelter.url} rel="noopener noreferrer" target="_blank" />
-                  }
-                >
+                <Badge variant="outline" render={<OutboundLink href={shelter.url} />}>
                   <Building2 aria-hidden />
                   {shelter.name}
                 </Badge>

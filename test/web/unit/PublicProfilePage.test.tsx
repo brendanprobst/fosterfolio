@@ -121,17 +121,16 @@ describe("PublicProfilePage", () => {
     expect(screen.getByText("Austin, TX")).toBeInTheDocument();
     expect(screen.queryByText("Works with")).not.toBeInTheDocument();
     expect(screen.queryByText("Also shares")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "SFACC" })).toHaveAttribute(
-      "href",
-      "https://sfacc.example",
-    );
+    const shelter = screen.getByRole("link", { name: "SFACC" });
+    expect(shelter).toHaveAttribute("href", "https://sfacc.example");
+    expect(shelter).toHaveAttribute("target", "_blank");
     expect(screen.getByText("Muttville")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Muttville" })).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Where they share" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Instagram" })).toHaveAttribute(
-      "href",
-      "https://example.com/alex",
-    );
+    const instagram = screen.getByRole("link", { name: /instagram/i });
+    expect(instagram).toHaveAttribute("href", "https://example.com/alex");
+    expect(instagram).toHaveAttribute("target", "_blank");
+    expect(instagram).toHaveAccessibleName(/opens in a new tab/i);
   });
 
   it("shows an owner sidebar instead of the inquiry form on your own public page", () => {

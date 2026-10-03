@@ -1,6 +1,9 @@
 "use client";
 
+import { OutboundLink } from "@client/components/OutboundLink";
+import { Badge } from "@client/components/ui/badge";
 import type { SocialLink } from "@client/features/users";
+import { ExternalLink } from "lucide-react";
 
 type PublicShareCardProps = {
   socialLinks: SocialLink[];
@@ -18,17 +21,14 @@ export function PublicShareCard({ socialLinks }: PublicShareCardProps) {
       <p className="text-muted-foreground mt-1 text-xs">
         Instagram, a foster diary, anywhere they post about the animals they foster.
       </p>
-      <ul className="mt-3 space-y-1.5 text-sm">
+      <ul className="mt-3 flex flex-wrap gap-1.5">
         {socialLinks.map((link) => (
-          <li key={`${link.label}-${link.url}`} className="truncate">
-            <a
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
+          <li key={`${link.label}-${link.url}`}>
+              <Badge variant="outline" render={<OutboundLink href={link.url} />}>
               {link.label}
-            </a>
+              <ExternalLink aria-hidden />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </Badge>
           </li>
         ))}
       </ul>

@@ -1,5 +1,6 @@
 "use client";
 
+import { OutboundLink } from "@client/components/OutboundLink";
 import { PetFacts } from "@client/components/PetFacts";
 import { Markdown } from "@client/components/markdown";
 import type { PetPublic } from "@client/features/pets";
@@ -45,14 +46,9 @@ export function PetBioView({
           {pet.shelterLinkUrl ? (
             <p className="text-sm">
               <span className="text-muted-foreground">Shelter: </span>
-              <a
-                href={pet.shelterLinkUrl}
-                className="text-primary hover:underline"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
+              <OutboundLink href={pet.shelterLinkUrl} className="text-primary hover:underline">
                 {pet.shelterLinkName || pet.shelterLinkUrl}
-              </a>
+              </OutboundLink>
             </p>
           ) : null}
         </div>
@@ -66,14 +62,12 @@ export function PetBioView({
           <ul className="flex flex-wrap gap-2">
             {pet.importantLinks.map((link) => (
               <li key={`${link.label}-${link.url}`}>
-                <a
+                <OutboundLink
                   href={link.url}
                   className="border-border hover:bg-muted/40 inline-flex rounded-full border px-3 py-1 text-sm"
-                  rel="noopener noreferrer"
-                  target="_blank"
                 >
                   {link.label}
-                </a>
+                </OutboundLink>
               </li>
             ))}
           </ul>
