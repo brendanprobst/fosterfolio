@@ -34,12 +34,12 @@ export function petSidebarMobileSummary({
       ? {
           title: `Your tools for ${petName}`,
           description:
-            "Edit this pet, share the Foster Me link, and preview the inquiry visitors can send you.",
+            "Edit this pet, or share the Foster Me link.",
         }
       : {
           title: `Your tools for ${petName}`,
           description:
-            "Edit this bio, share a link that stays on this pet, and preview the inquiry visitors can send you.",
+            "Edit this bio, or share a link that stays on this pet.",
         };
   }
   return {
@@ -94,7 +94,6 @@ export function PublicPetSidebar({
           />
         ) : null}
         <ContactFosterBlock
-          isOwner={false}
           targetUserId={ownerId}
           targetPetId={petId}
           petName={petName}
@@ -115,12 +114,6 @@ export function PublicPetSidebar({
         />
       ) : null}
       <ShareLinkCard {...share} />
-      <ContactFosterBlock
-        isOwner
-        targetUserId={ownerId}
-        targetPetId={petId}
-        petName={petName}
-      />
     </>
   );
 }

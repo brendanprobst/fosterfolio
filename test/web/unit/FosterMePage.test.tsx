@@ -165,7 +165,7 @@ describe("FosterMePage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows a locked inquiry preview to the owning foster", () => {
+  it("hides the inquiry form from the owning foster", () => {
     const active = pet();
     vi.mocked(useAuth).mockReturnValue(
       authSignedIn({ id: "owner-1", email: "alex@example.com" } as User),
@@ -190,12 +190,9 @@ describe("FosterMePage", () => {
       screen.getByText(/always opens whoever this foster is listing now/i),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Visible only to you")).toHaveLength(2);
-    expect(screen.getByText("Locked for you, open to visitors")).toBeInTheDocument();
-    expect(
-      screen.getByRole("form", { name: "Contact the foster (preview)" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /send inquiry/i })).toBeDisabled();
-    expect(screen.queryByRole("form", { name: "Contact the foster" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Locked for you, open to visitors")).not.toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: /contact the foster/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /send inquiry/i })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /edit mochi/i })).toHaveAttribute(
       "href",
       petEditorEditHref("pet-1", "/@alex/foster-me"),

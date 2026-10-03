@@ -1,28 +1,22 @@
 "use client";
 
 import { ExpandableInquiryForm } from "./ExpandableInquiryForm";
-import { LockedInquiryPreview } from "./LockedInquiryPreview";
 
 type ContactFosterBlockProps = {
-  isOwner: boolean;
   targetUserId: string;
   targetPetId?: string | null;
   petName?: string;
   fosterName?: string;
 };
 
-/** Live inquiry for visitors; locked preview when the foster is looking at their own page. */
+/** Live inquiry for visitors. Owners do not see this form on their own pet. */
 export function ContactFosterBlock({
-  isOwner,
   targetUserId,
   targetPetId,
   petName,
   fosterName,
 }: ContactFosterBlockProps) {
   if (!petName) return null;
-  if (isOwner) {
-    return <LockedInquiryPreview petName={petName} />;
-  }
   return (
     <ExpandableInquiryForm
       targetUserId={targetUserId}
