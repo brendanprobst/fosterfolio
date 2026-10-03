@@ -150,7 +150,7 @@ export function ProfileLinkCard({ handleOrId, hasHandle }: ProfileLinkCardProps)
       <CardContent className="space-y-3">
         {!hasHandle ? (
           <p className="text-muted-foreground text-xs">
-            Add a handle in Edit name and bio so your address reads /@your-name.
+            Add a handle in Edit profile so your address reads /@your-name.
           </p>
         ) : null}
         <ShareRow

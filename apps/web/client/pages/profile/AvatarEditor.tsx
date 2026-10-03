@@ -3,35 +3,25 @@
 import { UserAvatar } from "@client/components/UserAvatar";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
 import { Button } from "@client/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@client/components/ui/dialog";
 import { useMediaUpload } from "@client/features/storage";
 import { useUpdateUserMutation, type UserOwner } from "@client/features/users";
-import { Pencil, Trash2, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { Trash2, Upload } from "lucide-react";
+import { useRef } from "react";
 
 type AvatarEditorProps = {
   user: UserOwner;
 };
 
 /**
- * Owner-only picture control for `/profile`. The pencil opens a dialog rather than an
- * inline panel — the earlier floating-panel version shifted the header's layout when
- * it expanded. The public profile renders `UserAvatar` directly, with no edit
- * affordance at all.
+ * Owner-only picture controls, with no dialog of their own. Hosts embed this
+ * wherever a picture should be edited — today that is `ProfileEditDialog`.
  *
  * Saves on its own rather than through `ProfileEditForm`: the payload carries only
- * `avatarUrl`, and the API applies just the keys present in the body.
+ * `avatarUrl`, and the API applies just the keys present in the body. A successful
+ * save does not close the host, so the same surface can keep editing other fields.
  */
 export function AvatarEditor({ user }: AvatarEditorProps) {
   const fileInput = useRef<HTMLInputElement>(null);
-  const [open, setOpen] = useState(false);
   const upload = useMediaUpload();
   const updateUser = useUpdateUserMutation();
 
@@ -42,9 +32,8 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
   async function save(avatarUrl: string | null) {
     try {
       await updateUser.mutateAsync({ id: user.id, payload: { avatarUrl } });
-      setOpen(false);
     } catch {
-      // Surfaced through `updateUser.error` below; stay open so the retry is visible.
+      // Surfaced through `updateUser.error` below.
     }
   }
 
@@ -54,26 +43,12 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
       const uploaded = await upload.mutateAsync(file);
       await save(uploaded.publicUrl);
     } catch {
-      // Surfaced through `upload.error` below; stay open so the retry is visible.
+      // Surfaced through `upload.error` below.
     }
   }
 
   return (
-    <section className="w-fit shrink-0" aria-label="Profile picture">
-      <div className="relative">
-        <UserAvatar name={user.displayName} url={user.avatarUrl} size="xl" />
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="secondary"
-          aria-label="Edit profile picture"
-          onClick={() => setOpen(true)}
-          className="border-background absolute -right-1 -bottom-1 rounded-full border-2 shadow-sm"
-        >
-          <Pencil aria-hidden />
-        </Button>
-      </div>
-
+    <section className="space-y-3" aria-label="Profile picture">
       <input
         ref={fileInput}
         type="file"
@@ -89,53 +64,42 @@ export function AvatarEditor({ user }: AvatarEditorProps) {
         }}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Profile picture</DialogTitle>
-            <DialogDescription>
-              JPEG, PNG, WebP, or GIF. Large images are resized for you.
-            </DialogDescription>
-          </DialogHeader>
+      {error instanceof Error ? (
+        <Alert variant="destructive">
+          <AlertTitle>Could not update your picture</AlertTitle>
+          <AlertDescription>{error.message}</AlertDescription>
+        </Alert>
+      ) : null}
 
-          {error instanceof Error ? (
-            <Alert variant="destructive">
-              <AlertTitle>Could not update your picture</AlertTitle>
-              <AlertDescription>{error.message}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          <div className="flex flex-col items-center gap-3 py-2">
-            <UserAvatar name={user.displayName} url={user.avatarUrl} size="2xl" />
-            {pending ? (
-              <p className="text-muted-foreground text-sm">Uploading…</p>
-            ) : null}
-          </div>
-
-          <DialogFooter className="flex flex-row justify-center items-center gap-2">
+      <div className="flex flex-col items-center gap-3">
+        <UserAvatar name={user.displayName} url={user.avatarUrl} size="2xl" />
+        <p className="text-muted-foreground text-center text-sm">
+          JPEG, PNG, WebP, or GIF. Large images are resized for you.
+        </p>
+        {pending ? <p className="text-muted-foreground text-sm">Uploading…</p> : null}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => fileInput.current?.click()}
+          >
+            <Upload aria-hidden />
+            {hasPicture ? "Replace image" : "Add image"}
+          </Button>
+          {hasPicture ? (
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               disabled={pending}
-              onClick={() => fileInput.current?.click()}
+              onClick={() => void save(null)}
             >
-              <Upload aria-hidden />
-              {hasPicture ? "Replace image" : "Add image"}
+              <Trash2 aria-hidden />
+              Clear profile picture
             </Button>
-            {hasPicture ? (
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={pending}
-                onClick={() => void save(null)}
-              >
-                <Trash2 aria-hidden />
-                Clear profile picture
-              </Button>
-            ) : null}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          ) : null}
+        </div>
+      </div>
     </section>
   );
 }

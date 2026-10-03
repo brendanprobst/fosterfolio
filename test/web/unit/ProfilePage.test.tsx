@@ -192,14 +192,19 @@ describe("ProfilePage", () => {
     expect(screen.queryByRole("link", { name: "Instagram" })).not.toBeInTheDocument();
   });
 
-  it("opens the name/handle/bio dialog without location fields", async () => {
+  it("opens picture, name, handle, and bio in one dialog without location fields", async () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Edit name and bio" }));
+    expect(
+      screen.queryByRole("button", { name: "Edit profile picture" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Edit profile" }));
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Edit profile" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add image" })).toBeInTheDocument();
     expect(screen.getByLabelText("Display name")).toHaveValue("Alex Foster");
     expect(screen.getByLabelText("Handle")).toHaveValue("");
     expect(screen.getByLabelText("Bio (markdown)")).toHaveValue("Fostering since 2019");
@@ -222,7 +227,7 @@ describe("ProfilePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Read more..." }));
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Edit name & bio" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Edit profile" })).toBeInTheDocument();
     expect(screen.getByLabelText("Bio (markdown)")).toHaveValue(bio);
     expect(screen.queryByText("About this foster")).not.toBeInTheDocument();
   });

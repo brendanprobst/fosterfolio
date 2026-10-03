@@ -21,7 +21,8 @@ type ProfileEditFormProps = {
 };
 
 /**
- * Name, handle, and bio. Location/shelters live in `ProfileLocationDialog`;
+ * Name, handle, and bio. The picture is `AvatarEditor`, embedded beside this
+ * form in `ProfileEditDialog`. Location/shelters live in `ProfileLocationDialog`;
  * social links live in `SocialLinksDialog`.
  */
 export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {

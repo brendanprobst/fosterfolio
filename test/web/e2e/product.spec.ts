@@ -177,9 +177,10 @@ test.describe("Fosterfolio product smoke", () => {
         "href",
         E2E_PATHS.petBio,
       );
-      await page.getByRole("button", { name: "Edit name and bio" }).click();
+      await page.getByRole("button", { name: "Edit profile" }).click();
       const dialog = page.getByRole("dialog");
-      await expect(dialog.getByRole("heading", { name: /edit name/i })).toBeVisible();
+      await expect(dialog.getByRole("heading", { name: "Edit profile" })).toBeVisible();
+      await expect(dialog.getByRole("button", { name: /add image|replace image/i })).toBeVisible();
       await expect(dialog.getByLabel("Display name")).toBeVisible();
       await expect(dialog.getByLabel("Handle")).toBeVisible();
       await expect(dialog.getByRole("button", { name: "Save" })).toBeVisible();

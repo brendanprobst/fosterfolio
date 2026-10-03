@@ -4,6 +4,7 @@ import { useAuth, useRequireAuth } from "@client/auth";
 import { PetCard } from "@client/components/PetCard";
 import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
 import { BioPreview } from "@client/components/BioPreview";
+import { UserAvatar } from "@client/components/UserAvatar";
 import { Button, buttonVariants } from "@client/components/ui/button";
 import { Separator } from "@client/components/ui/separator";
 import { useOwnerPets } from "@client/features/pets";
@@ -15,7 +16,6 @@ import { cn } from "@client/lib/utils";
 import { Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { AvatarEditor } from "./AvatarEditor";
 import { ConnectedSitesCard } from "./ConnectedSitesCard";
 import { PetsEmptyState } from "./PetsEmptyState";
 import { ProfileEditDialog } from "./ProfileEditDialog";
@@ -63,9 +63,13 @@ export function ProfilePage() {
             />
           }
         >
-            {/* Just picture, name, and bio; location and connected sites are below. */}
+            {/* Picture, name, and bio share one editor; location and connected sites are below. */}
             <header className="flex items-start gap-4">
-              {profile ? <AvatarEditor user={profile} /> : null}
+              {profile ? (
+                <section className="w-fit shrink-0" aria-label="Profile picture">
+                  <UserAvatar name={profile.displayName} url={profile.avatarUrl} size="xl" />
+                </section>
+              ) : null}
               <div className="min-w-0 flex-1 space-y-1 pt-1">
                 <div className="flex items-center gap-1.5">
                   <h1 className="truncate text-2xl font-semibold tracking-tight">
@@ -76,7 +80,7 @@ export function ProfilePage() {
                       type="button"
                       size="icon-sm"
                       variant="ghost"
-                      aria-label="Edit name and bio"
+                      aria-label="Edit profile"
                       onClick={() => setEditOpen(true)}
                     >
                       <Pencil aria-hidden />
