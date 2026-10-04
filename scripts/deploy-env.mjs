@@ -2,38 +2,19 @@
  * Shared --env handling for deploy-aws.mjs and deploy-aws-web.mjs.
  * Default env is dev so existing commands keep targeting infra/terraform/envs/dev.
  */
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync } from "node:fs";
+import { join, relative } from "node:path";
+import {
+  applyEnvFile,
+  envFileLabel,
+  readEnvFile,
+  resolveEnvFile,
+  takeEnvArg,
+} from "./env-files.mjs";
 
-const ENV_NAME = /^[a-z][a-z0-9-]*$/;
+export { takeEnvArg };
 
-export function takeEnvArg(argv) {
-  const rest = [];
-  let env = "dev";
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === "--env") {
-      const value = argv[i + 1];
-      if (!value || value.startsWith("-")) {
-        console.error("--env requires a name (for example: --env prod)");
-        process.exit(1);
-      }
-      env = value;
-      i++;
-      continue;
-    }
-    if (arg.startsWith("--env=")) {
-      env = arg.slice("--env=".length);
-      continue;
-    }
-    rest.push(arg);
-  }
-  if (!ENV_NAME.test(env)) {
-    console.error(`Invalid --env ${JSON.stringify(env)}. Use a short name like dev or prod.`);
-    process.exit(1);
-  }
-  return { env, argv: rest };
-}
+const DEV_PUBLIC_FILES = [".env.dev", ".env.local", ".env", ".env.production.local"];
 
 export function terraformDir(root, env) {
   const tfDir = join(root, "infra/terraform/envs", env);
@@ -44,61 +25,44 @@ export function terraformDir(root, env) {
   return tfDir;
 }
 
-function readEnvFile(full) {
-  const values = {};
-  for (const line of readFileSync(full, "utf8").split("\n")) {
-    const t = line.trim();
-    if (!t || t.startsWith("#")) continue;
-    const eq = t.indexOf("=");
-    if (eq === -1) continue;
-    const key = t.slice(0, eq).trim();
-    let val = t.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    values[key] = val;
-  }
-  return values;
-}
-
-function assignUnset(values) {
-  for (const [key, val] of Object.entries(values)) {
-    if (process.env[key] === undefined) process.env[key] = val;
-  }
-}
-
 /**
- * Dev keeps today's files (`.env.production.local`, then `.env.local`).
- * Any other env reads only `apps/web/.env.<env>.local` and overwrites
- * NEXT_PUBLIC_SUPABASE_* so a dev shell or `.env.local` cannot leak into that build.
+ * Load the web env for this deploy.
+ * Dev reads the first of apps/web/.env.dev, .env.local, .env.
+ * Any other env reads only apps/web/.env.<env> and overwrites NEXT_PUBLIC_*
+ * so a dev file or shell export cannot leak into that build.
  */
 export function loadWebEnv(root, env) {
-  if (env === "dev") {
-    for (const rel of ["apps/web/.env.production.local", "apps/web/.env.local"]) {
-      const full = join(root, rel);
-      if (existsSync(full)) assignUnset(readEnvFile(full));
-    }
-    return;
-  }
-
-  const rel = `apps/web/.env.${env}.local`;
-  const full = join(root, rel);
-  if (!existsSync(full)) {
+  const webDir = join(root, "apps/web");
+  const full = resolveEnvFile(webDir, env);
+  if (!full) {
     console.error(
-      `Refusing to build the ${env} site from apps/web/.env.local.\n` +
-        `Create ${rel} with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for that project.`,
+      env === "dev"
+        ? `No dev web env file. Create one of ${envFileLabel("apps/web", "dev")}.`
+        : `Refusing to build the ${env} site from a dev env file.\n` +
+            `Create ${envFileLabel("apps/web", env)} with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.`,
     );
     process.exit(1);
   }
-  const values = readEnvFile(full);
-  for (const key of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
-    if (!values[key]?.trim()) {
-      console.error(`${rel} is missing ${key}.`);
-      process.exit(1);
+
+  if (env !== "dev") {
+    for (const name of DEV_PUBLIC_FILES) {
+      const local = join(webDir, name);
+      if (!existsSync(local)) continue;
+      for (const key of Object.keys(readEnvFile(local))) {
+        if (key.startsWith("NEXT_PUBLIC_")) process.env[key] = "";
+      }
     }
-    process.env[key] = values[key];
   }
+
+  const values = applyEnvFile(full, { override: env !== "dev" });
+  if (env !== "dev") {
+    for (const key of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) {
+      if (!values[key]?.trim()) {
+        console.error(`${relative(root, full)} is missing ${key}.`);
+        process.exit(1);
+      }
+    }
+  }
+
+  console.log(`→ web env ${relative(root, full)}`);
 }

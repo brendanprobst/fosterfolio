@@ -10,9 +10,8 @@
  *   npm run deploy:aws:web -- --env prod
  *
  * `NEXT_PUBLIC_API_URL` is taken from Terraform output (same as full deploy).
- * For `dev`, `NEXT_PUBLIC_SUPABASE_*` come from `apps/web/.env.local` /
- * `apps/web/.env.production.local`. For any other `--env`, they come only from
- * `apps/web/.env.<env>.local`.
+ * Dev reads the first of `apps/web/.env.dev`, `.env.local`, `.env`.
+ * Any other `--env` reads only `apps/web/.env.<env>` (prod is `.env.prod`).
  *
  * Prerequisites: AWS CLI, Terraform, `terraform.tfvars` in `infra/terraform/envs/<env>/`.
  * See docs/deploy-aws.md.
@@ -70,7 +69,7 @@ function main() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.warn(
       "\nWarning: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY are not set.\n" +
-        "Set them in the environment or in apps/web/.env.local before running this script.\n" +
+        "Set them in apps/web/.env.prod (or the dev env file for a dev deploy).\n" +
         "Web build may fail or point at the wrong Supabase project.\n",
     );
   }

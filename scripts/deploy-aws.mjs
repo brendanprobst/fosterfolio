@@ -3,7 +3,7 @@
  * Deploy API (Lambda bundle) + Terraform (AWS infra) + static web build + S3 sync.
  *
  * Order: build Lambda → terraform apply → read api_url → build web (NEXT_PUBLIC_API_URL from Terraform)
- * → aws s3 sync → cloudfront invalidation. Supabase NEXT_PUBLIC_* must come from env or apps/web/.env.local files.
+ * → aws s3 sync → cloudfront invalidation. Supabase NEXT_PUBLIC_* come from apps/web/.env.<env>.
  *
  *   npm run deploy:aws
  *   npm run deploy:aws -- --env prod
@@ -12,8 +12,9 @@
  *   npm run deploy:aws -- --skip-api-build
  *   npm run deploy:aws -- --auto-approve     # terraform apply -auto-approve (required in non-TTY)
  *
- * `--env` selects `infra/terraform/envs/<env>` (default `dev`). For any env other than
- * `dev`, the web build reads `apps/web/.env.<env>.local` and will not use `.env.local`.
+ * `--env` selects `infra/terraform/envs/<env>` (default `dev`). Dev web env is the
+ * first of `.env.dev`, `.env.local`, `.env`. Any other env reads only
+ * `apps/web/.env.<env>` (prod is `apps/web/.env.prod`).
  *
  * Web-only (no Lambda / no apply): npm run deploy:aws:web — see scripts/deploy-aws-web.mjs
  *
@@ -126,7 +127,7 @@ function main() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.warn(
       "\nWarning: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY are not set.\n" +
-        "Set them in the environment or in apps/web/.env.local before running this script.\n" +
+        "Set them in apps/web/.env.prod (or the dev env file for a dev deploy).\n" +
         "Web build may fail or point at the wrong Supabase project.\n",
     );
   }

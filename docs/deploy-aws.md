@@ -12,14 +12,14 @@ The script order is: **build API Lambda bundle → `terraform apply` → read `a
 - **AWS CLI** and credentials that can run Terraform and S3 sync (`aws sts get-caller-identity`).
 - **Terraform** `>= 1.6`.
 - **`terraform.tfvars`** in `infra/terraform/envs/<env>/` (copy from `terraform.tfvars.example`). Do not commit secrets. Default env is **`dev`**.
-- For the **web** build: **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`**. **`dev`** loads **`apps/web/.env.local`** / **`apps/web/.env.production.local`**. Any other **`--env`** loads only **`apps/web/.env.<env>.local`** and will not fall back to the dev file.
+- For the **web** build: **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`**. **`dev`** loads the first of **`apps/web/.env.dev`**, **`.env.local`**, **`.env`**. Any other **`--env`** loads only **`apps/web/.env.<env>`** and will not fall back to a dev file.
 
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
 | `npm run deploy:aws` | Full deploy of **`envs/dev`** (interactive `terraform apply` when in a TTY). |
-| `npm run deploy:aws -- --env prod` | Same pipeline against **`infra/terraform/envs/prod`**. Web build requires **`apps/web/.env.prod.local`**. |
+| `npm run deploy:aws -- --env prod` | Same pipeline against **`infra/terraform/envs/prod`**. Web build requires **`apps/web/.env.prod`**. |
 | `npm run deploy:aws -- --plan-only` | `terraform init` + `terraform plan` only. |
 | `npm run deploy:aws -- --skip-web` | Lambda + Terraform only (no static build, no S3 sync). |
 | `npm run deploy:aws -- --skip-api-build` | Reuse existing `apps/api/dist-lambda` (still runs Terraform + web). |
