@@ -42,12 +42,12 @@ describe("ResetPasswordPage", () => {
   it("shows a spinner while session is loading", () => {
     vi.mocked(useAuth).mockReturnValue(baseAuth({ loading: true }));
     render(<ResetPasswordPage />);
-    expect(screen.getByText(/verifying reset link/i)).toBeInTheDocument();
+    expect(screen.getByText(/checking your reset link/i)).toBeInTheDocument();
   });
 
   it("shows invalid link when there is no session after load", () => {
     render(<ResetPasswordPage />);
-    expect(screen.getByText(/reset link invalid/i)).toBeInTheDocument();
+    expect(screen.getByText(/this reset link isn't valid/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /request a new reset link/i })).toHaveAttribute(
       "href",
       "/auth/forgot-password",
