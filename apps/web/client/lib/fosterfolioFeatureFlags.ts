@@ -17,7 +17,7 @@ export function isFosterfolioSearchEnabled(): boolean {
   return isFosterfolioBinaryEnv(process.env.NEXT_PUBLIC_FOSTERFOLIO_SEARCH);
 }
 
-/** Hide "Continue with …" on sign-in and sign-up. Default off (buttons visible). */
-export function isFosterfolioSsoHidden(): boolean {
-  return isFosterfolioBinaryEnv(process.env.NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO);
+/** "Continue with Google" on sign-in and sign-up. Hidden unless the value is exactly `1`. */
+export function isGoogleSsoEnabled(): boolean {
+  return isFosterfolioBinaryEnv(process.env.NEXT_PUBLIC_GOOGLE_SSO);
 }

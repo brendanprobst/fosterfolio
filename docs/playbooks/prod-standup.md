@@ -5,7 +5,7 @@ Checklist for critical infra: a new Supabase project and `infra/terraform/envs/p
 ## Decisions
 
 - **Schema is one migration, not a copy of dev.** `npm run supabase:push` applies `supabase/migrations/20261003120000_app_v1_schema.sql` to an empty prod project. Do not push that file at the current dev project until dev is dropped and re-seeded; its migration history still names the four files this one replaced. Do not `pg_dump` / restore the dev database. A dump would carry seed users (`@seed.fosterfolio.test`), auth identities, and storage paths that do not exist in the prod bucket. Sign up again on prod with an allowlisted email. Source: [Supabase migrations](supabase-migrations.md), [Development seed data](dev-seed-data.md).
-- **Google SSO is out of this go-live.** Email and password is enough for the closed beta. Add Google on the prod project later. Source: [Google SSO](google-sso.md). Hide the buttons in the prod bundle with `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO=1` (section 7) before the site upload.
+- **Google SSO is out of this go-live.** Email and password is enough for the closed beta. Add Google on the prod project later. Source: [Google SSO](google-sso.md). The Google button stays hidden unless `NEXT_PUBLIC_GOOGLE_SSO=1` (section 7). Prod leaves it at `0`.
 - **Deploys stay on the CLI.** `npm run deploy:aws -- --env <env>` selects `infra/terraform/envs/<env>` (default `dev`). `--skip-web` updates the Lambda and leaves the site alone. `npm run deploy:aws:web -- --env <env>` uploads the site and leaves Terraform alone. Source: [Deploy to AWS](../deploy-aws.md).
 
 Squarespace nameservers already point at the dev-owned zone `Z086583512U74ZET8C9T8`. Prod only adds records in that zone. Leave the dev tfvars in create-zone mode.
@@ -20,7 +20,7 @@ Progress: done
 
 
 - [x] v1 schema is `supabase/migrations/20261003120000_app_v1_schema.sql`. The four older migration files are gone. Pushing it is still step 2, and only against an empty project.
-- [x] `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO=1` hides **Continue with Google** on `/auth/sign-in` and `/auth/sign-up`. It is unset in `apps/web/.env.local`. Setting it for the prod build is still step 7.
+- [x] `NEXT_PUBLIC_GOOGLE_SSO=1` is the only value that shows **Continue with Google**. Unset or `0` hides it. Prod is set to `0`.
 
 ---
 
@@ -120,7 +120,7 @@ route53_hosted_zone_id     = "Z086583512U74ZET8C9T8"
 Comment out `route53_zone_name` if it was copied. Do not set `create_route53_hosted_zone = true`. That would create a second zone for `fosterfolio.com`.
 
 - [x] Leave the dev env files on the dev project (`apps/api/.env`, `apps/api/.env.dev`, `apps/web/.env.local`).
-- [x] Create `apps/web/.env.prod` (gitignored). Leave feed and search unset so they stay off. The service role key does not belong in this file. The deploy reads every variable in this file, including `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO`.
+- [x] Create `apps/web/.env.prod` (gitignored). Leave feed and search unset so they stay off. The service role key does not belong in this file. The deploy reads every variable in this file, including `NEXT_PUBLIC_GOOGLE_SSO`.
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://<prod-project-ref>.supabase.co
@@ -178,16 +178,11 @@ This is the **prod** Supabase project. Do not change the dev project's Site URL.
 
 ## 7. Hide SSO buttons in the prod bundle
 
-Progress: in progress
+Progress: done
 
-`isFosterfolioSsoHidden()` is already in the app. It is on when `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO` is exactly `1`. The static build bakes that value in, so set it before the upload in section 8.
+`isGoogleSsoEnabled()` is already in the app. The button renders only when `NEXT_PUBLIC_GOOGLE_SSO` is exactly `1`. The static build bakes that value in.
 
-- [x] Flag implemented. Unset in `apps/web/.env.local`, so local dev still shows the Google button.
-- x ] Set it in `apps/web/.env.prod` so the prod build hides the buttons:
-
-```bash
-NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO=1
-```
+- [x] Flag implemented. `apps/web/.env.local` and `apps/web/.env.prod` both set `NEXT_PUBLIC_GOOGLE_SSO=0`, so the Google button stays hidden.
 
 ## 8. Upload the site, then check it
 
@@ -237,7 +232,7 @@ cp infra/terraform/envs/dev/*.tf \
 cp infra/terraform/envs/dev/terraform.tfvars infra/terraform/envs/prod/terraform.tfvars
 ```
 
-Edit `infra/terraform/envs/prod/terraform.tfvars` before the plan (section 4). `apps/web/.env.prod` is already the prod project, and `NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO` is already `1`. The upload overwrites `NEXT_PUBLIC_API_URL` from Terraform, so the localhost value in that file can stay.
+Edit `infra/terraform/envs/prod/terraform.tfvars` before the plan (section 4). `apps/web/.env.prod` is already the prod project, and `NEXT_PUBLIC_GOOGLE_SSO` is already `0`. The upload overwrites `NEXT_PUBLIC_API_URL` from Terraform, so the localhost value in that file can stay.
 
 ```bash
 npm run deploy:aws -- --env prod --plan-only

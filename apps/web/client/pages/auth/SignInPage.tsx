@@ -8,7 +8,7 @@ import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
 import { Separator } from "@client/components/ui/separator";
 import { authPaths } from "@client/lib/constants/authPaths";
-import { isFosterfolioSsoHidden } from "@client/lib/fosterfolioFeatureFlags";
+import { isGoogleSsoEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { safeNextPath } from "@client/lib/safeNextPath";
 import { AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -28,7 +28,7 @@ export function SignInPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const hideSso = isFosterfolioSsoHidden();
+  const showGoogleSso = isGoogleSsoEnabled();
 
   useEffect(() => {
     const description = searchParams.get("error_description") ?? searchParams.get("error");
@@ -78,9 +78,9 @@ export function SignInPage() {
         <CardHeader>
           <CardTitle className="text-2xl">Sign in to Fosterfolio</CardTitle>
           <CardDescription>
-            {hideSso
-              ? "Use your email and password."
-              : `Use your email and password, or continue with ${oauthProviderLabel()}.`}
+            {showGoogleSso
+              ? `Use your email and password, or continue with ${oauthProviderLabel()}.`
+              : "Use your email and password."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -142,7 +142,7 @@ export function SignInPage() {
             </Link>
           </p>
 
-          {hideSso ? null : (
+          {showGoogleSso ? (
             <>
               <Separator />
               <Button
@@ -156,7 +156,7 @@ export function SignInPage() {
                 Continue with {oauthProviderLabel()}
               </Button>
             </>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </AuthPageShell>

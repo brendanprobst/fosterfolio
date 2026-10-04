@@ -32,31 +32,31 @@ function loggedOut(): AuthContextValue {
 }
 
 describe("SSO button visibility", () => {
-  const hideSso = process.env.NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO;
+  const googleSso = process.env.NEXT_PUBLIC_GOOGLE_SSO;
 
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue(loggedOut());
   });
 
   afterEach(() => {
-    if (hideSso === undefined) delete process.env.NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO;
-    else process.env.NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO = hideSso;
+    if (googleSso === undefined) delete process.env.NEXT_PUBLIC_GOOGLE_SSO;
+    else process.env.NEXT_PUBLIC_GOOGLE_SSO = googleSso;
   });
 
-  it("shows Continue with Google when the flag is unset", () => {
-    delete process.env.NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO;
+  it("hides Continue with Google when the flag is unset", () => {
+    delete process.env.NEXT_PUBLIC_GOOGLE_SSO;
     render(<SignInPage />);
-    expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /continue with google/i })).not.toBeInTheDocument();
   });
 
-  it("hides Continue with Google on sign-in and sign-up when HIDE_SSO is 1", () => {
-    process.env.NEXT_PUBLIC_FOSTERFOLIO_HIDE_SSO = "1";
+  it("shows Continue with Google on sign-in and sign-up only when GOOGLE_SSO is 1", () => {
+    process.env.NEXT_PUBLIC_GOOGLE_SSO = "1";
     const { unmount } = render(<SignInPage />);
-    expect(screen.queryByRole("button", { name: /continue with google/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /sign in with email/i })).toBeInTheDocument();
     unmount();
     render(<SignUpPage />);
-    expect(screen.queryByRole("button", { name: /continue with google/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /create account with email/i })).toBeInTheDocument();
   });
 });
