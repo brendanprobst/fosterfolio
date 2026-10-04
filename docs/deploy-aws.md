@@ -48,7 +48,7 @@ If the Infisical CLI is missing or the write fails, the deploy still finishes. R
 
 Workflow: **`.github/workflows/deploy-app.yml`** (**Actions → Deploy app → Run workflow**). Manual only. It does not apply Terraform and does not read `terraform.tfstate`.
 
-Pick `dev` or `prod`. The job uses the GitHub environment of the same name, so a dev run cannot read prod secrets. Pick branch **`mvp`**.
+Pick `dev` or `prod`. The job uses the GitHub environment of the same name, so a dev run cannot read prod secrets. Any branch can deploy **dev**. **Prod** only runs from **`main`**. `/flags` is optional; missing flags stay off.
 
 Secrets and variables for that environment are listed in [`docs/playbooks/infisical-github-deploys.md`](playbooks/infisical-github-deploys.md). The job reads Supabase keys, feature flags, and the Terraform outputs (`WEB_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `LAMBDA_FUNCTION_NAME`, `NEXT_PUBLIC_API_URL`) from Infisical `/shared` and `/flags`. `npm run infisical:sync-outputs` writes those outputs after a laptop apply. The only GitHub variable is `INFISICAL_PROJECT_ID`.
 

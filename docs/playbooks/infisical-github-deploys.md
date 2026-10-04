@@ -137,8 +137,8 @@ npm run deploy:aws -- --env prod
 
 `.github/workflows/deploy-app.yml` is already in this repo (same file as the template). Do not dispatch it until steps 4–6 are `done` and `/shared` has the four Terraform outputs in both environments.
 
-1. Actions → **Deploy app** → Run workflow. Choose branch `mvp` and environment `dev`.
-2. The job uses the GitHub environment of the same name, assumes `lattice-gha-deploy`, loads `/shared` and `/flags` from Infisical (including the Terraform outputs), uploads the static site, invalidates CloudFront, and updates the Lambda zip.
+1. Actions → **Deploy app** → Run workflow. Any branch can deploy **dev**. **Prod** only runs from **`main`**.
+2. The job uses the GitHub environment of the same name, assumes `lattice-gha-deploy`, loads `/shared` (required) and `/flags` (optional; missing flags stay off) from Infisical, uploads the static site, invalidates CloudFront, and updates the Lambda zip.
 3. It does not run Terraform and does not read `terraform.tfstate`.
 4. The log prints the Supabase host and the API host. Confirm the dev host, then load `https://dev.fosterfolio.com` before the first prod run.
 5. Leave `.github/workflows/deploy-aws.yml` unused. It applies Terraform for `envs/dev` and expects `TERRAFORM_TFVARS`.

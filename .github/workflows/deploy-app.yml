@@ -1,6 +1,6 @@
 # Manual deploy of the static site and the API Lambda zip.
 # Does not run on push. Does not run Terraform and does not read terraform.tfstate.
-# Pick the branch you ship in the Actions "Run workflow" picker (template: main, Fosterfolio: mvp).
+# Dev: any branch. Prod: main only.
 # Requires a GitHub environment named dev or prod. See docs/playbooks/infisical-github-deploys.md.
 
 name: Deploy app
@@ -33,6 +33,12 @@ jobs:
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
 
     steps:
+      - name: Restrict prod to main
+        if: ${{ inputs.environment == 'prod' && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "Prod deploys must run from main (got ${{ github.ref }})."
+          exit 1
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -66,6 +72,7 @@ jobs:
           recursive: "false"
 
       - name: Read Infisical /flags
+        continue-on-error: true
         uses: Infisical/secrets-action@v1.0.12
         with:
           method: universal

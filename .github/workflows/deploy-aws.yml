@@ -1,6 +1,6 @@
 # Manual deploy: Terraform (AWS) + API Lambda bundle + static web + S3 sync.
 # Does not run on push — only workflow_dispatch on main. Requires OIDC + secrets (see docs/deploy-aws.md).
-# Site and Lambda updates that must not apply Terraform use Deploy app (deploy-app.yml). Run that from branch mvp.
+# Site and Lambda updates that must not apply Terraform use Deploy app (deploy-app.yml). Prod from main only; any branch may deploy dev.
 
 name: Deploy (AWS)
 
