@@ -5,5 +5,8 @@
  */
 export const E2E_JWT_SECRET = "lattice-playwright-e2e-secret";
 export const E2E_JWT_ISSUER = "https://e2e.local.supabase/auth/v1";
-export const E2E_USER_ID = "e2e-playwright-user";
-export const E2E_USER_EMAIL = "e2e-playwright@example.com";
+import { E2E_SEED } from "./e2eSeedConstants";
+
+/** Keep aligned with `E2E_SEED` in `apps/api/infrastructure/e2eSeed.ts`. */
+export const E2E_USER_ID = E2E_SEED.userId;
+export const E2E_USER_EMAIL = E2E_SEED.userEmail;

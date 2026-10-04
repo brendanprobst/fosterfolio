@@ -13,6 +13,7 @@
 - **Deploy** — **`npm run deploy:aws`** and **[`docs/deploy-aws.md`](docs/deploy-aws.md)** (Terraform + Lambda + static web + S3); optional GitHub Actions workflow **Deploy (AWS)**.
 - **`docs/`** — Architecture decision records (ADRs).
 - **`infra/terraform/`** — AWS Terraform; Supabase URL/keys from **`terraform.tfvars`** → optional **SSM** (see [`infra/AGENTS.md`](infra/AGENTS.md)).
+- **`supabase/`** — Schema migrations (**`npm run supabase:push`**) and dev seed data (**`npm run supabase:seed`**); see [`supabase/AGENTS.md`](supabase/AGENTS.md).
 
 ## Documentation files in subfolders
 
@@ -36,5 +37,5 @@ Each major directory contains **`AGENTS.md`**. Use that name so humans and autom
 ## Agent prompts
 
 - **`agents/`** — Prompt stubs + `registry.yaml` (see `agents/README.md`).
-- **`.cursor/rules/*.mdc`** — Cursor **project rules**: DDD / test / infra experts **scope by folder**; debugger / code janitor attach with **`@` → Rules**. See `.cursor/rules/README.md`.
+- **`.cursor/rules/*.mdc`** — Cursor **project rules**: DDD / test / infra experts **scope by folder**; debugger, code janitor, and session close-out (`/session`, `/session-review`, `/session-fix`, `/session-next`) attach with **`@` → Rules**. See `.cursor/rules/README.md`.
 - **Switching tools** — `agents/prompts/*.md` is the source of truth for all expert content. Run **`npm run use:claude`** to generate `CLAUDE.md` files (one per glob directory) and remove `.cursor/rules/`; run **`npm run use:cursor`** to generate `.cursor/rules/*.mdc` and remove `CLAUDE.md` files; run **`npm run agents:sync`** to generate both for mixed teams. Both sets of configs commit to git — neither tool's format is the master. See `agents/README.md`.

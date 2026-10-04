@@ -6,5 +6,6 @@ Wire paths to controller methods. Import Swagger **decorator side-effect** files
 
 ## Pattern
 
-- Export `create*Router(container: Container): Router`.
-- Register routers in `app.ts` under stable URL prefixes.
+- Export `create*Router(container: Container, deps): Router`.
+- Pass `requireAuth` / `optionalAuth` from `createRequireAuth` / `createOptionalAuth` and attach **per route** (not at the Express prefix) so public reads and authenticated writes can share a path.
+- Register routers via `routes/registerRoutes.ts`.

@@ -92,8 +92,8 @@ describe('ResponseHandler', () => {
       expect(jsonSpy).toHaveBeenCalledWith('simple string');
     });
 
-    it('should send error response with appropriate status code for THING_NOT_FOUND', () => {
-      const error = ErrorCatalog.formatError(ErrorCatalog.THING_NOT_FOUND, { id: 'thing-missing' });
+    it('should send error response with appropriate status code for PET_NOT_FOUND', () => {
+      const error = ErrorCatalog.formatError(ErrorCatalog.PET_NOT_FOUND, { id: 'pet-missing' });
       const failureResult = Result.failure(error);
 
       ResponseHandler.handleResult(failureResult, mockResponse as any);
@@ -102,15 +102,15 @@ describe('ResponseHandler', () => {
       expect(jsonSpy).toHaveBeenCalledWith({
         error: {
           status: 404,
-          code: 'THING_NOT_FOUND',
+          code: 'PET_NOT_FOUND',
           message: error.message,
-          metadata: { id: 'thing-missing' },
+          metadata: { id: 'pet-missing' },
         },
       });
     });
 
     it('should send error response with 400 status for validation errors', () => {
-      const error = ErrorCatalog.THING_NAME_INVALID;
+      const error = ErrorCatalog.PET_NAME_REQUIRED;
       const failureResult = Result.failure(error);
 
       ResponseHandler.handleResult(failureResult, mockResponse as any);
@@ -119,14 +119,14 @@ describe('ResponseHandler', () => {
       expect(jsonSpy).toHaveBeenCalledWith({
         error: {
           status: 400,
-          code: 'THING_NAME_INVALID',
+          code: 'PET_NAME_REQUIRED',
           message: error.message,
         },
       });
     });
 
     it('should not include metadata field when error has no metadata', () => {
-      const error = ErrorCatalog.THING_NAME_INVALID;
+      const error = ErrorCatalog.PET_NAME_REQUIRED;
       const failureResult = Result.failure(error);
 
       ResponseHandler.handleResult(failureResult, mockResponse as any);
@@ -152,7 +152,7 @@ describe('ResponseHandler', () => {
     });
 
     it('should send error response with user-friendly message and metadata', () => {
-      const error = ErrorCatalog.formatError(ErrorCatalog.THING_NOT_FOUND, { id: 'thing-missing' });
+      const error = ErrorCatalog.formatError(ErrorCatalog.PET_NOT_FOUND, { id: 'pet-missing' });
       const failureResult = Result.failure(error);
 
       ResponseHandler.handleResult(failureResult, mockResponse as any);
@@ -161,9 +161,9 @@ describe('ResponseHandler', () => {
       expect(jsonSpy).toHaveBeenCalledWith({
         error: {
           status: 404,
-          code: 'THING_NOT_FOUND',
-          message: ErrorCatalog.THING_NOT_FOUND.message,
-          metadata: { id: 'thing-missing' },
+          code: 'PET_NOT_FOUND',
+          message: ErrorCatalog.PET_NOT_FOUND.message,
+          metadata: { id: 'pet-missing' },
         },
       });
     });

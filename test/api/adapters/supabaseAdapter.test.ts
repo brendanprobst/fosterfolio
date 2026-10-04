@@ -1,4 +1,7 @@
-import { SupabaseAdapter } from '@api/infrastructure/adapters/supabase/SupabaseAdapter';
+import {
+  parseContentRangeCount,
+  SupabaseAdapter,
+} from '@api/infrastructure/adapters/supabase/SupabaseAdapter';
 
 const baseUrl = 'https://example.supabase.co';
 const serviceRoleKey = 'test-service-role-key';
@@ -160,6 +163,67 @@ describe('SupabaseAdapter', () => {
     const result = await adapter.get<unknown[]>('things');
 
     expect(result).toEqual([]);
+  });
+
+  it('getWithCount sends Prefer: count=exact and parses Content-Range', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify([{ id: 1 }]), {
+        status: 200,
+        headers: { 'Content-Range': '0-0/42' },
+      }),
+    );
+    const adapter = new SupabaseAdapter(config);
+
+    const result = await adapter.getWithCount<{ id: number }[]>('things?select=*');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${baseUrl}/rest/v1/things?select=*`,
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({ Prefer: 'count=exact' }),
+      }),
+    );
+    expect(result).toEqual({ data: [{ id: 1 }], count: 42 });
+  });
+
+  it('rpc posts to /rpc/{name}', async () => {
+    fetchMock.mockResolvedValueOnce(okJson(100));
+    const adapter = new SupabaseAdapter(config);
+
+    const result = await adapter.rpc<number>('user_storage_bytes', { p_user_id: 'u1' });
+
+    expect(fetchMock).toHaveBeenCalledWith(`${baseUrl}/rest/v1/rpc/user_storage_bytes`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_user_id: 'u1' }),
+    });
+    expect(result).toBe(100);
+  });
+
+  it('insertReturning sets Prefer: return=representation', async () => {
+    fetchMock.mockResolvedValueOnce(okJson([{ id: 'uuid-1' }]));
+    const adapter = new SupabaseAdapter(config);
+
+    await adapter.insertReturning('pets', { name: 'Miso' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${baseUrl}/rest/v1/pets`,
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Prefer: 'return=representation' }),
+      }),
+    );
+  });
+
+  it('parseContentRangeCount handles common PostgREST forms', () => {
+    expect(parseContentRangeCount('0-9/123')).toBe(123);
+    expect(parseContentRangeCount('*/7')).toBe(7);
+    expect(parseContentRangeCount('*/*')).toBeNull();
+    expect(parseContentRangeCount(null)).toBeNull();
   });
 
   describe('default config from environment', () => {

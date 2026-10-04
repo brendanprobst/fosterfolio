@@ -1,8 +1,7 @@
 "use client";
 
-import { useAuth } from "@client/auth";
+import { friendlyAuthErrorMessage, useAuth } from "@client/auth";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
-import { Badge } from "@client/components/ui/badge";
 import { Button } from "@client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@client/components/ui/card";
 import { Input } from "@client/components/ui/input";
@@ -33,7 +32,7 @@ export function ForgotPasswordPage() {
     setSuccessHint(null);
     const error = await requestPasswordReset(email);
     if (error) {
-      setMessage(error.message);
+      setMessage(friendlyAuthErrorMessage(error.message));
     } else {
       setSuccessHint(
         "If an account exists for that email, you will receive a password reset link shortly.",
@@ -46,7 +45,6 @@ export function ForgotPasswordPage() {
     <AuthPageShell>
       <Card>
         <CardHeader>
-          <Badge variant="secondary" className="w-fit">Authentication</Badge>
           <CardTitle className="text-2xl">Reset your password</CardTitle>
           <CardDescription>
             We will email you a link to choose a new password.

@@ -7,9 +7,9 @@
 ## Conventions
 
 - **Do not** mirror full entity lists in Zustand when the data comes from the API — use **TanStack Query** for cached server state and `invalidateQueries` after mutations.
-- One store file per aggregate or screen cluster is fine (e.g. `thingsStore.ts` for list pagination).
-- Import stores with narrow selectors: `useThingsStore((s) => s.page)` to avoid extra re-renders.
+- One store file per aggregate or screen cluster is fine (e.g. `petsStore.ts` for list pagination).
+- Import stores with narrow selectors: `usePetsStore((s) => s.page)` to avoid extra re-renders.
 
-## See also
+## Current state
 
-- **`client/features/things/`** — reference implementation (Query + mutations + `thingsStore`).
+No stores yet — Fosterfolio's surfaces read server state through TanStack Query (see **`client/features/pets/`**) and keep the little UI state they need in component state. Add a store here when a screen needs UI state that outlives a single component.

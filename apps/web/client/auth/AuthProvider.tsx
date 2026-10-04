@@ -1,9 +1,9 @@
 "use client";
 
 import { authPaths } from "@client/lib/constants/authPaths";
+import { isLatticeE2eEnabled } from "@client/lib/latticeFeatureFlags";
 import { safeNextPath } from "@client/lib/safeNextPath";
 import { getSupabaseClient } from "@client/lib/supabaseClient";
-import { isLatticeE2eEnabled } from "@client/lib/latticeFeatureFlags";
 import type { Provider, Session } from "@supabase/supabase-js";
 import {
   ReactNode,
@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { AUTH_UNAVAILABLE_MESSAGE } from "./allowlistError";
 import { AuthBootstrapShell } from "./AuthBootstrapShell";
 import type { AuthContextValue } from "./authTypes";
 import { AuthContext } from "./authTypes";
@@ -41,7 +42,7 @@ function SupabaseAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supabase) {
-      setConfigError("Supabase client auth is not configured in environment variables.");
+      setConfigError(AUTH_UNAVAILABLE_MESSAGE);
       setLoading(false);
       setApiAuthAccepted(false);
       return;
@@ -114,21 +115,21 @@ function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     configError,
     async signInWithPassword(email, password) {
       if (!supabase) {
-        return { message: "Supabase auth is not configured." };
+        return { message: AUTH_UNAVAILABLE_MESSAGE };
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       return error;
     },
     async signUpWithPassword(email, password) {
       if (!supabase) {
-        return { message: "Supabase auth is not configured." };
+        return { message: AUTH_UNAVAILABLE_MESSAGE };
       }
       const { error } = await supabase.auth.signUp({ email, password });
       return error;
     },
     async requestPasswordReset(email) {
       if (!supabase) {
-        return { message: "Supabase auth is not configured." };
+        return { message: AUTH_UNAVAILABLE_MESSAGE };
       }
       const redirectTo = `${window.location.origin}${authPaths.resetPassword}`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
@@ -136,14 +137,14 @@ function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     },
     async updatePassword(password) {
       if (!supabase) {
-        return { message: "Supabase auth is not configured." };
+        return { message: AUTH_UNAVAILABLE_MESSAGE };
       }
       const { error } = await supabase.auth.updateUser({ password });
       return error;
     },
     async signInWithOAuth(provider: Provider) {
       if (!supabase) {
-        return { message: "Supabase auth is not configured." };
+        return { message: AUTH_UNAVAILABLE_MESSAGE };
       }
       const nextParam = new URLSearchParams(window.location.search).get("next");
       const redirectTo = `${window.location.origin}${authPaths.signIn}?next=${encodeURIComponent(safeNextPath(nextParam))}`;

@@ -3,7 +3,7 @@
  * Deploy API (Lambda bundle) + Terraform (AWS infra) + static web build + S3 sync.
  *
  * Order: build Lambda → terraform apply → read api_url → build web (NEXT_PUBLIC_API_URL from Terraform)
- * → aws s3 sync → cloudfront invalidation. Supabase NEXT_PUBLIC_* must come from env or apps/web/.env* files.
+ * → aws s3 sync → cloudfront invalidation. Supabase NEXT_PUBLIC_* come from Infisical or apps/web/.env.<env>.
  *
  *   npm run deploy:aws
  *   npm run deploy:aws -- --env prod
@@ -12,40 +12,38 @@
  *   npm run deploy:aws -- --skip-api-build
  *   npm run deploy:aws -- --auto-approve     # terraform apply -auto-approve (required in non-TTY)
  *
+ * `--env` selects `infra/terraform/envs/<env>` (default `dev`). Dev web env is the
+ * first of `.env.dev`, `.env.local`, `.env`. Any other env reads only
+ * `apps/web/.env.<env>` (prod is `apps/web/.env.prod`).
+ *
  * Web-only (no Lambda / no apply): npm run deploy:aws:web — see scripts/deploy-aws-web.mjs
  *
- * Prerequisites: AWS CLI + credentials, Terraform, terraform.tfvars in infra/terraform/envs/<env>/
+ * Prerequisites: AWS CLI + credentials, Terraform, terraform.tfvars in the selected env
  * (or equivalent TF_VAR_*). See docs/deploy-aws.md.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
+import { loadWebEnv, takeEnvArg, terraformDir } from "./deploy-env.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 function parseArgs(argv) {
-  const args = argv.slice(2);
+  const taken = takeEnvArg(argv.slice(2));
   const opts = {
+    env: taken.env,
     planOnly: false,
     skipWeb: false,
     skipApiBuild: false,
     autoApprove: false,
-    envName: "dev",
   };
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i];
+  for (const a of taken.argv) {
     if (a === "--plan-only") opts.planOnly = true;
     else if (a === "--skip-web") opts.skipWeb = true;
     else if (a === "--skip-api-build") opts.skipApiBuild = true;
     else if (a === "--auto-approve") opts.autoApprove = true;
-    else if (a === "--env") {
-      opts.envName = args[++i];
-      if (!opts.envName) {
-        console.error("Missing value for --env");
-        process.exit(1);
-      }
-    } else if (a.startsWith("-")) {
+    else if (a.startsWith("-")) {
       console.error(`Unknown flag: ${a}`);
       process.exit(1);
     } else {
@@ -53,41 +51,7 @@ function parseArgs(argv) {
       process.exit(1);
     }
   }
-  if (!/^[a-z0-9-]+$/.test(opts.envName)) {
-    console.error(`Refusing environment name: ${opts.envName}`);
-    process.exit(1);
-  }
   return opts;
-}
-
-function loadEnvFile(relPath) {
-  const full = join(root, relPath);
-  if (!existsSync(full)) return;
-  for (const line of readFileSync(full, "utf8").split("\n")) {
-    const t = line.trim();
-    if (!t || t.startsWith("#")) continue;
-    const eq = t.indexOf("=");
-    if (eq === -1) continue;
-    const key = t.slice(0, eq).trim();
-    let val = t.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    if (process.env[key] === undefined) process.env[key] = val;
-  }
-}
-
-function loadWebEnv(envName) {
-  if (envName === "prod") {
-    loadEnvFile("apps/web/.env.prod");
-    loadEnvFile("apps/web/.env.production.local");
-    return;
-  }
-  loadEnvFile("apps/web/.env.production.local");
-  loadEnvFile("apps/web/.env.local");
 }
 
 function run(cmd, args, extraEnv = {}) {
@@ -129,27 +93,18 @@ function logPublicHosts() {
   }
 }
 
-function terraformDir(envName) {
-  const tfDir = join(root, "infra/terraform/envs", envName);
-  if (!existsSync(tfDir)) {
-    console.error(`No Terraform environment at infra/terraform/envs/${envName}`);
-    process.exit(1);
-  }
-  return { tfDir, chdir: `-chdir=${tfDir}` };
-}
-
 function main() {
   const opts = parseArgs(process.argv);
-  const { chdir } = terraformDir(opts.envName);
-
-  loadWebEnv(opts.envName);
+  const tfDir = terraformDir(root, opts.env);
+  const chdir = `-chdir=${tfDir}`;
+  console.log(`→ env ${opts.env} (${tfDir})\n`);
 
   if (!opts.skipApiBuild) {
     console.log("→ npm run api:build:lambda\n");
     run("npm", ["run", "api:build:lambda"]);
   }
 
-  console.log(`→ terraform init (${opts.envName})\n`);
+  console.log(`→ terraform init (${opts.env})\n`);
   run("terraform", [chdir, "init", "-input=false"]);
 
   if (opts.planOnly) {
@@ -171,13 +126,15 @@ function main() {
 
   console.log("→ terraform apply\n");
   run("terraform", applyArgs);
-  syncInfisicalOutputs(opts.envName);
+  syncInfisicalOutputs(opts.env);
 
   if (opts.skipWeb) {
     console.log("\nSkipped web build and S3 sync (--skip-web).");
     printOutputs(chdir);
     return;
   }
+
+  loadWebEnv(root, opts.env);
 
   const apiUrl = capture("terraform", [chdir, "output", "-raw", "api_url"]);
   process.env.NEXT_PUBLIC_API_URL = apiUrl;
@@ -186,8 +143,10 @@ function main() {
     console.warn(
       "\nWarning: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY are not set.\n" +
         "Set them with `infisical run --env=" +
-        opts.envName +
-        "` or in apps/web/.env.local / apps/web/.env.prod before running this script.\n" +
+        opts.env +
+        "` or in apps/web/.env." +
+        (opts.env === "dev" ? "{dev,local}" : opts.env) +
+        " before running this script.\n" +
         "Web build may fail or point at the wrong Supabase project.\n",
     );
   }

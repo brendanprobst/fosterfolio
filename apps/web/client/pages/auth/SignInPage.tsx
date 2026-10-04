@@ -2,20 +2,20 @@
 
 import { friendlyAuthErrorMessage, useAuth } from "@client/auth";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
-import { Badge } from "@client/components/ui/badge";
 import { Button } from "@client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@client/components/ui/card";
 import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
 import { Separator } from "@client/components/ui/separator";
 import { authPaths } from "@client/lib/constants/authPaths";
+import { isGoogleSsoEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { safeNextPath } from "@client/lib/safeNextPath";
 import { AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type SubmitEvent, useEffect, useMemo, useState } from "react";
 import { AuthPageShell } from "./AuthPageShell";
-import { getOauthProvider } from "./oauth";
+import { getOauthProvider, oauthProviderLabel } from "./oauth";
 import { SignedInCard } from "./SignedInCard";
 
 export function SignInPage() {
@@ -28,6 +28,7 @@ export function SignInPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const showGoogleSso = isGoogleSsoEnabled();
 
   useEffect(() => {
     const description = searchParams.get("error_description") ?? searchParams.get("error");
@@ -75,17 +76,18 @@ export function SignInPage() {
     <AuthPageShell>
       <Card>
         <CardHeader>
-          <Badge variant="secondary" className="w-fit">Authentication</Badge>
-          <CardTitle className="text-2xl">Sign in to Fosterfolio App Smoke Test</CardTitle>
+          <CardTitle className="text-2xl">Sign in to Fosterfolio</CardTitle>
           <CardDescription>
-            Security-first auth: Supabase handles identity, API handles authorization.
+            {showGoogleSso
+              ? `Use your email and password, or continue with ${oauthProviderLabel()}.`
+              : "Use your email and password."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {message || configError ? (
             <Alert variant="destructive">
               <AlertCircle />
-              <AlertTitle>Authentication note</AlertTitle>
+              <AlertTitle>Could not sign in</AlertTitle>
               <AlertDescription>{configError || message}</AlertDescription>
             </Alert>
           ) : null}
@@ -140,18 +142,21 @@ export function SignInPage() {
             </Link>
           </p>
 
-          <Separator />
-
-          <Button
-            className="w-full"
-            variant="outline"
-            type="button"
-            disabled={busy || loading}
-            onClick={handleSocialSignIn}
-          >
-            {busy ? <Loader2 className="animate-spin" /> : null}
-            Continue with {getOauthProvider()}
-          </Button>
+          {showGoogleSso ? (
+            <>
+              <Separator />
+              <Button
+                className="w-full"
+                variant="outline"
+                type="button"
+                disabled={busy || loading}
+                onClick={handleSocialSignIn}
+              >
+                {busy ? <Loader2 className="animate-spin" /> : null}
+                Continue with {oauthProviderLabel()}
+              </Button>
+            </>
+          ) : null}
         </CardContent>
       </Card>
     </AuthPageShell>

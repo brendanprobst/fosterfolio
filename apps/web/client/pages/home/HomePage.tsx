@@ -1,9 +1,9 @@
 "use client";
 
 import { useAuth } from "@client/auth";
-import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
+import { AppShell } from "@client/components/layout";
 import { Badge } from "@client/components/ui/badge";
-import { Button, buttonVariants } from "@client/components/ui/button";
+import { buttonVariants } from "@client/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,229 +11,128 @@ import {
   CardHeader,
   CardTitle,
 } from "@client/components/ui/card";
-import { getPublicApiBaseUrl } from "@client/lib/publicApiBaseUrl";
 import { cn } from "@client/lib/utils";
-import {
-  ArrowRight,
-  BookOpen,
-  Boxes,
-  Cloud,
-  Component,
-  Copy,
-  ExternalLink,
-  Layers,
-  Server,
-  Terminal,
-} from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-
-import { HOME_LANDING_HERO_TITLE } from "./homeLanding";
-
-const DEFAULT_REPO_URL =
-  "https://github.com/your-username/lattice-app-template";
-
-function templateRepoUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_TEMPLATE_REPO_URL?.trim() || DEFAULT_REPO_URL
-  );
-}
-
-const steps = [
-  {
-    step: 1,
-    title: "Fork",
-    description: "Create your app repo from this template.",
-    icon: Copy,
-  },
-  {
-    step: 2,
-    title: "Configure",
-    description: "Copy .env examples for API, web, and Terraform.",
-    icon: Layers,
-  },
-  {
-    step: 3,
-    title: "Run locally",
-    description: "npm ci, npm run ci, npm run dev.",
-    icon: Terminal,
-  },
-  {
-    step: 4,
-    title: "Deploy",
-    description: "Ship API + static web with your infra workflow.",
-    icon: Cloud,
-  },
-] as const;
-
-const stackItems = [
-  {
-    title: "API",
-    body: "DDD Express under apps/api — Jest tests in test/api/.",
-    icon: Server,
-  },
-  {
-    title: "Web",
-    body: "Next.js App Router — UI in client/ via @client/*.",
-    icon: Boxes,
-  },
-  {
-    title: "Tests",
-    body: "test/api (Jest), test/web (Vitest + Playwright).",
-    icon: Component,
-  },
-  {
-    title: "Infra",
-    body: "Terraform under infra/terraform when you wire AWS.",
-    icon: Cloud,
-  },
-] as const;
+import {
+  HOME_LANDING_FEATURES,
+  HOME_LANDING_HERO_TITLE,
+  HOME_LANDING_HOW,
+  HOME_LANDING_STEPS,
+  HOME_LANDING_TAGLINE,
+} from "./homeLanding";
 
 export function HomePage() {
   const { user, loading } = useAuth();
-  const apiBaseUrl = getPublicApiBaseUrl();
-  const repoUrl = templateRepoUrl();
+  const signedIn = !!user && !loading;
 
   return (
-    <div className="bg-background text-foreground min-h-screen">
-      <div className="mx-auto flex max-w-5xl flex-col gap-12 px-4 py-12 md:py-16">
+    <AppShell active="home">
+      <main className="mx-auto flex max-w-5xl flex-col gap-12 px-4 py-12 md:py-16">
         <header className="space-y-6">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">Template</Badge>
-            <Badge variant="outline">Monorepo</Badge>
+            <Badge variant="secondary">Private beta</Badge>
+            <Badge variant="outline">For foster homes</Badge>
           </div>
           <div className="space-y-3">
             <h1 className="font-heading text-4xl font-semibold tracking-tight md:text-5xl">
               {HOME_LANDING_HERO_TITLE}
             </h1>
             <p className="text-muted-foreground max-w-2xl text-lg md:text-xl">
-              Generate your next product from a structured grid: DDD API, Next.js
-              frontend, shared tests, and Terraform-ready infra — connected, not
-              cobbled together.
+              {HOME_LANDING_TAGLINE}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a
-              href={repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(buttonVariants({ size: "lg" }))}
-            >
-              <ExternalLink className="size-4" />
-              View on GitHub
-            </a>
-            <Link
-              href="/ui"
-              className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
-            >
-              <Component className="size-4" />
-              UI component gallery
-              <ArrowRight className="size-4" />
-            </Link>
-            <Link
-              href="/auth/sign-in?next=%2Fthings"
-              className={cn(buttonVariants({ size: "lg" }))}
-            >
-              Login demo
-            </Link>
-            <a
-              href={`${repoUrl}#readme`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
-            >
-              <BookOpen className="size-4" />
-              README &amp; docs
-            </a>
+            {signedIn ? (
+              <>
+                <Link href="/profile" className={cn(buttonVariants({ size: "lg" }))}>
+                  Your profile
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+                <Link
+                  href="/profile/pets/new"
+                  className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+                >
+                  Add a pet
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/sign-in" className={cn(buttonVariants({ size: "lg" }))}>
+                  Sign in
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+                <Link
+                  href="/auth/sign-up"
+                  className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+                >
+                  Request access
+                </Link>
+              </>
+            )}
           </div>
         </header>
 
-        {!loading && user ? (
-          <section aria-labelledby="home-crud-demo-heading">
+        {signedIn ? (
+          <section aria-labelledby="home-signed-in-heading">
             <Card className="border-primary/25 bg-primary/5">
               <CardHeader className="pb-2">
                 <h2
-                  id="home-crud-demo-heading"
+                  id="home-signed-in-heading"
                   className="font-heading text-lg font-semibold tracking-tight"
                 >
-                  CRUD demo
+                  You&apos;re in
                 </h2>
                 <CardDescription>
-                  You&apos;re signed in — try the authenticated Things flow (list, create, edit,
-                  delete) backed by the API.
+                  Visitors see the public bio and can send a message. This signed-in
+                  page stays yours.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
-                <a
-                  href="/things"
-                  className={cn(buttonVariants({ size: "sm" }))}
-                >
-                  Open Things
-                  <ArrowRight className="size-4" />
-                </a>
-                <a
-                  href="/profile"
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                >
-                  Profile
-                </a>
+                <Link href="/profile" className={cn(buttonVariants({ size: "sm" }))}>
+                  Open your profile
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
               </CardContent>
             </Card>
           </section>
         ) : null}
 
-        <Alert>
-          <Terminal />
-          <AlertTitle>Environment</AlertTitle>
-          <AlertDescription>
-            Browser API base (<code className="rounded bg-muted px-1">NEXT_PUBLIC_API_URL</code>
-            ):{" "}
-            <code className="rounded bg-muted px-1 font-mono text-xs">
-              {apiBaseUrl}
-            </code>
-            . Set it in{" "}
-            <code className="rounded bg-muted px-1">.env.local</code> so the UI
-            points at your running API.
-          </AlertDescription>
-        </Alert>
-
-        <section aria-labelledby="lattice-steps-heading">
+        <section aria-labelledby="fosterfolio-steps-heading">
           <h2
-            id="lattice-steps-heading"
+            id="fosterfolio-steps-heading"
             className="font-heading mb-6 text-2xl font-semibold tracking-tight"
           >
-            From template to running app
+            How it works
           </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map(({ step, title, description, icon: Icon }) => (
-              <Card key={step} className="relative">
-                <CardHeader className="pb-2">
-                  <div className="text-muted-foreground mb-2 flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono">
-                      {step}
-                    </Badge>
-                    <Icon className="size-4" aria-hidden />
-                  </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {HOME_LANDING_STEPS.map(({ step, title, icon: Icon }) => (
+              <Card key={step}>
+                <CardHeader className="flex flex-row items-center gap-3">
+                  <Badge variant="outline" className="font-mono">
+                    {step}
+                  </Badge>
+                  <Icon className="text-primary size-4 shrink-0" aria-hidden />
                   <CardTitle className="text-base">{title}</CardTitle>
-                  <CardDescription>{description}</CardDescription>
                 </CardHeader>
               </Card>
             ))}
           </div>
         </section>
 
-        <section aria-labelledby="lattice-stack-heading">
+        <section aria-labelledby="fosterfolio-features-heading">
           <h2
-            id="lattice-stack-heading"
+            id="fosterfolio-features-heading"
             className="font-heading mb-6 text-2xl font-semibold tracking-tight"
           >
-            What lives in the grid
+            What you get
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
-            {stackItems.map(({ title, body, icon: Icon }) => (
+            {HOME_LANDING_FEATURES.map(({ title, body, icon: Icon }) => (
               <Card key={title}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <Icon className="size-4" />
+                    <Icon className="text-primary size-4" aria-hidden />
                     {title}
                   </CardTitle>
                 </CardHeader>
@@ -245,15 +144,32 @@ export function HomePage() {
           </div>
         </section>
 
-        <footer className="text-muted-foreground border-t pt-8 text-sm">
+        <section aria-labelledby="fosterfolio-how-heading">
+          <h2 id="fosterfolio-how-heading" className="sr-only">
+            The short version
+          </h2>
+          <Card className="border-border">
+            <CardHeader className="flex flex-row items-start gap-3 pb-2">
+              <div className="bg-primary/15 text-primary mt-0.5 rounded-md p-2">
+                <Sparkles className="size-5" aria-hidden />
+              </div>
+              <div className="space-y-1">
+                <CardTitle className="text-base font-medium">The short version</CardTitle>
+                <CardDescription className="text-foreground/90 text-base leading-relaxed">
+                  {HOME_LANDING_HOW}
+                </CardDescription>
+              </div>
+            </CardHeader>
+          </Card>
+        </section>
+
+        <footer className="text-muted-foreground border-border border-t pt-8 text-sm">
           <p>
-            Lattice — web app template. Fork it, rename it, and replace
-            placeholders (including{" "}
-            <code className="rounded bg-muted px-1">NEXT_PUBLIC_TEMPLATE_REPO_URL</code>
-            ) for your org.
+            Fosterfolio is in private beta for a small group of fosters. Sign in if
+            you have an invite.
           </p>
         </footer>
-      </div>
-    </div>
+      </main>
+    </AppShell>
   );
 }

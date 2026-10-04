@@ -105,7 +105,6 @@ resource "aws_lambda_function" "api" {
       CORS_ORIGINS                    = local.api_cors_origins
       SUPABASE_URL_PARAM              = local.supabase_parameter_names.url
       SUPABASE_SERVICE_ROLE_KEY_PARAM = local.supabase_parameter_names.service_role_key
-      SUPABASE_THINGS_TABLE           = var.things_table_name
       EMAIL_ALLOWLIST_ENABLED         = var.email_allowlist_enabled ? "true" : "false"
     }
   }
@@ -185,12 +184,12 @@ resource "aws_cloudfront_origin_access_control" "web" {
   signing_protocol                  = "sigv4"
 }
 
-# S3 REST API origins do not map /things → things/index.html (unlike website endpoints).
+# S3 REST API origins do not map /search → search/index.html (unlike website endpoints).
 # Without this, deep links fall through to custom_error_response and serve root index.html (wrong page).
 resource "aws_cloudfront_function" "web_static_export_uri_rewrite" {
   name    = "${local.name_prefix}-web-static-export-uri"
   runtime = "cloudfront-js-2.0"
-  comment = "Rewrite extensionless paths to Next static export (*.html at bucket root)"
+  comment = "Rewrite extensionless paths plus at-prefixed vanity sentinels for Next static export"
   publish = true
   code    = file("${path.module}/../../cloudfront/functions/viewer_request_next_static_export.js")
 }

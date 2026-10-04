@@ -1,14 +1,15 @@
-import { IThingRepository } from '@api/domain/repositories/IThingRepository';
-import { IAllowedEmailRepository } from '@api/domain/repositories/IAllowedEmailRepository';
 import { SupabaseAdapter } from '@api/infrastructure/adapters/supabase/SupabaseAdapter';
-import { InMemoryThingRepository } from '@api/infrastructure/repositories/InMemoryThingRepository';
-import { ThingRepository } from '@api/infrastructure/repositories/ThingRepository';
-import { AllowedEmailRepository } from '@api/infrastructure/repositories/AllowedEmailRepository';
-import { CreateThingUseCase } from '@api/application/use-cases/CreateThingUseCase';
-import { GetThingByIdUseCase } from '@api/application/use-cases/GetThingByIdUseCase';
-import { ListThingsUseCase } from '@api/application/use-cases/ListThingsUseCase';
-import { UpdateThingUseCase } from '@api/application/use-cases/UpdateThingUseCase';
-import { DeleteThingUseCase } from '@api/application/use-cases/DeleteThingUseCase';
+import { NoopGeoLookupAdapter } from '@api/infrastructure/adapters/geo/NoopGeoLookupAdapter';
+import { ZippopotamGeoLookupAdapter } from '@api/infrastructure/adapters/geo/ZippopotamGeoLookupAdapter';
+import { createAllowlistModule } from '@api/infrastructure/composition/allowlist';
+import { createInquiriesModule } from '@api/infrastructure/composition/inquiries';
+import { createPetsModule } from '@api/infrastructure/composition/pets';
+import { createPostsModule } from '@api/infrastructure/composition/posts';
+import { createSearchModule } from '@api/infrastructure/composition/search';
+import { createStarsModule } from '@api/infrastructure/composition/stars';
+import { createStorageModule } from '@api/infrastructure/composition/storage';
+import { createUsersModule } from '@api/infrastructure/composition/users';
+import { isE2eSeedEnabled, seedFosterfolioE2eData } from '@api/infrastructure/e2eSeed';
 import { Logger } from '@api/utils/logger';
 
 function hasSupabaseEnv(): boolean {
@@ -19,70 +20,159 @@ function hasSupabaseEnv(): boolean {
 }
 
 /**
- * Service Container - Dependency injection container
+ * Service Container - composition root.
  *
- * Scale note: when this file grows past ~8 repository/use-case getters, prefer a
- * dedicated composition module or DI toolkit rather than expanding this class ad hoc.
- * See `apps/api/infrastructure/AGENTS.md`.
+ * Domain wiring lives in `infrastructure/composition/*`.
  */
 export class Container {
-  private thingRepository: IThingRepository;
-  private allowedEmailRepository?: IAllowedEmailRepository;
+  private readonly users: ReturnType<typeof createUsersModule>;
+  private readonly pets: ReturnType<typeof createPetsModule>;
+  private readonly posts: ReturnType<typeof createPostsModule>;
+  private readonly stars: ReturnType<typeof createStarsModule>;
+  private readonly search: ReturnType<typeof createSearchModule>;
+  private readonly inquiries: ReturnType<typeof createInquiriesModule>;
+  private readonly storage: ReturnType<typeof createStorageModule>;
+  private readonly allowlist: ReturnType<typeof createAllowlistModule>;
 
   constructor() {
-    if (hasSupabaseEnv()) {
-      const dataAdapter = new SupabaseAdapter();
-      this.thingRepository = new ThingRepository(dataAdapter);
-      this.allowedEmailRepository = new AllowedEmailRepository(dataAdapter);
-      return;
-    }
+    let dataAdapter: SupabaseAdapter | null = null;
 
-    if (process.env.NODE_ENV === 'production') {
+    if (hasSupabaseEnv()) {
+      dataAdapter = new SupabaseAdapter();
+    } else if (process.env.NODE_ENV === 'production') {
       throw new Error(
         'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required when NODE_ENV=production',
       );
+    } else {
+      Logger.warning(
+        'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — using in-memory repositories (dev only). Data is lost on restart. Email allowlist requires Supabase. Copy apps/api/.env.example to apps/api/.env for Supabase.',
+      );
     }
 
-    Logger.warning(
-      'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — using in-memory Thing storage (dev only). Data is lost on restart. Email allowlist requires Supabase. Copy apps/api/.env.example to apps/api/.env for Supabase.',
+    const geoLookup = dataAdapter
+      ? new ZippopotamGeoLookupAdapter()
+      : new NoopGeoLookupAdapter();
+
+    this.users = createUsersModule(dataAdapter, geoLookup);
+    this.pets = createPetsModule(dataAdapter, this.users.userRepository);
+    this.posts = createPostsModule(
+      dataAdapter,
+      this.pets.petRepository,
+      this.users.userRepository
     );
-    this.thingRepository = new InMemoryThingRepository();
+    this.stars = createStarsModule(dataAdapter, this.users.userRepository);
+    this.search = createSearchModule(
+      dataAdapter,
+      this.users.userRepository,
+      this.pets.petRepository
+    );
+    this.inquiries = createInquiriesModule(
+      dataAdapter,
+      this.users.userRepository,
+      this.pets.petRepository
+    );
+    this.storage = createStorageModule(dataAdapter);
+    this.allowlist = createAllowlistModule(dataAdapter);
+
+    if (isE2eSeedEnabled()) {
+      seedFosterfolioE2eData({
+        userRepository: this.users.userRepository,
+        petRepository: this.pets.petRepository,
+        postRepository: this.posts.postRepository,
+      });
+    }
   }
 
   isAllowlistConfigured(): boolean {
-    return this.allowedEmailRepository !== undefined;
+    return this.allowlist.isAllowlistConfigured();
   }
 
-  getThingRepository() {
-    return this.thingRepository;
+  getAllowedEmailRepository() {
+    return this.allowlist.getAllowedEmailRepository();
   }
 
-  getAllowedEmailRepository(): IAllowedEmailRepository {
-    if (!this.allowedEmailRepository) {
-      throw new Error(
-        'Email allowlist requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. In-memory dev mode does not implement allowlist storage.',
-      );
-    }
-    return this.allowedEmailRepository;
+  getUserRepository() {
+    return this.users.userRepository;
   }
 
-  getCreateThingUseCase() {
-    return new CreateThingUseCase(this.thingRepository);
+  getGetUserUseCase() {
+    return this.users.getGetUserUseCase();
   }
 
-  getGetThingByIdUseCase() {
-    return new GetThingByIdUseCase(this.thingRepository);
+  getUpdateUserUseCase() {
+    return this.users.getUpdateUserUseCase();
   }
 
-  getListThingsUseCase() {
-    return new ListThingsUseCase(this.thingRepository);
+  getPetRepository() {
+    return this.pets.petRepository;
   }
 
-  getUpdateThingUseCase() {
-    return new UpdateThingUseCase(this.thingRepository);
+  getCreatePetUseCase() {
+    return this.pets.getCreatePetUseCase();
   }
 
-  getDeleteThingUseCase() {
-    return new DeleteThingUseCase(this.thingRepository);
+  getGetPetUseCase() {
+    return this.pets.getGetPetUseCase();
+  }
+
+  getUpdatePetUseCase() {
+    return this.pets.getUpdatePetUseCase();
+  }
+
+  getSoftDeletePetUseCase() {
+    return this.pets.getSoftDeletePetUseCase();
+  }
+
+  getListPetsByOwnerUseCase() {
+    return this.pets.getListPetsByOwnerUseCase();
+  }
+
+  getGetPetUpdatesUseCase() {
+    return this.pets.getGetPetUpdatesUseCase();
+  }
+
+  getCreatePostUseCase() {
+    return this.posts.getCreatePostUseCase();
+  }
+
+  getGetPostUseCase() {
+    return this.posts.getGetPostUseCase();
+  }
+
+  getUpdatePostUseCase() {
+    return this.posts.getUpdatePostUseCase();
+  }
+
+  getSoftDeletePostUseCase() {
+    return this.posts.getSoftDeletePostUseCase();
+  }
+
+  getListFeedUseCase() {
+    return this.posts.getListFeedUseCase();
+  }
+
+  getListPostsByAuthorUseCase() {
+    return this.posts.getListPostsByAuthorUseCase();
+  }
+
+  getAddStarUseCase() {
+    return this.stars.getAddStarUseCase();
+  }
+
+  getGetStarCountUseCase() {
+    return this.stars.getGetStarCountUseCase();
+  }
+
+  getSearchUseCase() {
+    return this.search.getSearchUseCase();
+  }
+
+  getCreateInquiryUseCase() {
+    return this.inquiries.getCreateInquiryUseCase();
+  }
+
+  getSignUploadUseCase() {
+    return this.storage.getSignUploadUseCase();
   }
 }
+

@@ -11,6 +11,10 @@ function isSessionBootstrapNonBlocking(pathname: string): boolean {
   if (pathname === "/" || pathname === "/ui") {
     return true;
   }
+  // Public vanity routes must render without waiting on Supabase session restore.
+  if (pathname.startsWith("/@")) {
+    return true;
+  }
   return pathname.startsWith("/auth/");
 }
 
@@ -46,7 +50,7 @@ export function AuthBootstrapShell({ children }: { children: ReactNode }) {
           aria-live="polite"
         >
           <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
-          <span>Restoring session…</span>
+          <span>Signing you in…</span>
         </div>
         {children}
       </>
@@ -60,8 +64,7 @@ export function AuthBootstrapShell({ children }: { children: ReactNode }) {
       role="status"
     >
       <Loader2 className="text-foreground size-10 animate-spin" aria-hidden />
-      <p className="text-foreground text-sm font-medium">Loading session…</p>
-      <p className="max-w-xs px-4 text-center text-xs">Securing your sign-in with Supabase.</p>
+      <p className="text-foreground text-sm font-medium">Signing you in…</p>
     </div>
   );
 }

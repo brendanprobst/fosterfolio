@@ -8,7 +8,7 @@
 
 - **Modules** in `terraform/modules/` stay generic; **project-specific** values live in `terraform/envs/<env>/terraform.tfvars`.
 - Do not commit real **`terraform.tfvars`**; use **`terraform.tfvars.example`** as the template.
-- **Email allowlist on AWS:** defaults to **off** (`email_allowlist_enabled` defaults to `false`). Set `email_allowlist_enabled = true` in `terraform/envs/dev/terraform.tfvars` when the DB gate and allowlist rows are ready (see **[`docs/playbooks/email-allowlist.md`](../docs/playbooks/email-allowlist.md)**).
+- **Email allowlist on AWS:** defaults to **on** for Fosterfolio private beta (`email_allowlist_enabled` defaults to `true`). Also flip the Supabase DB flag and insert tester emails (see **[`docs/playbooks/private-beta.md`](../docs/playbooks/private-beta.md)** and **[`docs/playbooks/email-allowlist.md`](../docs/playbooks/email-allowlist.md)**).
 - Commit **`terraform/envs/dev/.terraform.lock.hcl`** when it changes (provider parity for CI and laptops).
 - Prefer **remote state** (S3 + DynamoDB lock) before team or production use.
 - Keep environment naming and variables portable so new `envs/stage` and `envs/prod` can be added later without changing module behavior (see `docs/adr/007-ci-and-environment-promotion.md`).

@@ -107,22 +107,17 @@ variable "api_cors_extra_origins" {
   default     = ""
 }
 
-variable "things_table_name" {
-  description = "Supabase table name used by the API repository."
-  type        = string
-  default     = "things"
-}
-
 variable "email_allowlist_enabled" {
   description = <<-EOT
     When true, sets EMAIL_ALLOWLIST_ENABLED on the API Lambda so requireAllowedEmail
     checks public.allowed_emails on every authenticated API request.
     This does not enable the Supabase DB trigger — still run set_allowlist_enabled(true)
     in SQL for signup-time blocking (see docs/playbooks/email-allowlist.md).
-    Default is false so new scaffolds stay open until you opt in; set true when the DB gate and allowlist rows are ready.
+    Default is true for Fosterfolio private beta. Set false only if you need an open API
+    while the Supabase signup trigger is still off.
   EOT
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_budget_alerts" {
@@ -206,4 +201,40 @@ variable "manage_web_dns_in_route53" {
   description = "When true, Terraform manages ACM DNS validation + web alias records in Route 53. Set false when DNS stays at a third-party provider (e.g. Squarespace)."
   type        = bool
   default     = true
+}
+
+# --- Optional: SES SMTP for Supabase Auth ---
+# Enable in one environment only. The SES identity is account-wide in aws_region.
+
+variable "enable_ses_smtp" {
+  description = "Verify ses_domain in SES, publish DKIM and MAIL FROM records, and create SMTP credentials. Enable in a single environment."
+  type        = bool
+  default     = false
+}
+
+variable "ses_domain" {
+  description = "Apex domain to verify in SES. Required when enable_ses_smtp is true."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "ses_from_email" {
+  description = "From address for Auth mail, on ses_domain. Required when enable_ses_smtp is true."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "ses_from_name" {
+  description = "Display name on Auth emails."
+  type        = string
+  default     = "Fosterfolio Team"
+}
+
+variable "supabase_access_token" {
+  description = "Supabase account access token (https://supabase.com/dashboard/account/tokens). When set with enable_ses_smtp, Terraform pushes SMTP settings to that project's Auth config."
+  type        = string
+  sensitive   = true
+  default     = ""
 }

@@ -4,10 +4,18 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Static export is production-only. `next dev` with `output: "export"` rejects
+ * vanity handle routes unless they appear in `generateStaticParams`.
+ * CloudFront performs that rewrite in AWS; locally the App Router must serve
+ * the real path so `usePathname()` still sees the handle.
+ */
+const isStaticExport = process.env.NODE_ENV === "production";
+
 /** Monorepo root (this file: apps/web/next.config.ts) — silences lockfile/workspace root warnings. */
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../.."),
-  output: "export",
+  ...(isStaticExport ? { output: "export" as const } : {}),
   images: {
     unoptimized: true,
   },

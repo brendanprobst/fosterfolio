@@ -12,11 +12,11 @@ supabase_service_role_key   = "YOUR_SERVICE_ROLE_KEY"
 # supabase_jwt_secret       = "YOUR_JWT_SECRET" # optional
 
 manage_supabase_credentials_in_ssm = true
-things_table_name                  = "things"
 
-# API allowlist middleware (EMAIL_ALLOWLIST_ENABLED on Lambda). Defaults to true in variables.tf;
-# set explicitly only when you need to turn it off: email_allowlist_enabled = false
-# email_allowlist_enabled = true
+# API allowlist middleware (EMAIL_ALLOWLIST_ENABLED on Lambda). Defaults to true
+# for private beta. Also run `select public.set_allowlist_enabled(true);` in Supabase
+# and insert tester emails — see docs/playbooks/private-beta.md.
+email_allowlist_enabled = true
 
 # Phase 3 cost controls
 # api_lambda_reserved_concurrency = 5 # optional; only if account has spare regional concurrency, so copying the example does not force reservation
@@ -47,3 +47,10 @@ api_schedule_timezone         = "UTC"
 # If DNS stays at third-party provider (e.g. Squarespace), disable Route 53 DNS management:
 # web_custom_domain          = "app.example.com"
 # manage_web_dns_in_route53  = false
+
+# --- Optional: SES SMTP for Supabase Auth (enable in one environment only) ---
+# enable_ses_smtp        = true
+# ses_domain             = "example.com"
+# ses_from_email         = "auth@example.com"
+# ses_from_name          = "Example Team"
+# supabase_access_token  = "sbp_..." # https://supabase.com/dashboard/account/tokens
