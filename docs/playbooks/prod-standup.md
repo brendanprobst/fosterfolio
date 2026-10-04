@@ -18,11 +18,12 @@ Each step starts with `Progress:` set to `not started`, `in progress`, or `done`
 
 Progress: done
 
-
 - [x] v1 schema is `supabase/migrations/20261003120000_app_v1_schema.sql`. The four older migration files are gone. Pushing it is still step 2, and only against an empty project.
 - [x] `NEXT_PUBLIC_GOOGLE_SSO=1` is the only value that shows **Continue with Google**. Unset or `0` hides it. Prod is set to `0`.
 
 ---
+
+
 
 ## 1. Create the prod Supabase project
 
@@ -33,6 +34,8 @@ Source: [Supabase migrations](supabase-migrations.md).
 - [x] In the [Supabase dashboard](https://supabase.com/dashboard), **New project**. Name it so it is obviously prod (for example `fosterfolio-prod`). Pick a region and save the database password.
 - [x] Open **Project Settings → API**. Copy the project URL, the `anon` key, and the `service_role` key into a scratch note. These go in Terraform and `apps/web/.env.prod`, not into the dev files (`apps/api/.env`, `apps/api/.env.dev`, or `apps/web/.env.local`).
 - [x] Open **Connect** and copy the **Session pooler** URI (port **5432**, user `postgres.<project-ref>`). That is `SUPABASE_DB_URL`. Do not use the transaction pooler (port **6543**).
+
+
 
 ## 2. Push schema to that project
 
@@ -50,6 +53,8 @@ npm run supabase:list -- --env prod
 ```
 
 - [ ] Do not run `npm run supabase:seed`. That command refuses `--env prod`.
+
+
 
 ## 3. Turn on the email allowlist
 
@@ -127,6 +132,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://<prod-project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<prod anon key>
 ```
 
+
+
 ## 5. Apply prod infra locally
 
 Progress: not started
@@ -174,7 +181,9 @@ This is the **prod** Supabase project. Do not change the dev project's Site URL.
 
 - [x] **Authentication** → **URL Configuration**.
 - [x] **Site URL:** `https://fosterfolio.com`
-- [x] **Redirect URLs:** add `https://fosterfolio.com/**`. You do not need `localhost` on this project.
+- [x] **Redirect URLs:** add `https://fosterfolio.com/`**. You do not need `localhost` on this project.
+
+
 
 ## 7. Hide SSO buttons in the prod bundle
 
@@ -184,13 +193,15 @@ Progress: done
 
 - [x] Flag implemented. `apps/web/.env.local` and `apps/web/.env.prod` both set `NEXT_PUBLIC_GOOGLE_SSO=0`, so the Google button stays hidden.
 
+
+
 ## 8. Upload the site, then check it
 
 Progress: not started
 
 Source: [Deploy to AWS](../deploy-aws.md). This build reads `apps/web/.env.prod` and the prod Terraform outputs. It does not read `apps/web/.env.local`.
 
-- [ ] Upload:
+- [x] Upload:
 
 ```bash
 npm run deploy:aws:web -- --env prod
@@ -198,12 +209,14 @@ npm run deploy:aws:web -- --env prod
 
 Source for the checks: [Private beta](private-beta.md) §4 and §5. Feed and search are off unless those flags were `1` at build time, so `/feed` and `/search` show the private-beta shell. That is expected.
 
-- [ ] `https://fosterfolio.com` loads the info page over HTTPS.
-- [ ] `API_BASE_URL="<api_url>" npm run smoke` prints statuses and no tokens.
-- [ ] Sign **up** and sign **in** with email and password for an allowlisted address. `/profile` can edit and create a pet.
-- [ ] `/auth/sign-in` and `/auth/sign-up` have no **Continue with Google** button. An email that is not on the list gets the approved-access message on email signup.
+- [x] `https://fosterfolio.com` loads the info page over HTTPS.
+- [x] `API_BASE_URL="<api_url>" npm run smoke` prints statuses and no tokens.
+- [x] Sign **up** and sign **in** with email and password for an allowlisted address. `/profile` can edit and create a pet.
+- [x] `/auth/sign-in` and `/auth/sign-up` have no **Continue with Google** button. An email that is not on the list gets the approved-access message on email signup.
 - [ ] `/@handle`, `/@handle/foster-me`, and `/@handle/pet/{id}` resolve (CloudFront rewrite), not the home page.
 - [ ] `http://localhost:3001` still talks to the dev Supabase project.
+
+
 
 ## Terminal
 
@@ -248,3 +261,4 @@ The plan must be creates only. It must not list destroys for `fosterfolio-dev` o
 npm run deploy:aws:web -- --env prod
 API_BASE_URL="<api_url>" npm run smoke
 ```
+
