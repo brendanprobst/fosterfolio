@@ -151,7 +151,6 @@ function main() {
     );
   }
 
-  console.log(`→ NEXT_PUBLIC_API_URL=${apiUrl}`);
   logPublicHosts();
   console.log("→ npm run web:build:static\n");
   run("npm", ["run", "web:build:static"]);

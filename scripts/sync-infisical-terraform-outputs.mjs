@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
+import { takeEnvArg, terraformDir } from "./deploy-env.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -26,29 +27,14 @@ const OUTPUT_KEYS = [
   ["api_url", "NEXT_PUBLIC_API_URL"],
 ];
 
-function parseArgs(argv) {
-  let envName = "dev";
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === "--env") {
-      envName = argv[++i];
-      if (!envName) {
-        console.error("Missing value for --env");
-        process.exit(1);
-      }
-    } else if (arg.startsWith("-")) {
-      console.error(`Unknown flag: ${arg}`);
-      process.exit(1);
-    } else {
-      console.error(`Unexpected argument: ${arg}`);
-      process.exit(1);
-    }
-  }
-  if (!/^[a-z0-9-]+$/.test(envName)) {
-    console.error(`Refusing environment name: ${envName}`);
-    process.exit(1);
-  }
-  return envName;
+function run(cmd, args) {
+  const result = spawnSync(cmd, args, {
+    cwd: root,
+    stdio: "inherit",
+    shell: false,
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
 function capture(cmd, args) {
@@ -80,6 +66,18 @@ function projectId() {
   return id;
 }
 
+function logSyncedKey(secretName, value) {
+  if (secretName === "NEXT_PUBLIC_API_URL") {
+    try {
+      console.log(`→ ${secretName}: ${new URL(value).host}`);
+    } catch {
+      console.warn(`→ ${secretName}: not a valid URL`);
+    }
+    return;
+  }
+  console.log(`→ ${secretName}`);
+}
+
 function ensureSharedFolder(envName, id) {
   const result = spawnSync(
     "infisical",
@@ -108,26 +106,29 @@ function ensureSharedFolder(envName, id) {
 }
 
 function main() {
-  const envName = parseArgs(process.argv);
-  const tfDir = join(root, "infra/terraform/envs", envName);
-  if (!existsSync(tfDir)) {
-    console.error(`No Terraform environment at infra/terraform/envs/${envName}`);
+  const { env, argv } = takeEnvArg(process.argv.slice(2));
+  if (argv.length > 0) {
+    console.error(`Unknown argument: ${argv[0]}`);
     process.exit(1);
   }
 
+  const tfDir = terraformDir(root, env);
   const chdir = `-chdir=${tfDir}`;
+  console.log(`→ terraform init (${env}; read outputs only; no apply)\n`);
+  run("terraform", [chdir, "init", "-input=false"]);
+
   const pairs = OUTPUT_KEYS.map(([outputName, secretName]) => {
     const value = capture("terraform", [chdir, "output", "-raw", outputName]);
     if (!value) {
-      console.error(`terraform output ${outputName} was empty in ${envName}`);
+      console.error(`terraform output ${outputName} was empty in ${env}`);
       process.exit(1);
     }
-    console.log(`${secretName}=${value}`);
+    logSyncedKey(secretName, value);
     return `${secretName}=${value}`;
   });
 
   const id = projectId();
-  ensureSharedFolder(envName, id);
+  ensureSharedFolder(env, id);
 
   const result = spawnSync(
     "infisical",
@@ -136,7 +137,7 @@ function main() {
       "set",
       ...pairs,
       "--env",
-      envName,
+      env,
       "--path",
       "/shared",
       "--projectId",
@@ -150,7 +151,7 @@ function main() {
     process.exit(1);
   }
   if (result.status !== 0) process.exit(result.status ?? 1);
-  console.log(`Wrote ${pairs.length} Terraform outputs to Infisical /shared (${envName}).`);
+  console.log(`Wrote ${pairs.length} Terraform outputs to Infisical /shared (${env}).`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

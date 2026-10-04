@@ -12,7 +12,7 @@ The script order is: **build API Lambda bundle → `terraform apply` → read `a
 - **AWS CLI** and credentials that can run Terraform and S3 sync (`aws sts get-caller-identity`).
 - **Terraform** `>= 1.6`.
 - **`terraform.tfvars`** in `infra/terraform/envs/<env>/` (copy from `terraform.tfvars.example`). Do not commit secrets. Default env is **`dev`**.
-- For the **web** build: **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** from Infisical (`infisical run --env=<env>`) or from the env file. **`dev`** loads the first of **`apps/web/.env.dev`**, **`.env.local`**, **`.env`**. Any other **`--env`** loads only **`apps/web/.env.<env>`** and will not fall back to a dev file.
+- For a laptop **web** build: **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** must be in the env file. **`dev`** loads the first of **`apps/web/.env.dev`**, **`.env.local`**, **`.env`**. Any other **`--env`** loads only **`apps/web/.env.<env>`** and will not fall back to a dev file. `infisical run` can wrap the command; the file still wins for `NEXT_PUBLIC_*`. GitHub **Deploy app** reads those keys from Infisical instead.
 
 ## Commands
 
@@ -32,7 +32,7 @@ The script order is: **build API Lambda bundle → `terraform apply` → read `a
 
 ## Laptop deploy with Infisical
 
-After `infisical login` in this repo, the normal laptop deploy is:
+After `infisical login` in this repo, keep `apps/web/.env.local` (or `.env.dev`) and `apps/web/.env.prod` on disk. The deploy script reads those files. Then:
 
 ```bash
 infisical run --env=dev -- npm run deploy:aws

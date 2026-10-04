@@ -118,7 +118,7 @@ Progress: not started
 infisical run --projectId=<project id> --env=prod -- npm run deploy:aws:web -- --env prod
 ```
 
-The build should talk to `xjafaxktmpjycuakyouv`. Then load `https://fosterfolio.com`.
+`apps/web/.env.prod` must exist. The script loads that file; Infisical does not replace it. The build should talk to `xjafaxktmpjycuakyouv`. Then load `https://fosterfolio.com`.
 
 That command reads the bucket and API URL from Terraform state. GitHub cannot. After the laptop deploy:
 
