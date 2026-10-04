@@ -20,41 +20,21 @@
  *    which is what writing `auth.users` requires (public.users.id references
  *    it). A fine-grained token needs the `database_write` permission.
  *
- * Credentials come from `supabase/.env.local` (gitignored), same as
- * `scripts/supabase-cli.mjs`. See docs/playbooks/dev-seed-data.md.
+ * Credentials come from the dev Supabase env file (`.env.dev`, `.env.local`,
+ * or `.env`), same as `scripts/supabase-cli.mjs`. Seed refuses `--env prod`.
+ * See docs/playbooks/dev-seed-data.md.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { applyEnvFile, envFileLabel, resolveEnvFile, takeEnvArg } from "./env-files.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const ENV_FILE = "supabase/.env.local";
 const SQL_FILES = {
   up: "supabase/seed/dev_seed.sql",
   down: "supabase/seed/dev_seed_down.sql",
 };
 const SEED_PASSWORD_SETTING = "fosterfolio.seed_password";
-
-function loadEnvFile(relPath) {
-  const full = join(root, relPath);
-  if (!existsSync(full)) return false;
-  for (const line of readFileSync(full, "utf8").split("\n")) {
-    const t = line.trim();
-    if (!t || t.startsWith("#")) continue;
-    const eq = t.indexOf("=");
-    if (eq === -1) continue;
-    const key = t.slice(0, eq).trim();
-    let val = t.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    if (process.env[key] === undefined) process.env[key] = val;
-  }
-  return true;
-}
 
 function fail(message) {
   console.error(`\n  ${message}\n`);
@@ -133,11 +113,22 @@ function printRows(rows) {
   }
 }
 
-const options = parseArgs(process.argv.slice(2));
-const loaded = loadEnvFile(ENV_FILE);
-if (!loaded) {
+const taken = takeEnvArg(process.argv.slice(2));
+if (taken.env !== "dev") {
+  fail(
+    `Refusing to seed the ${taken.env} project.\n` +
+      `  npm run supabase:seed only reads the dev env file.`,
+  );
+}
+const options = parseArgs(taken.argv);
+const envPath = resolveEnvFile(join(root, "supabase"), "dev");
+const ENV_FILE = envPath ? relative(root, envPath) : envFileLabel("supabase", "dev");
+if (envPath) {
+  applyEnvFile(envPath, { override: false });
+  console.log(`→ supabase env ${ENV_FILE}`);
+} else {
   console.warn(
-    `  Note: ${ENV_FILE} not found — relying on the ambient environment.`,
+    `  Note: no dev file at ${ENV_FILE} — relying on the ambient environment.`,
   );
 }
 

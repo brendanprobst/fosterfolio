@@ -11,8 +11,9 @@
  *
  * Why a wrapper instead of calling `supabase` directly from package.json:
  *
- * 1. npm scripts do not read dotenv files. Credentials must stay out of git, so
- *    they live in `supabase/.env.local` (gitignored) and are loaded here.
+ * 1. npm scripts do not read dotenv files. Credentials must stay out of git.
+ *    Dev reads the first of `supabase/.env.dev`, `.env.local`, `.env`.
+ *    `npm run supabase:push -- --env prod` reads only `supabase/.env.prod`.
  * 2. DDL against `auth.*` and `storage.*` needs the **direct** Postgres
  *    connection, not the transaction pooler. When `SUPABASE_DB_URL` is set it is
  *    forwarded as `--db-url` to every database command.
@@ -22,35 +23,14 @@
  *
  * See docs/playbooks/supabase-migrations.md.
  */
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { applyEnvFile, envFileLabel, resolveEnvFile, takeEnvArg } from "./env-files.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const ENV_FILE = "supabase/.env.local";
 const MIGRATION_PREFIXES = ["platform_", "app_"];
-
-function loadEnvFile(relPath) {
-  const full = join(root, relPath);
-  if (!existsSync(full)) return false;
-  for (const line of readFileSync(full, "utf8").split("\n")) {
-    const t = line.trim();
-    if (!t || t.startsWith("#")) continue;
-    const eq = t.indexOf("=");
-    if (eq === -1) continue;
-    const key = t.slice(0, eq).trim();
-    let val = t.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    if (process.env[key] === undefined) process.env[key] = val;
-  }
-  return true;
-}
 
 function fail(message) {
   console.error(`\n  ${message}\n`);
@@ -146,12 +126,25 @@ function migrationName(passthrough) {
   return name;
 }
 
-const [command, ...passthrough] = process.argv.slice(2);
+const [command, ...rawArgs] = process.argv.slice(2);
+const { env, argv: passthrough } = takeEnvArg(rawArgs);
+const envPath = resolveEnvFile(join(root, "supabase"), env);
+const ENV_FILE = envPath ? relative(root, envPath) : envFileLabel("supabase", env);
 
-const loaded = loadEnvFile(ENV_FILE);
-if (!loaded && command !== "help") {
+if (env !== "dev" && !envPath) {
+  fail(
+    `Missing ${envFileLabel("supabase", env)}.\n` +
+      `  Put the ${env} project ref and session-pooler URL in that file.\n` +
+      `  Leave the dev file in place. Do not rename it.`,
+  );
+}
+
+if (envPath) {
+  applyEnvFile(envPath, { override: env !== "dev" });
+  console.log(`→ supabase env ${ENV_FILE}`);
+} else if (command !== "help") {
   console.warn(
-    `  Note: ${ENV_FILE} not found — relying on the ambient environment ` +
+    `  Note: no dev file at ${ENV_FILE} — relying on the ambient environment ` +
       `and existing CLI link state.`,
   );
 }
@@ -192,7 +185,7 @@ switch (command) {
     run(withDbUrl(["migration", "list", ...passthrough]));
     break;
   case "handshake": {
-    // Re-auth against the linked project using only supabase/.env.local.
+    // Re-auth against the project in the selected env file.
     // Prints pass/fail — never echoes the password or full DB URL.
     const ref = requireProjectRef();
     const dbUrl = process.env.SUPABASE_DB_URL?.trim();
@@ -255,6 +248,7 @@ switch (command) {
         `  npm run supabase:push:dry\n` +
         `  npm run supabase:push\n` +
         `  npm run supabase:list\n` +
-        `  npm run supabase:handshake`,
+        `  npm run supabase:handshake\n` +
+        `  Add --env prod to any command to read supabase/.env.prod.`,
     );
 }
