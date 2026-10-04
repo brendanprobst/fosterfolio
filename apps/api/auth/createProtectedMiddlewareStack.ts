@@ -6,7 +6,7 @@ import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Logger } from '@api/utils/logger';
 
 /**
- * One allowlist middleware instance per app (shared cache across /things, /profile, /me).
+ * One allowlist middleware instance per app (shared cache across protected routes).
  * Created when {@link createProtectedMiddlewareStack} runs inside {@link createApp}.
  */
 let allowlistMiddlewareForApp: RequestHandler | null = null;
@@ -27,7 +27,8 @@ function allowlistRequiresSupabaseMiddleware(): RequestHandler {
 }
 
 /**
- * Auth middleware applied once per protected route prefix in `app.ts`.
+ * Auth middleware stack for protected routes.
+ * Prefer {@link createRequireAuth} and spread per-route (see `routes/registerRoutes.ts`).
  * Order: Supabase JWT → optional email allowlist (when `EMAIL_ALLOWLIST_ENABLED`).
  */
 export function createProtectedMiddlewareStack(container: Container): RequestHandler[] {

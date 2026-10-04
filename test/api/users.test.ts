@@ -1,0 +1,320 @@
+import request from 'supertest';
+import type { GeoLookupAdapter } from '@api/infrastructure/adapters/geo/GeoLookupAdapter';
+import { createTestAppWithContainer } from './setup';
+import { createAuthToken } from './support/authToken';
+
+describe('Users API', () => {
+  const ownerId = '11111111-1111-1111-1111-111111111111';
+  const otherId = '22222222-2222-2222-2222-222222222222';
+
+  it('GET /users/:id returns public fields and omits private ones', async () => {
+    const { app, container } = createTestAppWithContainer();
+    const user = container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      displayName: 'Owner',
+      starCount: 3,
+    });
+    user.applyProfileUpdate({
+      zipCode: '94107',
+      city: 'San Francisco',
+      state: 'CA',
+      lat: 37.76,
+      lng: -122.39,
+      bio: 'Hello',
+    });
+    await container.userRepository.save(user);
+
+    const res = await request(app).get(`/users/${ownerId}`).expect(200);
+
+    expect(res.body).toMatchObject({
+      id: ownerId,
+      displayName: 'Owner',
+      bio: 'Hello',
+      city: 'San Francisco',
+      state: 'CA',
+      starCount: 3,
+    });
+    expect(res.body).not.toHaveProperty('email');
+    expect(res.body).not.toHaveProperty('zipCode');
+    expect(res.body).not.toHaveProperty('lat');
+    expect(res.body).not.toHaveProperty('lng');
+  });
+
+  it('GET /users/:id returns owner fields when the caller is the user', async () => {
+    const { app, container } = createTestAppWithContainer();
+    const user = container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      displayName: 'Owner',
+    });
+    user.applyProfileUpdate({ zipCode: '94107' });
+    await container.userRepository.save(user);
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const res = await request(app)
+      .get(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(res.body).toMatchObject({
+      id: ownerId,
+      email: 'owner@example.com',
+      zipCode: '94107',
+    });
+  });
+
+  it('PUT /users/:id forbids cross-owner updates', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    container.seedUser({ id: otherId, email: 'other@example.com' });
+
+    const token = await createAuthToken(otherId, 'other@example.com');
+    const res = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ displayName: 'Hacker' })
+      .expect(403);
+
+    expect(res.body.error.code).toBe('USER_FORBIDDEN');
+  });
+
+  it('PUT /users/:id updates own profile and returns owner fields', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const res = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ displayName: ' Foster Mom ', bio: 'Dogs forever' })
+      .expect(200);
+
+    expect(res.body).toMatchObject({
+      id: ownerId,
+      displayName: 'Foster Mom',
+      bio: 'Dogs forever',
+      email: 'owner@example.com',
+    });
+    expect(res.body).toHaveProperty('zipCode');
+  });
+
+  it('zip lookup fails soft when geo adapter returns null', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    const noop: GeoLookupAdapter = {
+      lookupUsZip: async () => null,
+    };
+    container.setGeoLookup(noop);
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const res = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ zipCode: '00000' })
+      .expect(200);
+
+    expect(res.body.zipCode).toBe('00000');
+    expect(res.body.city).toBeNull();
+    expect(res.body.state).toBeNull();
+    expect(res.body.lat).toBeNull();
+    expect(res.body.lng).toBeNull();
+  });
+
+  it('zip lookup applies city/state when adapter succeeds', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    container.setGeoLookup({
+      lookupUsZip: async () => ({
+        city: 'San Francisco',
+        state: 'CA',
+        lat: 37.76,
+        lng: -122.39,
+      }),
+    });
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const res = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ zipCode: '94107' })
+      .expect(200);
+
+    expect(res.body).toMatchObject({
+      zipCode: '94107',
+      city: 'San Francisco',
+      state: 'CA',
+      lat: 37.76,
+      lng: -122.39,
+    });
+  });
+
+  it('GET /users/:id still works by uuid and includes a null handle', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      displayName: 'Owner',
+    });
+
+    const res = await request(app).get(`/users/${ownerId}`).expect(200);
+    expect(res.body).toMatchObject({ id: ownerId, handle: null });
+  });
+
+  it('GET /users/:id resolves a handle (with or without @)', async () => {
+    const { app, container } = createTestAppWithContainer();
+    const user = container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      displayName: 'Owner',
+      handle: 'brendan',
+    });
+    await container.userRepository.save(user);
+
+    const byHandle = await request(app).get('/users/brendan').expect(200);
+    expect(byHandle.body).toMatchObject({
+      id: ownerId,
+      handle: 'brendan',
+      displayName: 'Owner',
+    });
+
+    const withSigil = await request(app).get('/users/@brendan').expect(200);
+    expect(withSigil.body.id).toBe(ownerId);
+  });
+
+  it('PUT /users/:id claims a handle, normalizes case, and rejects duplicates', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    const other = container.seedUser({
+      id: otherId,
+      email: 'other@example.com',
+      handle: 'taken',
+    });
+    await container.userRepository.save(other);
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const claimed = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ handle: ' Brendan ' })
+      .expect(200);
+    expect(claimed.body.handle).toBe('brendan');
+
+    const renamed = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ handle: 'brendan_p' })
+      .expect(200);
+    expect(renamed.body.handle).toBe('brendan_p');
+
+    const taken = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ handle: 'taken' })
+      .expect(409);
+    expect(taken.body.error.code).toBe('HANDLE_TAKEN');
+  });
+
+  it('PUT /users/:id maps a handle unique-index race to HANDLE_TAKEN', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    const save = container.userRepository.save.bind(container.userRepository);
+    container.userRepository.save = async (user) => {
+      if (user.handle === 'race') {
+        throw new Error(
+          'Supabase request failed (409): {"code":"23505","message":"duplicate key value violates unique constraint \\"users_handle_unique\\""}'
+        );
+      }
+      return save(user);
+    };
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const res = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ handle: 'race' })
+      .expect(409);
+    expect(res.body.error.code).toBe('HANDLE_TAKEN');
+  });
+
+  it('PUT /users/:id rejects invalid and blocklisted handles', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+
+    const invalid = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ handle: '-nope' })
+      .expect(400);
+    expect(invalid.body.error.code).toBe('HANDLE_INVALID');
+
+    const blocklisted = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ handle: 'Admin' })
+      .expect(400);
+    expect(blocklisted.body.error.code).toBe('HANDLE_BLOCKLISTED');
+    expect(blocklisted.body.error.message).toMatch(/reserved/i);
+  });
+
+  it('PUT /users/:id rejects a non-string handle', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+
+    const res = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ handle: 1 })
+      .expect(400);
+    expect(res.body.error.code).toBe('USER_INVALID_INPUT');
+  });
+
+  it('PUT /users/:id by handle updates the owner and forbids others', async () => {
+    const { app, container } = createTestAppWithContainer();
+    const user = container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      handle: 'brendan',
+    });
+    await container.userRepository.save(user);
+    container.seedUser({ id: otherId, email: 'other@example.com' });
+
+    const ownerToken = await createAuthToken(ownerId, 'owner@example.com');
+    const own = await request(app)
+      .put('/users/brendan')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ displayName: 'Brendan' })
+      .expect(200);
+    expect(own.body).toMatchObject({ id: ownerId, handle: 'brendan', displayName: 'Brendan' });
+
+    const otherToken = await createAuthToken(otherId, 'other@example.com');
+    const forbidden = await request(app)
+      .put('/users/brendan')
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ displayName: 'Nope' })
+      .expect(403);
+    expect(forbidden.body.error.code).toBe('USER_FORBIDDEN');
+  });
+
+  it('an avatar-only PUT leaves the handle untouched', async () => {
+    const { app, container } = createTestAppWithContainer();
+    const user = container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      handle: 'brendan',
+    });
+    await container.userRepository.save(user);
+
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+    const res = await request(app)
+      .put(`/users/${ownerId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ avatarUrl: 'https://cdn.example.com/me.jpg' })
+      .expect(200);
+
+    expect(res.body.handle).toBe('brendan');
+    expect(res.body.avatarUrl).toBe('https://cdn.example.com/me.jpg');
+  });
+});

@@ -64,9 +64,9 @@ describe('ResultError', () => {
   });
 
   describe('toPrimitives', () => {
-    it('serializes code and message only when metadata is absent', () => {
+    it('serializes code, message, and default status when metadata is absent', () => {
       const err = ResultError.create('C', 'M');
-      expect(err.toPrimitives()).toEqual({ code: 'C', message: 'M' });
+      expect(err.toPrimitives()).toEqual({ code: 'C', message: 'M', status: 500 });
     });
 
     it('includes metadata when present', () => {
@@ -74,8 +74,15 @@ describe('ResultError', () => {
       expect(err.toPrimitives()).toEqual({
         code: 'C',
         message: 'M',
+        status: 500,
         metadata: { id: '99' },
       });
+    });
+
+    it('preserves explicit status', () => {
+      const err = ResultError.create('C', 'M', 404);
+      expect(err.status).toBe(404);
+      expect(err.withMetadata({ id: 1 }).status).toBe(404);
     });
   });
 });

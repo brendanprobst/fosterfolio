@@ -51,3 +51,27 @@ agents:
     scope: attach-via-rules
     command: janitor
 
+  - id: session
+    path: prompts/session.md
+    description: "Session close-out — /session or @Rules after a stretch of agent work to re-review files touched, take a brain dump, and commit a session-log stop with a SESSION trailer"
+    scope: attach-via-rules
+    command: session
+
+  - id: session-review
+    path: prompts/session-review.md
+    description: "Session review — /session-review or @Rules to re-read every file from a work session across chats and git history, without editing"
+    scope: attach-via-rules
+    command: session-review
+
+  - id: session-fix
+    path: prompts/session-fix.md
+    description: "Session fix — /session-fix or @Rules to apply only the quick fixes from a session review"
+    scope: attach-via-rules
+    command: session-fix
+
+  - id: session-next
+    path: prompts/session-next.md
+    description: "Session next — /session-next or @Rules to append the session stop to docs/plans/sessions/log.md and commit it with a SESSION trailer"
+    scope: attach-via-rules
+    command: session-next
+

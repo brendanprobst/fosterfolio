@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { RequestWithUser } from '@api/auth/types';
+import { RequestWithOptionalUser, RequestWithUser } from '@api/auth/types';
 import { Logger } from '@api/utils/logger';
 
 const DEFAULT_AUDIENCE = 'authenticated';
@@ -42,7 +42,7 @@ function getSupabaseUrl(): string {
   return supabaseUrl;
 }
 
-function getBearerToken(req: Request): string | null {
+export function getBearerToken(req: Request): string | null {
   const authHeader = req.header('authorization');
   if (!authHeader) {
     return null;
@@ -143,18 +143,14 @@ async function verifyToken(token: string, options?: { ignoreExpiration?: boolean
   return verifyWithJwks(token, options);
 }
 
-export async function requireSupabaseAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const token = getBearerToken(req);
-  if (!token) {
-    logAuthWarning(req, 'missing bearer token', {
-      hasAuthorizationHeader: req.header('authorization') ? 'true' : 'false',
-    });
-    res.status(401).json({
-      error: { status: 401, message: 'Missing bearer token' },
-    });
-    return;
-  }
+type AuthenticateResult =
+  | { ok: true; user: { id: string; email: string | null } }
+  | { ok: false; status: 401; message: string };
 
+async function authenticateBearer(
+  req: Request,
+  token: string
+): Promise<AuthenticateResult> {
   try {
     const ignoreExpiration = shouldIgnoreExpirationForRequest(req);
     const payload = await verifyToken(token, { ignoreExpiration });
@@ -163,15 +159,11 @@ export async function requireSupabaseAuth(req: Request, res: Response, next: Nex
       logAuthWarning(req, 'token missing subject claim', {
         token: tokenFingerprint(token),
       });
-      res.status(401).json({
-        error: { status: 401, message: 'Token missing subject' },
-      });
-      return;
+      return { ok: false, status: 401, message: 'Token missing subject' };
     }
 
     const email = typeof payload.email === 'string' ? payload.email : null;
-    (req as RequestWithUser).user = { id: userId, email };
-    next();
+    return { ok: true, user: { id: userId, email } };
   } catch (error) {
     const decoded = jwt.decode(token) as JwtPayload | null;
     const decodedAudience = Array.isArray(decoded?.aud)
@@ -179,7 +171,9 @@ export async function requireSupabaseAuth(req: Request, res: Response, next: Nex
       : typeof decoded?.aud === 'string'
         ? decoded.aud
         : undefined;
-    const expectedIssuer = process.env.SUPABASE_JWT_ISSUER?.trim() || `${process.env.SUPABASE_URL?.trim() || '<missing-supabase-url>'}/auth/v1`;
+    const expectedIssuer =
+      process.env.SUPABASE_JWT_ISSUER?.trim() ||
+      `${process.env.SUPABASE_URL?.trim() || '<missing-supabase-url>'}/auth/v1`;
     logAuthWarning(req, 'token verification failed', {
       token: tokenFingerprint(token),
       reason: error instanceof Error ? error.message : 'unknown',
@@ -193,8 +187,57 @@ export async function requireSupabaseAuth(req: Request, res: Response, next: Nex
       hasJwtSecret: process.env.SUPABASE_JWT_SECRET?.trim() ? 'true' : 'false',
       usingJwksFallback: process.env.SUPABASE_JWT_SECRET?.trim() ? 'false' : 'true',
     });
-    res.status(401).json({
-      error: { status: 401, message: 'Invalid or expired token' },
-    });
+    return { ok: false, status: 401, message: 'Invalid or expired token' };
   }
+}
+
+/**
+ * Requires a valid Bearer JWT. Sets `req.user`.
+ * Prefer {@link createRequireAuth} so the email allowlist stack is included when enabled.
+ */
+export async function requireSupabaseAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const token = getBearerToken(req);
+  if (!token) {
+    logAuthWarning(req, 'missing bearer token', {
+      hasAuthorizationHeader: req.header('authorization') ? 'true' : 'false',
+    });
+    res.status(401).json({
+      error: { status: 401, message: 'Missing bearer token' },
+    });
+    return;
+  }
+
+  const result = await authenticateBearer(req, token);
+  if (!result.ok) {
+    res.status(result.status).json({
+      error: { status: result.status, message: result.message },
+    });
+    return;
+  }
+
+  (req as RequestWithUser).user = result.user;
+  next();
+}
+
+/**
+ * If Authorization is absent, continues as anonymous.
+ * If present, must be a valid JWT (invalid → 401) and sets `req.user`.
+ */
+export async function optionalSupabaseAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const token = getBearerToken(req);
+  if (!token) {
+    next();
+    return;
+  }
+
+  const result = await authenticateBearer(req, token);
+  if (!result.ok) {
+    res.status(result.status).json({
+      error: { status: result.status, message: result.message },
+    });
+    return;
+  }
+
+  (req as RequestWithOptionalUser).user = result.user;
+  next();
 }

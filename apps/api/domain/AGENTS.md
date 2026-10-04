@@ -9,14 +9,16 @@ Pure business logic: **entities**, **value objects**, **domain services**, **rep
 - No imports from `application/`, `infrastructure/`, `controllers/`, or `routes/`.
 - Express and I/O types stay out of here.
 - Expose behavior on entities; keep use cases thin orchestrators.
+- Domain errors live in `domain/errors/catalogs/<Domain>Errors.ts` with HTTP status on each `ResultError`. `ErrorCatalog` re-exports for compatibility.
+- Entities that leave the API expose `toPublicDto()` / `toOwnerDto()` (see `application/dtos/AGENTS.md`).
 
 ## Reference implementation
 
-The **`Thing`** aggregate (entity + `IThingRepository` + use cases) is the template vertical slice. ADRs under `docs/adr/` describe patterns generically; align new code with the Thing flow unless an ADR documents an alternative.
+**`User`** and **`Pet`** are the product reference aggregates (public vs owner DTOs, ownership checks, soft delete on pets). ADRs under `docs/adr/` describe patterns generically.
 
 ## Template slice
 
-Follow **`Thing`** end-to-end when adding a new aggregate: entity → `I*Repository` → in-memory adapter → use cases → DTOs → `Container` → controller → routes → Swagger → tests (`test/api/things.test.ts`).
+Follow **`Pet`** end-to-end when adding a new aggregate: entity → `I*Repository` → in-memory + Supabase adapters → use cases → composition module → controller → routes → Swagger → tests (`test/api/pets.test.ts`).
 
 ## Cursor
 

@@ -212,7 +212,7 @@ Then, only if something below changed since your last deploy:
 | Step | When needed |
 |------|-------------|
 | **Supabase → Auth → URL configuration** | Auth routes changed (e.g. `/login` → `/auth/sign-in`, forgot/reset password). Add redirect URLs for new paths. |
-| **Supabase SQL** | New files under `apps/api/supabase/migrations/` — apply per [Supabase migrations playbook](playbooks/supabase-migrations.md) |
+| **Supabase SQL** | New files under `supabase/migrations/` — apply with `npm run supabase:push` per [Supabase migrations playbook](playbooks/supabase-migrations.md) |
 | **Terraform** | Merge new keys from `terraform.tfvars.example` into existing `terraform.tfvars`; `npm run deploy:aws -- --auto-approve` or `npm run deploy:aws:web` if only static web changed |
 | **Browser smoke** | Sign-in, profile, Things against deployed URLs ([smoke test deployment guide](plans/smoke_test_deployment_guide.plan.md)) |
 

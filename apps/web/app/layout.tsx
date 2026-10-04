@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Fosterfolio",
-  description: "Fosterfolio web app (Next.js)",
+  description: "Public pet bios and QR collar tags for foster homes.",
 };
 
 export default function RootLayout({
@@ -26,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${geistSans.className} min-h-screen antialiased`}
       >
         <Providers>{children}</Providers>

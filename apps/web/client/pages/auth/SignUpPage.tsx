@@ -2,20 +2,20 @@
 
 import { friendlyAuthErrorMessage, useAuth } from "@client/auth";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
-import { Badge } from "@client/components/ui/badge";
 import { Button } from "@client/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@client/components/ui/card";
 import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
 import { Separator } from "@client/components/ui/separator";
 import { authPaths } from "@client/lib/constants/authPaths";
+import { isGoogleSsoEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { safeNextPath } from "@client/lib/safeNextPath";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type SubmitEvent, useMemo, useState } from "react";
 import { AuthPageShell } from "./AuthPageShell";
-import { getOauthProvider } from "./oauth";
+import { getOauthProvider, oauthProviderLabel } from "./oauth";
 import { SignedInCard } from "./SignedInCard";
 
 export function SignUpPage() {
@@ -29,6 +29,7 @@ export function SignUpPage() {
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const showGoogleSso = isGoogleSsoEnabled();
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,7 +40,7 @@ export function SignUpPage() {
     if (error) {
       setErrorMessage(friendlyAuthErrorMessage(error.message));
     } else {
-      setInfoMessage("Account created. Check your email if confirmation is required, then sign in.");
+      setInfoMessage("Account created. Check your email for a confirmation link, then sign in.");
     }
     setBusy(false);
   }
@@ -71,17 +72,18 @@ export function SignUpPage() {
     <AuthPageShell>
       <Card>
         <CardHeader>
-          <Badge variant="secondary" className="w-fit">Authentication</Badge>
           <CardTitle className="text-2xl">Create an account</CardTitle>
           <CardDescription>
-            Sign up with email or {getOauthProvider()}. Same security model as sign-in.
+            {showGoogleSso
+              ? `Sign up with your email, or continue with ${oauthProviderLabel()}.`
+              : "Sign up with your email."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {configError || errorMessage ? (
             <Alert variant="destructive">
               <AlertCircle />
-              <AlertTitle>Authentication note</AlertTitle>
+              <AlertTitle>Could not create account</AlertTitle>
               <AlertDescription>{configError || errorMessage}</AlertDescription>
             </Alert>
           ) : null}
@@ -135,18 +137,21 @@ export function SignUpPage() {
             </Link>
           </p>
 
-          <Separator />
-
-          <Button
-            className="w-full"
-            variant="outline"
-            type="button"
-            disabled={busy || loading}
-            onClick={handleSocialSignIn}
-          >
-            {busy ? <Loader2 className="animate-spin" /> : null}
-            Continue with {getOauthProvider()}
-          </Button>
+          {showGoogleSso ? (
+            <>
+              <Separator />
+              <Button
+                className="w-full"
+                variant="outline"
+                type="button"
+                disabled={busy || loading}
+                onClick={handleSocialSignIn}
+              >
+                {busy ? <Loader2 className="animate-spin" /> : null}
+                Continue with {oauthProviderLabel()}
+              </Button>
+            </>
+          ) : null}
         </CardContent>
       </Card>
     </AuthPageShell>

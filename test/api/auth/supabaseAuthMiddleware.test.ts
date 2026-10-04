@@ -1,8 +1,11 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { requireSupabaseAuth } from '@api/auth/supabaseAuthMiddleware';
+import {
+  optionalSupabaseAuth,
+  requireSupabaseAuth,
+} from '@api/auth/supabaseAuthMiddleware';
 import { Logger } from '@api/utils/logger';
-import type { RequestWithUser } from '@api/auth/types';
+import type { RequestWithOptionalUser, RequestWithUser } from '@api/auth/types';
 import { createAuthToken } from '../support/authToken';
 
 const ENV_KEYS = [
@@ -241,5 +244,89 @@ describe('requireSupabaseAuth', () => {
 
     expect(next).toHaveBeenCalled();
     expect(req.user.id).toBe('case-user');
+  });
+});
+
+describe('optionalSupabaseAuth', () => {
+  let envBackup: Record<string, string | undefined>;
+
+  beforeEach(() => {
+    jest.spyOn(Logger, 'warning').mockImplementation(() => {});
+    envBackup = {};
+    for (const k of ENV_KEYS) {
+      envBackup[k] = process.env[k];
+    }
+    process.env.SUPABASE_URL = 'https://test-project.supabase.co';
+    process.env.SUPABASE_JWT_SECRET = 'test-jwt-secret';
+    process.env.SUPABASE_JWT_ISSUER = 'https://test-project.supabase.co/auth/v1';
+    process.env.SUPABASE_JWT_AUDIENCE = 'authenticated';
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    for (const k of ENV_KEYS) {
+      const v = envBackup[k];
+      if (v === undefined) {
+        delete process.env[k];
+      } else {
+        process.env[k] = v;
+      }
+    }
+  });
+
+  function makeReq(authHeader: string | undefined): Request {
+    return {
+      method: 'GET',
+      path: '/pets/1',
+      header: jest.fn((name: string) => {
+        if (name.toLowerCase() === 'authorization') {
+          return authHeader;
+        }
+        return undefined;
+      }),
+    } as unknown as Request;
+  }
+
+  function makeRes(): Response & { status: jest.Mock; json: jest.Mock } {
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    return res as unknown as Response & { status: jest.Mock; json: jest.Mock };
+  }
+
+  it('continues anonymously when Authorization is missing', async () => {
+    const req = makeReq(undefined) as RequestWithOptionalUser;
+    const res = makeRes();
+    const next = jest.fn();
+
+    await optionalSupabaseAuth(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(req.user).toBeUndefined();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('attaches user when a valid token is present', async () => {
+    const token = await createAuthToken('opt-user', 'opt@example.com');
+    const req = makeReq(`Bearer ${token}`) as RequestWithOptionalUser;
+    const res = makeRes();
+    const next = jest.fn();
+
+    await optionalSupabaseAuth(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(req.user).toEqual({ id: 'opt-user', email: 'opt@example.com' });
+  });
+
+  it('rejects an invalid token with 401', async () => {
+    const req = makeReq('Bearer not-a-jwt');
+    const res = makeRes();
+    const next = jest.fn();
+
+    await optionalSupabaseAuth(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 });

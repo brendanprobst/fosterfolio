@@ -6,9 +6,14 @@ import { E2E_JWT_ISSUER, E2E_JWT_SECRET } from "./e2e/support/e2eAuthConstants";
 /** Repo root when tests are started via `npm run test:web:e2e` from the monorepo root. */
 const repoRoot = process.cwd();
 const e2eToken = createE2eAccessToken();
+/** Dedicated ports so Playwright never reuses a local `npm run dev` stack (that is not `LATTICE_E2E`). */
+const e2eApiPort = 3100;
+const e2eWebPort = 3101;
+const e2eApiOrigin = `http://127.0.0.1:${e2eApiPort}`;
+const e2eWebOrigin = `http://127.0.0.1:${e2eWebPort}`;
 
 /**
- * One stack for all E2E: API (in-memory Things + HS256 JWT) + Next.js (synthetic E2E session).
+ * One stack for all E2E: API (in-memory repositories + HS256 JWT) + Next.js (synthetic E2E session).
  * Auth-guard tests sign out first, then assert redirects (see `auth-guard.spec.ts`).
  */
 export default defineConfig({
@@ -20,7 +25,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://127.0.0.1:3001",
+    baseURL: e2eWebOrigin,
     trace: "on-first-retry",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
@@ -28,30 +33,31 @@ export default defineConfig({
     {
       command: "npm run dev -w @lattice/api",
       cwd: repoRoot,
-      url: "http://127.0.0.1:3000",
+      url: e2eApiOrigin,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: {
         ...process.env,
-        PORT: "3000",
-        // Force in-memory Things repo (see `Container`): do not inherit a dev machine's Supabase from `.env`.
+        PORT: String(e2eApiPort),
+        // Force in-memory repositories (see `Container`): do not inherit a dev machine's Supabase from `.env`.
         SUPABASE_URL: "",
         SUPABASE_SERVICE_ROLE_KEY: "",
         SUPABASE_JWT_SECRET: E2E_JWT_SECRET,
         SUPABASE_JWT_ISSUER: E2E_JWT_ISSUER,
         SUPABASE_JWT_AUDIENCE: "authenticated",
-        CORS_ORIGINS: "http://127.0.0.1:3001,http://localhost:3001",
+        CORS_ORIGINS: `${e2eWebOrigin},http://localhost:${e2eWebPort}`,
+        LATTICE_E2E: "1",
       },
     },
     {
-      command: "npm run dev -w @lattice/web",
-      cwd: repoRoot,
-      url: "http://127.0.0.1:3001",
+      command: `npx next dev --turbopack -p ${e2eWebPort}`,
+      cwd: path.join(repoRoot, "apps/web"),
+      url: e2eWebOrigin,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       env: {
         ...process.env,
-        NEXT_PUBLIC_API_URL: "http://127.0.0.1:3000",
+        NEXT_PUBLIC_API_URL: e2eApiOrigin,
         NEXT_PUBLIC_LATTICE_E2E: "1",
         NEXT_PUBLIC_LATTICE_E2E_ACCESS_TOKEN: e2eToken,
       },

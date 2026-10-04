@@ -56,6 +56,33 @@ const GLOBAL_AGENTS = [
     description: "Code janitor — attach with @Rules for audits, cleanup PRs, consistency, and hygiene",
     command: "janitor",
   },
+  {
+    id: "session",
+    prompt: "agents/prompts/session.md",
+    description:
+      "Session close-out — /session or @Rules after a stretch of agent work to re-review files touched, take a brain dump, and commit a session-log stop with a SESSION trailer",
+    command: "session",
+  },
+  {
+    id: "session-review",
+    prompt: "agents/prompts/session-review.md",
+    description:
+      "Session review — /session-review or @Rules to re-read every file from a work session across chats and git history, without editing",
+    command: "session-review",
+  },
+  {
+    id: "session-fix",
+    prompt: "agents/prompts/session-fix.md",
+    description: "Session fix — /session-fix or @Rules to apply only the quick fixes from a session review",
+    command: "session-fix",
+  },
+  {
+    id: "session-next",
+    prompt: "agents/prompts/session-next.md",
+    description:
+      "Session next — /session-next or @Rules to append the session stop to docs/plans/sessions/log.md and commit it with a SESSION trailer",
+    command: "session-next",
+  },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -142,6 +169,10 @@ Type \`/\` in Claude Code to attach a global expert:
 |---------|----------|
 | \`/debug\` | Investigating failures, flakes, or non-obvious errors |
 | \`/janitor\` | Consistency audits, dead code, dependency hygiene |
+| \`/session\` | Close out a stretch of work: re-review, brain dump, then a SESSION stop commit |
+| \`/session-review\` | Re-read the work session without editing |
+| \`/session-fix\` | Apply only the quick fixes from a session review |
+| \`/session-next\` | Append the session stop to the log and commit it with a SESSION trailer |
 
 ---
 _Managed by \`npm run use:claude\` / \`npm run agents:sync\`._

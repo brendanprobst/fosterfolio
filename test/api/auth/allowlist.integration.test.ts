@@ -53,22 +53,25 @@ describe('Email allowlist gate (integration)', () => {
     expect(res.body).toEqual({ id: 'user-friend', email: 'friend@example.com' });
   });
 
-  it('enforces allowlist on /things with the same shared middleware cache as /profile', async () => {
+  it('enforces allowlist on POST /pets with the same shared middleware cache as /profile', async () => {
     const { app, container } = createTestAppWithContainer();
     allowlistRepo(container).setAllowed(['friend@example.com']);
 
     const token = await createAuthToken('user-stranger', 'stranger@example.com');
     await request(app)
-      .get('/things')
+      .post('/pets')
       .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Mochi', species: 'dog' })
       .expect(403);
 
     const friendToken = await createAuthToken('user-friend', 'friend@example.com');
     await request(app)
-      .get('/things')
+      .post('/pets')
       .set('Authorization', `Bearer ${friendToken}`)
-      .expect(200);
+      .send({ name: 'Mochi', species: 'dog' })
+      .expect(201);
   });
+
 
   it('blocks tokens that have no email claim even when the JWT is valid', async () => {
     const { app, container } = createTestAppWithContainer();

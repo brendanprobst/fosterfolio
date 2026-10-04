@@ -107,22 +107,17 @@ variable "api_cors_extra_origins" {
   default     = ""
 }
 
-variable "things_table_name" {
-  description = "Supabase table name used by the API repository."
-  type        = string
-  default     = "things"
-}
-
 variable "email_allowlist_enabled" {
   description = <<-EOT
     When true, sets EMAIL_ALLOWLIST_ENABLED on the API Lambda so requireAllowedEmail
     checks public.allowed_emails on every authenticated API request.
     This does not enable the Supabase DB trigger — still run set_allowlist_enabled(true)
     in SQL for signup-time blocking (see docs/playbooks/email-allowlist.md).
-    Default is false so new scaffolds stay open until you opt in; set true when the DB gate and allowlist rows are ready.
+    Default is true for Fosterfolio private beta. Set false only if you need an open API
+    while the Supabase signup trigger is still off.
   EOT
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_budget_alerts" {

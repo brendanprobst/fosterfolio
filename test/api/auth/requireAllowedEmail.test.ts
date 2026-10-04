@@ -66,7 +66,7 @@ describe('requireAllowedEmail', () => {
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith({
-      error: { status: 403, code: 'EMAIL_NOT_APPROVED', message: 'Account email is not approved for access.' },
+      error: { status: 403, code: 'EMAIL_NOT_APPROVED', message: "This email isn't approved for Fosterfolio yet." },
     });
   });
 
