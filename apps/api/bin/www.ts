@@ -4,15 +4,37 @@
  * Module dependencies.
  */
 
-// Load environment variables from .env file
+import { existsSync } from 'fs';
+import path from 'path';
 import dotenv from 'dotenv';
-dotenv.config();
-
 import { createApp } from '@api/app';
 import { getAuthVerificationStartupInfo } from '@api/auth/supabaseAuthMiddleware';
 import debug from 'debug';
 import http from 'http';
 import { Logger } from '@api/utils/logger';
+
+// FOSTERFOLIO_ENV=prod loads only apps/api/.env.prod. The default dev
+// command loads the first of .env.dev, .env.local, .env.
+const apiRoot = existsSync(path.join(__dirname, '..', 'package.json'))
+  ? path.join(__dirname, '..')
+  : path.join(__dirname, '..', '..');
+const apiEnv = (process.env.FOSTERFOLIO_ENV || 'dev').trim();
+const envFile =
+  apiEnv === 'dev'
+    ? ['.env.dev', '.env.local', '.env']
+        .map((name) => path.join(apiRoot, name))
+        .find((full) => existsSync(full))
+    : path.join(apiRoot, `.env.${apiEnv}`);
+if (apiEnv !== 'dev' && !existsSync(envFile ?? '')) {
+  console.error(
+    `Refusing to start the ${apiEnv} API without apps/api/.env.${apiEnv}.`,
+  );
+  process.exit(1);
+}
+if (envFile && existsSync(envFile)) {
+  dotenv.config({ path: envFile, override: apiEnv !== 'dev' });
+  console.log(`API env file: ${path.basename(envFile)}`);
+}
 
 const app = createApp();
 
