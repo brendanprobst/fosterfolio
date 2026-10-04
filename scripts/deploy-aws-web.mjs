@@ -4,15 +4,16 @@
  *
  * Does **not** build the API Lambda bundle and does **not** run `terraform apply`.
  * Reads `api_url`, bucket, and distribution id from **existing** Terraform state
- * (run a full `npm run deploy:aws` at least once after infra changes).
+ * (run a full `npm run deploy:aws -- --env <env>` at least once after infra changes).
  *
  *   npm run deploy:aws:web
+ *   npm run deploy:aws:web -- --env prod
  *
  * `NEXT_PUBLIC_API_URL` is taken from Terraform output (same as full deploy).
  * `NEXT_PUBLIC_SUPABASE_*` must be set in the environment or loaded from
- * `apps/web/.env.local` / `apps/web/.env.production.local` (this script loads those files).
+ * `apps/web/.env.local` (dev) or `apps/web/.env.prod` (prod).
  *
- * Prerequisites: AWS CLI, Terraform, `terraform.tfvars` in `infra/terraform/envs/dev/`.
+ * Prerequisites: AWS CLI, Terraform, `terraform.tfvars` in `infra/terraform/envs/<env>/`.
  * See docs/deploy-aws.md.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -21,6 +22,32 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+function parseArgs(argv) {
+  const args = argv.slice(2);
+  const opts = { envName: "dev" };
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === "--env") {
+      opts.envName = args[++i];
+      if (!opts.envName) {
+        console.error("Missing value for --env");
+        process.exit(1);
+      }
+    } else if (a.startsWith("-")) {
+      console.error(`Unknown flag: ${a}`);
+      process.exit(1);
+    } else {
+      console.error(`Unexpected argument: ${a}`);
+      process.exit(1);
+    }
+  }
+  if (!/^[a-z0-9-]+$/.test(opts.envName)) {
+    console.error(`Refusing environment name: ${opts.envName}`);
+    process.exit(1);
+  }
+  return opts;
+}
 
 function loadEnvFile(relPath) {
   const full = join(root, relPath);
@@ -40,6 +67,16 @@ function loadEnvFile(relPath) {
     }
     if (process.env[key] === undefined) process.env[key] = val;
   }
+}
+
+function loadWebEnv(envName) {
+  if (envName === "prod") {
+    loadEnvFile("apps/web/.env.prod");
+    loadEnvFile("apps/web/.env.production.local");
+    return;
+  }
+  loadEnvFile("apps/web/.env.production.local");
+  loadEnvFile("apps/web/.env.local");
 }
 
 function run(cmd, args) {
@@ -67,14 +104,32 @@ function capture(cmd, args) {
   return (r.stdout || "").trim();
 }
 
-const tfDir = join(root, "infra/terraform/envs/dev");
-const chdir = `-chdir=${tfDir}`;
+function logPublicHosts() {
+  for (const [label, value] of [
+    ["Supabase host", process.env.NEXT_PUBLIC_SUPABASE_URL],
+    ["API host", process.env.NEXT_PUBLIC_API_URL],
+  ]) {
+    if (!value) continue;
+    try {
+      console.log(`→ ${label}: ${new URL(value).host}`);
+    } catch {
+      console.warn(`→ ${label}: NEXT_PUBLIC value is not a valid URL`);
+    }
+  }
+}
 
 function main() {
-  loadEnvFile("apps/web/.env.production.local");
-  loadEnvFile("apps/web/.env.local");
+  const opts = parseArgs(process.argv);
+  const tfDir = join(root, "infra/terraform/envs", opts.envName);
+  if (!existsSync(tfDir)) {
+    console.error(`No Terraform environment at infra/terraform/envs/${opts.envName}`);
+    process.exit(1);
+  }
+  const chdir = `-chdir=${tfDir}`;
 
-  console.log("→ terraform init (read outputs only; no apply)\n");
+  loadWebEnv(opts.envName);
+
+  console.log(`→ terraform init (${opts.envName}; read outputs only; no apply)\n`);
   run("terraform", [chdir, "init", "-input=false"]);
 
   const apiUrl = capture("terraform", [chdir, "output", "-raw", "api_url"]);
@@ -83,12 +138,15 @@ function main() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.warn(
       "\nWarning: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY are not set.\n" +
-        "Set them in the environment or in apps/web/.env.local before running this script.\n" +
+        "Set them with `infisical run --env=" +
+        opts.envName +
+        "` or in apps/web/.env.local / apps/web/.env.prod before running this script.\n" +
         "Web build may fail or point at the wrong Supabase project.\n",
     );
   }
 
   console.log(`→ NEXT_PUBLIC_API_URL=${apiUrl}`);
+  logPublicHosts();
   console.log("→ npm run web:build:static\n");
   run("npm", ["run", "web:build:static"]);
 

@@ -63,3 +63,9 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Infisical CLI project link from `infisical init` (workspace id, not a token)
+**/.infisical.json
+
+# Supabase CLI local cache (project ref, pooler URL, CA cert)
+supabase/.temp/
