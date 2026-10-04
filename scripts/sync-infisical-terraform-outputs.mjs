@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Write stable Terraform outputs into Infisical /shared.
+ * Write stable Terraform outputs into Infisical /fosterfolio/shared.
  *
  *   npm run infisical:sync-outputs -- --env dev
  *   npm run infisical:sync-outputs -- --env prod
  *
  * `npm run deploy:aws` calls this after a successful apply when `.infisical.json` exists.
  * GitHub Actions does not run Terraform, so it cannot do this write. Deploy app reads the
- * same keys back from /shared.
+ * same keys back from /fosterfolio/shared.
  *
- * Requires `infisical login` as a user who can write /shared. The GitHub machine identity
+ * Requires `infisical login` as a user who can write /fosterfolio/shared. The GitHub machine identity
  * is read-only and cannot run this script.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -78,7 +78,7 @@ function logSyncedKey(secretName, value) {
   console.log(`→ ${secretName}`);
 }
 
-function ensureSharedFolder(envName, id) {
+function ensureFolder(envName, id, name, parentPath) {
   const result = spawnSync(
     "infisical",
     [
@@ -86,9 +86,9 @@ function ensureSharedFolder(envName, id) {
       "folders",
       "create",
       "--name",
-      "shared",
+      name,
       "--path",
-      "/",
+      parentPath,
       "--env",
       envName,
       "--projectId",
@@ -101,8 +101,14 @@ function ensureSharedFolder(envName, id) {
   const detail = `${result.stderr || ""}\n${result.stdout || ""}`;
   if (/already exists/i.test(detail)) return;
   if (result.error) console.error(result.error.message);
-  console.error(detail.trim() || "Could not create Infisical folder /shared");
+  const full = parentPath === "/" ? `/${name}` : `${parentPath}/${name}`;
+  console.error(detail.trim() || `Could not create Infisical folder ${full}`);
   process.exit(result.status ?? 1);
+}
+
+function ensureSharedFolder(envName, id) {
+  ensureFolder(envName, id, "fosterfolio", "/");
+  ensureFolder(envName, id, "shared", "/fosterfolio");
 }
 
 function main() {
@@ -139,7 +145,7 @@ function main() {
       "--env",
       env,
       "--path",
-      "/shared",
+      "/fosterfolio/shared",
       "--projectId",
       id,
       "--silent",
@@ -151,7 +157,7 @@ function main() {
     process.exit(1);
   }
   if (result.status !== 0) process.exit(result.status ?? 1);
-  console.log(`Wrote ${pairs.length} Terraform outputs to Infisical /shared (${env}).`);
+  console.log(`Wrote ${pairs.length} Terraform outputs to Infisical /fosterfolio/shared (${env}).`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
