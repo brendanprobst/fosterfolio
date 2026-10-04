@@ -6,10 +6,11 @@
 - **`plans/`** — Runbooks and backlogs (e.g. [open TODO](plans/todo.md), [smoke test deployment](plans/smoke_test_deployment_guide.plan.md), [template completeness backlog](plans/template_completeness_backlog.plan.md)).
 - **[Scaffold workflow](scaffold-workflow.md)** — New repo + clone + `npm run scaffold`; **[refresh an existing spawn](scaffold-workflow.md#refresh-an-existing-spawn-re-sync-from-template)** re-syncs a long-lived fork from a local template checkout (`.lattice/refresh.json` in the target repo).
 - **[Repo feature flags](repo-features.md)** — `config/repo-features.json`: enable/disable CI jobs and Dependabot from the start.
-- **[Deploy to AWS](deploy-aws.md)** — `npm run deploy:aws` and the manual **Deploy (AWS)** GitHub workflow.
+- **[Deploy to AWS](deploy-aws.md)** — `npm run deploy:aws` on a laptop (Terraform + site + Lambda) and the manual **Deploy app** workflow (site and Lambda, no Terraform).
 - **[Route 53 custom domain](playbooks/route53-custom-domain.md)** — Optional HTTPS hostname, ACM, registrar nameservers.
 - **[PostHog analytics](playbooks/posthog-analytics.md)** — Optional, feature-flagged web analytics (`@lattice/web`).
 - **[Email allowlist](playbooks/email-allowlist.md)** — Optional private-app signup and API gate.
+- **[Infisical and GitHub deploys](playbooks/infisical-github-deploys.md)** — Fosterfolio setup for the shared Infisical vault and a later manual GitHub deploy. Generic steps for the next app are in the template playbook of the same name.
 - **[Google SSO](playbooks/google-sso.md)** — Supabase OAuth provider, Google Cloud client, redirect URLs, allowlist interaction.
 - **[Private beta](playbooks/private-beta.md)** — Fosterfolio Checkpoint 7: allowlist SQL, Terraform/SSM/CloudFront apply, Playwright + `npm run smoke`.
 - **[Prod standup](playbooks/prod-standup.md)** — New Supabase project (schema only) and local `envs/prod` Terraform. CLI deploy. Google SSO is out of go-live.

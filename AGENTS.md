@@ -10,7 +10,7 @@
 - **`apps/web/`** — Next.js `app/` routes; feature code under `client/` (see `apps/web/AGENTS.md`).
 - **`test/`** — Automated tests: **`test/api/`** (Jest), **`test/web/`** (Vitest + Playwright). See [`test/AGENTS.md`](test/AGENTS.md).
 - **`config/`** — **`repo-features.json`**: CI / Dependabot toggles (see [`docs/repo-features.md`](docs/repo-features.md)).
-- **Deploy** — **`npm run deploy:aws`** and **[`docs/deploy-aws.md`](docs/deploy-aws.md)** (Terraform + Lambda + static web + S3); optional GitHub Actions workflow **Deploy (AWS)**.
+- **Deploy** — **`npm run deploy:aws`** and **[`docs/deploy-aws.md`](docs/deploy-aws.md)** (laptop Terraform + Lambda + static web + S3); GitHub **Deploy app** for site and Lambda only.
 - **`docs/`** — Architecture decision records (ADRs).
 - **`infra/terraform/`** — AWS Terraform; Supabase URL/keys from **`terraform.tfvars`** → optional **SSM** (see [`infra/AGENTS.md`](infra/AGENTS.md)).
 - **`supabase/`** — Schema migrations (**`npm run supabase:push`**) and dev seed data (**`npm run supabase:seed`**); see [`supabase/AGENTS.md`](supabase/AGENTS.md).

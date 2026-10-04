@@ -3,7 +3,7 @@
  * Deploy API (Lambda bundle) + Terraform (AWS infra) + static web build + S3 sync.
  *
  * Order: build Lambda → terraform apply → read api_url → build web (NEXT_PUBLIC_API_URL from Terraform)
- * → aws s3 sync → cloudfront invalidation. Supabase NEXT_PUBLIC_* come from apps/web/.env.<env>.
+ * → aws s3 sync → cloudfront invalidation. Supabase NEXT_PUBLIC_* come from Infisical or apps/web/.env.<env>.
  *
  *   npm run deploy:aws
  *   npm run deploy:aws -- --env prod
@@ -79,6 +79,20 @@ function capture(cmd, args) {
   return (r.stdout || "").trim();
 }
 
+function logPublicHosts() {
+  for (const [label, value] of [
+    ["Supabase host", process.env.NEXT_PUBLIC_SUPABASE_URL],
+    ["API host", process.env.NEXT_PUBLIC_API_URL],
+  ]) {
+    if (!value) continue;
+    try {
+      console.log(`→ ${label}: ${new URL(value).host}`);
+    } catch {
+      console.warn(`→ ${label}: NEXT_PUBLIC value is not a valid URL`);
+    }
+  }
+}
+
 function main() {
   const opts = parseArgs(process.argv);
   const tfDir = terraformDir(root, opts.env);
@@ -90,7 +104,7 @@ function main() {
     run("npm", ["run", "api:build:lambda"]);
   }
 
-  console.log("→ terraform init\n");
+  console.log(`→ terraform init (${opts.env})\n`);
   run("terraform", [chdir, "init", "-input=false"]);
 
   if (opts.planOnly) {
@@ -112,6 +126,7 @@ function main() {
 
   console.log("→ terraform apply\n");
   run("terraform", applyArgs);
+  syncInfisicalOutputs(opts.env);
 
   if (opts.skipWeb) {
     console.log("\nSkipped web build and S3 sync (--skip-web).");
@@ -127,12 +142,16 @@ function main() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.warn(
       "\nWarning: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY are not set.\n" +
-        "Set them in apps/web/.env.prod (or the dev env file for a dev deploy).\n" +
+        "Set them with `infisical run --env=" +
+        opts.env +
+        "` or in apps/web/.env." +
+        (opts.env === "dev" ? "{dev,local}" : opts.env) +
+        " before running this script.\n" +
         "Web build may fail or point at the wrong Supabase project.\n",
     );
   }
 
-  console.log(`→ NEXT_PUBLIC_API_URL=${apiUrl}`);
+  logPublicHosts();
   console.log("→ npm run web:build:static\n");
   run("npm", ["run", "web:build:static"]);
 
@@ -155,10 +174,48 @@ function main() {
     distributionId,
     "--paths",
     "/*",
-  ]); 
-  
+  ]);
+
   console.log("\nDeploy finished.");
   printOutputs(chdir);
+}
+
+function syncInfisicalOutputs(envName) {
+  if (process.env.GITHUB_ACTIONS) {
+    console.log("→ skip Infisical output sync (GitHub Actions)\n");
+    return;
+  }
+  if (!existsSync(join(root, ".infisical.json"))) {
+    console.log("→ skip Infisical output sync (no .infisical.json)\n");
+    return;
+  }
+  const check = spawnSync("infisical", ["--version"], {
+    cwd: root,
+    encoding: "utf8",
+    shell: false,
+  });
+  if (check.error || check.status !== 0) {
+    console.warn(
+      "→ skip Infisical output sync (install the Infisical CLI and run `infisical login`)\n",
+    );
+    return;
+  }
+  console.log(`→ sync Terraform outputs to Infisical /shared (${envName})\n`);
+  const result = spawnSync(
+    "node",
+    ["scripts/sync-infisical-terraform-outputs.mjs", "--env", envName],
+    {
+      cwd: root,
+      stdio: "inherit",
+      env: process.env,
+      shell: false,
+    },
+  );
+  if (result.error || result.status !== 0) {
+    console.warn(
+      `\nInfisical output sync failed. Apply already finished. Re-run:\n  npm run infisical:sync-outputs -- --env ${envName}\n`,
+    );
+  }
 }
 
 function printOutputs(chdir) {

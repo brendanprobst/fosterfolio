@@ -4,7 +4,7 @@
  *
  * Does **not** build the API Lambda bundle and does **not** run `terraform apply`.
  * Reads `api_url`, bucket, and distribution id from **existing** Terraform state
- * (run a full `npm run deploy:aws` at least once after infra changes).
+ * (run a full `npm run deploy:aws -- --env <env>` at least once after infra changes).
  *
  *   npm run deploy:aws:web
  *   npm run deploy:aws:web -- --env prod
@@ -49,6 +49,20 @@ function capture(cmd, args) {
   return (r.stdout || "").trim();
 }
 
+function logPublicHosts() {
+  for (const [label, value] of [
+    ["Supabase host", process.env.NEXT_PUBLIC_SUPABASE_URL],
+    ["API host", process.env.NEXT_PUBLIC_API_URL],
+  ]) {
+    if (!value) continue;
+    try {
+      console.log(`→ ${label}: ${new URL(value).host}`);
+    } catch {
+      console.warn(`→ ${label}: NEXT_PUBLIC value is not a valid URL`);
+    }
+  }
+}
+
 function main() {
   const { env, argv } = takeEnvArg(process.argv.slice(2));
   if (argv.length > 0) {
@@ -60,7 +74,7 @@ function main() {
   console.log(`→ env ${env} (${tfDir})\n`);
   loadWebEnv(root, env);
 
-  console.log("→ terraform init (read outputs only; no apply)\n");
+  console.log(`→ terraform init (${env}; read outputs only; no apply)\n`);
   run("terraform", [chdir, "init", "-input=false"]);
 
   const apiUrl = capture("terraform", [chdir, "output", "-raw", "api_url"]);
@@ -69,12 +83,16 @@ function main() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.warn(
       "\nWarning: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY are not set.\n" +
-        "Set them in apps/web/.env.prod (or the dev env file for a dev deploy).\n" +
+        "Set them with `infisical run --env=" +
+        env +
+        "` or in apps/web/.env." +
+        (env === "dev" ? "{dev,local}" : env) +
+        " before running this script.\n" +
         "Web build may fail or point at the wrong Supabase project.\n",
     );
   }
 
-  console.log(`→ NEXT_PUBLIC_API_URL=${apiUrl}`);
+  logPublicHosts();
   console.log("→ npm run web:build:static\n");
   run("npm", ["run", "web:build:static"]);
 
