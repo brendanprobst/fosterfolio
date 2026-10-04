@@ -26,7 +26,7 @@ The laptop script order is: **build API Lambda bundle → `terraform apply` → 
 | `npm run deploy:aws -- --auto-approve` | Non-interactive apply (required in CI and headless shells). |
 | `npm run deploy:aws:web` | Static web only for `envs/dev`: build, S3 sync, CloudFront invalidation (no Lambda build, no `terraform apply`). |
 | `npm run deploy:aws:web -- --env prod` | Static web only against prod Terraform outputs. |
-| `npm run infisical:sync-outputs -- --env <env>` | Write bucket, distribution, Lambda name, and API URL from Terraform state into Infisical `/shared`. |
+| `npm run infisical:sync-outputs -- --env <env>` | Write bucket, distribution, Lambda name, and API URL from Terraform state into Infisical `/fosterfolio/shared`. |
 
 Always pass **`--auto-approve`** for non-interactive full deploys.
 
@@ -40,7 +40,7 @@ infisical run --env=prod -- npm run deploy:aws -- --env prod
 infisical run --env=prod -- npm run deploy:aws:web -- --env prod
 ```
 
-The script prints the Supabase host and the API host before the web build. After a successful apply, it writes `WEB_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `LAMBDA_FUNCTION_NAME`, and `NEXT_PUBLIC_API_URL` to Infisical `/shared` for that environment. That write uses your Infisical login. GitHub Actions does not run it.
+The script prints the Supabase host and the API host before the web build. After a successful apply, it writes `WEB_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `LAMBDA_FUNCTION_NAME`, and `NEXT_PUBLIC_API_URL` to Infisical `/fosterfolio/shared` for that environment. That write uses your Infisical login. GitHub Actions does not run it.
 
 If the Infisical CLI is missing or the write fails, the deploy still finishes. Re-run `npm run infisical:sync-outputs -- --env <env>`. Keep `terraform.tfvars` on disk; Terraform still reads the service role from that file.
 
@@ -48,9 +48,9 @@ If the Infisical CLI is missing or the write fails, the deploy still finishes. R
 
 Workflow: **`.github/workflows/deploy-app.yml`** (**Actions → Deploy app → Run workflow**). Manual only. It does not apply Terraform and does not read `terraform.tfstate`.
 
-Pick `dev` or `prod`. The job uses the GitHub environment of the same name, so a dev run cannot read prod secrets. Any branch can deploy **dev**. **Prod** only runs from **`main`**. `/flags` is optional; missing flags stay off.
+Pick `dev` or `prod`. The job uses the GitHub environment of the same name, so a dev run cannot read prod secrets. Any branch can deploy **dev**. **Prod** only runs from **`main`**. `/fosterfolio/flags` is optional; missing flags stay off.
 
-Secrets and variables for that environment are listed in [`docs/playbooks/infisical-github-deploys.md`](playbooks/infisical-github-deploys.md). The job reads Supabase keys, optional feature flags, and the Terraform outputs (`WEB_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `LAMBDA_FUNCTION_NAME`, `NEXT_PUBLIC_API_URL`) from Infisical `/shared` and `/flags`. `npm run infisical:sync-outputs` writes those outputs after a laptop apply. The only GitHub variable is `INFISICAL_PROJECT_ID`.
+Secrets and variables for that environment are listed in [`docs/playbooks/infisical-github-deploys.md`](playbooks/infisical-github-deploys.md). The job reads Supabase keys, optional feature flags, and the Terraform outputs (`WEB_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `LAMBDA_FUNCTION_NAME`, `NEXT_PUBLIC_API_URL`) from Infisical `/fosterfolio/shared` and `/fosterfolio/flags`. `npm run infisical:sync-outputs` writes those outputs after a laptop apply. The only GitHub variable is `INFISICAL_PROJECT_SLUG`.
 
 ## See also
 
