@@ -200,7 +200,7 @@ function syncInfisicalOutputs(envName) {
     );
     return;
   }
-  console.log(`→ sync Terraform outputs to Infisical /shared (${envName})\n`);
+  console.log(`→ sync Terraform outputs to Infisical /fosterfolio/shared (${envName})\n`);
   const result = spawnSync(
     "node",
     ["scripts/sync-infisical-terraform-outputs.mjs", "--env", envName],
