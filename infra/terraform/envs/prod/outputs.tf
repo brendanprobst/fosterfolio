@@ -72,3 +72,18 @@ output "api_resume_schedule_name" {
   description = "EventBridge Scheduler name for API resume (if enabled)."
   value       = try(aws_scheduler_schedule.api_resume[0].name, null)
 }
+
+output "ses_smtp_host" {
+  description = "SES SMTP host for Supabase Auth, when enable_ses_smtp is true."
+  value       = try(module.ses_smtp[0].smtp_host, null)
+}
+
+output "ses_smtp_from_email" {
+  description = "From address SES is set up to send as, when enable_ses_smtp is true."
+  value       = try(module.ses_smtp[0].from_email, null)
+}
+
+output "ses_smtp_supabase_configured" {
+  description = "True when this environment pushed SMTP settings to Supabase Auth."
+  value       = try(module.ses_smtp[0].supabase_auth_smtp_configured, false)
+}

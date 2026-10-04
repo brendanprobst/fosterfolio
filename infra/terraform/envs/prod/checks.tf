@@ -18,6 +18,21 @@ check "web_custom_domain_route53" {
   }
 }
 
+check "ses_smtp_config" {
+  assert {
+    condition = !var.enable_ses_smtp || (
+      var.ses_domain != null &&
+      trimspace(var.ses_domain) != "" &&
+      var.ses_from_email != null &&
+      endswith(lower(trimspace(var.ses_from_email)), "@${lower(trimspace(var.ses_domain))}") &&
+      trimspace(var.ses_from_name) != "" &&
+      local.route53_zone_id != null &&
+      trimspace(local.route53_zone_id) != ""
+    )
+    error_message = "enable_ses_smtp requires ses_domain, an ses_from_email on that domain, ses_from_name, and a Route 53 zone (create_route53_hosted_zone or route53_hosted_zone_id)."
+  }
+}
+
 check "route53_create_not_with_existing_zone_id" {
   assert {
     condition = !(
