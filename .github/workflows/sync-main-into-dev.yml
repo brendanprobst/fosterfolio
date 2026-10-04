@@ -1,0 +1,53 @@
+# Keep git branch `dev` current with `main` so Actions "Use workflow from: dev"
+# sees the same workflow files as main. Does not deploy.
+# If `dev` has unique commits, this is a real merge and will fail on conflicts.
+
+name: Sync main into dev
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-main-into-dev
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: merge main into dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge main into dev
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+
+          if git ls-remote --exit-code --heads origin dev >/dev/null; then
+            git fetch origin dev
+            git checkout -B dev origin/dev
+          else
+            echo "origin/dev does not exist; creating it from main."
+            git checkout -B dev origin/main
+            git push origin HEAD:dev
+            exit 0
+          fi
+
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "dev already contains main."
+            exit 0
+          fi
+
+          git merge --no-edit origin/main
+          git push origin HEAD:dev
