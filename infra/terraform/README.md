@@ -55,7 +55,7 @@ Create the bucket and table **once** (often manually or a tiny bootstrap stack),
 
 ### 5. GitHub Actions (optional): deploy from CI without long-lived keys
 
-This repo’s default **CI** job does **not** deploy to AWS (`terraform validate` uses `-backend=false` and needs no cloud credentials). For a **manual** deploy from GitHub (OIDC, no long-lived keys in secrets), use the **Deploy (AWS)** workflow and **`npm run deploy:aws`** — see **[`docs/deploy-aws.md`](../../docs/deploy-aws.md)**.
+This repo’s default **CI** job does **not** deploy to AWS (`terraform validate` uses `-backend=false` and needs no cloud credentials). Apply Terraform on a laptop with **`npm run deploy:aws`**. GitHub **Deploy app** updates the site and Lambda only (OIDC, no Terraform) — see **[`docs/deploy-aws.md`](../../docs/deploy-aws.md)**.
 
 In AWS, create an **IAM role** whose **trust policy** allows `sts:AssumeRoleWithWebIdentity` for your **repository** (narrow by `sub` / environment as needed). References: [GitHub OIDC with AWS](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services), [AWS IAM OIDC provider for GitHub](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html).
 

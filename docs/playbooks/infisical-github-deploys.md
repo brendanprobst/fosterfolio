@@ -14,13 +14,16 @@ Progress on each step: `not started`, `in progress`, or `done`.
 | Infisical project | `fosterfolio` |
 | Environments | `dev`, `prod` |
 | Machine identity | `github-fosterfolio` |
-| Git branch that ships | `mvp` |
+| Deploy targets | `dev`, `prod` |
+| Prod GitHub deploys from | `main` |
 | Dev site | `https://dev.fosterfolio.com` |
 | Prod site | `https://fosterfolio.com` |
 | Dev Supabase ref | `qrttmonymvsibqyryqpt` |
 | Prod Supabase ref | `xjafaxktmpjycuakyouv` |
 | AWS account | `537124980154` |
 | IAM role to create | `lattice-gha-deploy` |
+
+Fosterfolio used a git branch named `mvp` for early product work. That name is legacy. Environments and GitHub deploys are `dev` and `prod`. Prod GitHub deploys run from `main`.
 
 Copy only these web keys from `apps/web/.env.local` (dev) and `apps/web/.env.prod` (prod): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the three flags. Copy only `SUPABASE_DB_URL` from `supabase/.env.local` and `supabase/.env.prod`. Do not paste `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, or the service role. The service role stays in `infra/terraform/envs/<env>/terraform.tfvars` and in SSM.
 
@@ -60,7 +63,7 @@ Progress: done
 
 1. Install the Infisical CLI from [https://infisical.com/docs/cli/overview](https://infisical.com/docs/cli/overview).
 2. In this repo, run `infisical login` and choose `lattice`.
-3. Run `infisical init` at the repo root so `.infisical.json` holds the project id. Commit that root file. Do not init inside `infra/terraform/envs/*`.
+3. Run `infisical init` at the repo root so `.infisical.json` holds the project id. Do not commit it (gitignored). Do not init inside `infra/terraform/envs/*`.
 4. On the Infisical project settings page, copy the project id.
 5. Run:
 
@@ -141,6 +144,6 @@ npm run deploy:aws -- --env prod
 2. The job uses the GitHub environment of the same name, assumes `lattice-gha-deploy`, loads `/shared` (required) and `/flags` (optional; missing flags stay off) from Infisical, uploads the static site, invalidates CloudFront, and updates the Lambda zip.
 3. It does not run Terraform and does not read `terraform.tfstate`.
 4. The log prints the Supabase host and the API host. Confirm the dev host, then load `https://dev.fosterfolio.com` before the first prod run.
-5. Leave `.github/workflows/deploy-aws.yml` unused. It applies Terraform for `envs/dev` and expects `TERRAFORM_TFVARS`.
+5. Terraform apply stays on the laptop (`npm run deploy:aws`). GitHub only runs **Deploy app**.
 
 Remote Terraform state, then Terraform in GitHub, is a follow-up. Template backlog items F5 and F2b.

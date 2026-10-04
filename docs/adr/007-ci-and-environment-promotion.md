@@ -24,8 +24,8 @@ We also expect many downstream projects to eventually require multi-environment 
 
 - Deployment is **manual by command**, not automatic by push to `main`.
 - The template ships **`npm run deploy:aws`** (API Lambda bundle, Terraform apply, static web build with `NEXT_PUBLIC_API_URL` from Terraform output, `aws s3 sync`) — see [`docs/deploy-aws.md`](../deploy-aws.md).
-- An optional **GitHub Actions** workflow **Deploy (AWS)** runs only via **workflow_dispatch** (never on every commit); it uses OIDC and the same deploy script, including `terraform apply` for `envs/dev`.
-- **Deploy app** (`.github/workflows/deploy-app.yml`) is the site-and-Lambda path. It is also `workflow_dispatch` only, chooses `dev` or `prod`, and does not run Terraform. Setup is [`docs/playbooks/infisical-github-deploys.md`](../playbooks/infisical-github-deploys.md).
+- **Deploy app** (`.github/workflows/deploy-app.yml`) is the GitHub path. It is `workflow_dispatch` only, chooses `dev` or `prod`, and does not run Terraform. Any branch may deploy `dev`; `prod` runs from `main` only. Setup is [`docs/playbooks/infisical-github-deploys.md`](../playbooks/infisical-github-deploys.md).
+- Terraform apply stays on a laptop (`npm run deploy:aws`). GitHub does not receive `TERRAFORM_TFVARS`.
 - Support remains for **per-layer** steps if you do not use the single command.
 
 ### Environment promotion policy
