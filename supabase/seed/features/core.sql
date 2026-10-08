@@ -1,13 +1,13 @@
 -- Fosterfolio development seed data.
 --
---   npm run supabase:seed          -- apply (Management API, uses supabase/.env.local)
---   npm run supabase:seed:down     -- remove every row this file created
+--   npm run supabase:seed          -- apply every feature seed, including this file
+--   npm run supabase:seed:down     -- remove every row the feature seeds created
 --
 -- Or paste this whole file into the Supabase SQL editor. Run it as ONE batch:
 -- Postgres wraps a multi-statement batch in a single implicit transaction, so a
 -- failure part-way through rolls everything back.
 --
--- NOT a migration. It lives outside supabase/migrations/ on purpose so
+-- NOT a migration. It lives in supabase/seed/features/ on purpose so
 -- `supabase db push` can never apply it to a production project.
 --
 -- ---------------------------------------------------------------------------
@@ -53,7 +53,7 @@
 -- * Every id starts with `f05e` ("foster seed"), so seeded rows are greppable
 --   in the dashboard and countable in the summary at the bottom of this file.
 -- * Every email ends in `@seed.fosterfolio.test`, the single predicate
---   `dev_seed_down.sql` uses for teardown.
+--   `core_down.sql` uses for teardown.
 -- * Re-running is safe: every insert upserts, and `created_at` values are
 --   relative to `now()`, so the feed always looks freshly posted.
 
@@ -151,6 +151,7 @@ begin
         ('f05e0000-0000-4000-8000-000000000006'::uuid, 'mia.minimal@seed.fosterfolio.test',    null)
     ) as t(id, email, display_name)
   loop
+    begin
     -- The empty-string token columns are deliberate: GoTrue scans them into
     -- non-nullable Go strings, and NULLs there break sign-in.
     insert into auth.users (
@@ -223,6 +224,12 @@ begin
     on conflict (provider_id, provider) do update
       set identity_data = excluded.identity_data,
           updated_at    = now();
+    exception
+      when insufficient_privilege then
+        raise;
+      when foreign_key_violation or unique_violation or check_violation then
+        null;
+    end;
   end loop;
 exception
   when insufficient_privilege then
@@ -240,11 +247,13 @@ $$;
 -- `handle_new_user` already inserted (id, email) from step 2; this fills in the
 -- profile. `search_vector` is generated — never insert it.
 
+-- A row whose auth user is missing is skipped. The other profiles still apply.
 insert into public.users (
   id, email, display_name, avatar_url, bio,
   zip_code, city, state, lat, lng,
   social_links, shelters_text, created_at, deleted_at
 )
+select * from (
 values
   (
     'f05e0000-0000-4000-8000-000000000001'::uuid,
@@ -316,6 +325,12 @@ values
     now() - interval '1 day',
     null
   )
+) as v(
+  id, email, display_name, avatar_url, bio,
+  zip_code, city, state, lat, lng,
+  social_links, shelters_text, created_at, deleted_at
+)
+where exists (select 1 from auth.users a where a.id = v.id)
 on conflict (id) do update
   set email         = excluded.email,
       display_name  = excluded.display_name,
@@ -337,12 +352,14 @@ on conflict (id) do update
 -- Covers all PET_SPECIES and PET_STATUSES values, both age units, every size,
 -- one soft delete, one minimal record, and one unicode name for search.
 
+-- A pet whose owner row is missing is skipped. The other pets still apply.
 insert into public.pets (
   id, owner_id, name, species, breed,
   age_value, age_unit, sex, size, status, sub_status,
   shelter_link_name, shelter_link_url, primary_photo_url, bio_markdown,
   important_links, created_at, updated_at, deleted_at
 )
+select * from (
 values
   (
     'f05e0001-0000-4000-8000-000000000001'::uuid,
@@ -492,6 +509,13 @@ He knows *sit*, *down*, *touch*, and a very sloppy *shake*.$md$,
     null,
     now() - interval '5 days', now() - interval '5 days', null
   )
+) as v(
+  id, owner_id, name, species, breed,
+  age_value, age_unit, sex, size, status, sub_status,
+  shelter_link_name, shelter_link_url, primary_photo_url, bio_markdown,
+  important_links, created_at, updated_at, deleted_at
+)
+where exists (select 1 from public.users u where u.id = v.owner_id)
 on conflict (id) do update
   set owner_id          = excluded.owner_id,
       name              = excluded.name,
@@ -520,9 +544,11 @@ on conflict (id) do update
 --     fall back to `id` to avoid skipping or repeating one of them.
 --   * `updated_at` is owned by the posts_touch_updated_at trigger.
 
+-- A post whose author or pet is missing is skipped. The other posts still apply.
 insert into public.posts (
   id, author_id, post_type, pet_id, body_text, image_url, geo_lock, created_at, deleted_at
 )
+select * from (
 values
   (
     'f05e0002-0000-4000-8000-000000000001'::uuid,
@@ -754,6 +780,9 @@ And take the adoption day photo. You will want it later, even though it is the h
     null,
     'local', now() - interval '168 hours', null
   )
+) as v(id, author_id, post_type, pet_id, body_text, image_url, geo_lock, created_at, deleted_at)
+where exists (select 1 from public.users u where u.id = v.author_id)
+  and (v.pet_id is null or exists (select 1 from public.pets p where p.id = v.pet_id))
 on conflict (id) do update
   set author_id  = excluded.author_id,
       post_type  = excluded.post_type,
@@ -770,7 +799,9 @@ on conflict (id) do update
 -- Anonymous stars carry a null starrer_user_id. `(starred_user_id,
 -- session_token)` is unique, which is what makes re-starring a no-op.
 
+-- A star whose user is missing is skipped. The other stars still apply.
 insert into public.profile_stars (id, starred_user_id, starrer_user_id, session_token, created_at)
+select * from (
 values
   (
     'f05e0003-0000-4000-8000-000000000001'::uuid,
@@ -815,6 +846,12 @@ values
     'f05e0000-0000-4000-8000-000000000003'::uuid,
     null, 'seed-session-anon-05', now() - interval '2 days'
   )
+) as v(id, starred_user_id, starrer_user_id, session_token, created_at)
+where exists (select 1 from public.users u where u.id = v.starred_user_id)
+  and (
+    v.starrer_user_id is null
+    or exists (select 1 from public.users u where u.id = v.starrer_user_id)
+  )
 on conflict (id) do update
   set starred_user_id = excluded.starred_user_id,
       starrer_user_id = excluded.starrer_user_id,
@@ -826,9 +863,11 @@ on conflict (id) do update
 -- ---------------------------------------------------------------------------
 -- Public insert, owner read. Seeded so the owner-side list is not empty.
 
+-- An inquiry whose foster or pet is missing is skipped. The other inquiries still apply.
 insert into public.inquiries (
   id, target_user_id, target_pet_id, sender_name, sender_email, message, created_at
 )
+select * from (
 values
   (
     'f05e0004-0000-4000-8000-000000000001'::uuid,
@@ -862,6 +901,12 @@ values
     'Marcus Bell', 'marcus.bell@seed.fosterfolio.test',
     'Pepper looks perfect for us. We have had two pit mixes before. What is the next step?',
     now() - interval '30 hours'
+  )
+) as v(id, target_user_id, target_pet_id, sender_name, sender_email, message, created_at)
+where exists (select 1 from public.users u where u.id = v.target_user_id)
+  and (
+    v.target_pet_id is null
+    or exists (select 1 from public.pets p where p.id = v.target_pet_id)
   )
 on conflict (id) do update
   set target_user_id = excluded.target_user_id,

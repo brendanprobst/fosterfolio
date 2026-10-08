@@ -49,6 +49,8 @@
     "supabase:handshake": "node scripts/supabase-cli.mjs handshake",
     "supabase:seed": "node scripts/supabase-master-seed.mjs up",
     "supabase:seed:down": "node scripts/supabase-master-seed.mjs down",
+    "supabase:seed:tracked-links": "node scripts/supabase-seed-tracked-links.mjs up",
+    "supabase:seed:tracked-links:down": "node scripts/supabase-seed-tracked-links.mjs down",
     "deploy:aws": "node scripts/deploy-aws.mjs",
     "deploy:aws:web": "node scripts/deploy-aws-web.mjs",
     "deploy:aws:plan": "node scripts/deploy-aws.mjs --plan-only",

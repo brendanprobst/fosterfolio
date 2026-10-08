@@ -4,7 +4,7 @@ Checklist for critical infra: a new Supabase project and `infra/terraform/envs/p
 
 ## Decisions
 
-- **Schema is one migration, not a copy of dev.** `npm run supabase:push` applies `supabase/migrations/20261003120000_app_v1_schema.sql` to an empty prod project. Do not push that file at the current dev project until dev is dropped and re-seeded; its migration history still names the four files this one replaced. Do not `pg_dump` / restore the dev database. A dump would carry seed users (`@seed.fosterfolio.test`), auth identities, and storage paths that do not exist in the prod bucket. Sign up again on prod with an allowlisted email. Source: [Supabase migrations](supabase-migrations.md), [Development seed data](dev-seed-data.md).
+- **Schema is feature migrations plus a master file.** `npm run supabase:push` applies `supabase/migrations/feature-migrations/` (including `20261003120000_app_v1_schema.sql`) to an empty prod project. `supabase/migrations/master-migration/LATEST_20261008.sql` creates that same schema in one script and is not pushed. Do not run the master file on a database that already has this history. Do not push that file at the current dev project until dev is dropped and re-seeded; its migration history still names the four files this one replaced. Do not `pg_dump` / restore the dev database. A dump would carry seed users (`@seed.fosterfolio.test`), auth identities, and storage paths that do not exist in the prod bucket. Sign up again on prod with an allowlisted email. Source: [Supabase migrations](supabase-migrations.md), [Development seed data](dev-seed-data.md).
 - **Google SSO is out of this go-live.** Email and password is enough for the closed beta. Add Google on the prod project later. Source: [Google SSO](google-sso.md). The Google button stays hidden unless `NEXT_PUBLIC_GOOGLE_SSO=1` (section 7). Prod leaves it at `0`.
 - **Deploys stay on the CLI.** `npm run deploy:aws -- --env <env>` selects `infra/terraform/envs/<env>` (default `dev`). `--skip-web` updates the Lambda and leaves the site alone. `npm run deploy:aws:web -- --env <env>` uploads the site and leaves Terraform alone. Source: [Deploy to AWS](../deploy-aws.md).
 
@@ -18,7 +18,7 @@ Each step starts with `Progress:` set to `not started`, `in progress`, or `done`
 
 Progress: done
 
-- [x] v1 schema is `supabase/migrations/20261003120000_app_v1_schema.sql`. The four older migration files are gone. Pushing it is still step 2, and only against an empty project.
+- [x] v1 schema is `supabase/migrations/feature-migrations/20261003120000_app_v1_schema.sql`. The four older migration files are gone. Pushing feature migrations is still step 2, and only against an empty project.
 - [x] `NEXT_PUBLIC_GOOGLE_SSO=1` is the only value that shows **Continue with Google**. Unset or `0` hides it. Prod is set to `0`.
 
 ---

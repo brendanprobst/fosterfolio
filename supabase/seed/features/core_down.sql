@@ -1,4 +1,4 @@
--- Remove everything dev_seed.sql created, and nothing else.
+-- Remove everything features/core.sql created, and nothing else.
 --
 --   npm run supabase:seed:down -- --yes
 --

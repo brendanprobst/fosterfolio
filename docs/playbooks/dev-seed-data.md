@@ -2,7 +2,7 @@
 
 Fill a Supabase project with realistic Fosterfolio content — fosters you can sign in as, pets across every species and status, and a feed long enough to page through.
 
-**Status: wired.** SQL lives in `supabase/seed/`, applied with `npm run supabase:seed`.
+**Status: wired.** SQL lives in `supabase/migrations/seed/features/`. `npm run supabase:seed` applies every feature. `npm run supabase:seed:tracked-links` applies one.
 
 ```bash
 npm run supabase:seed              # apply
@@ -25,15 +25,19 @@ Override the password for a run with `npm run supabase:seed -- --password 'somet
 
 ## Not a migration
 
-The seed deliberately sits **outside** `supabase/migrations/` so `npm run supabase:push` can never apply it to a production project. Nothing tracks it in `supabase_migrations.schema_migrations`; re-run it whenever you want.
+Seeds deliberately sit **outside** `supabase/migrations/feature-migrations/` so `npm run supabase:push` can never apply them to a production project. Nothing tracks them in `supabase_migrations.schema_migrations`; re-run them whenever you want.
 
 | File | Purpose |
 |---|---|
-| `supabase/seed/dev_seed.sql` | Apply seed rows (idempotent upserts) |
-| `supabase/seed/dev_seed_down.sql` | Delete exactly what the seed created |
-| `scripts/supabase-seed.mjs` | Runner used by the npm scripts |
+| `supabase/migrations/seed/features/core.sql` | Fosters, pets, posts, stars, inquiries |
+| `supabase/migrations/seed/features/core_down.sql` | Delete exactly what the core seed created |
+| `supabase/migrations/seed/features/tracked-links.sql` | Sample links for Mochi |
+| `supabase/migrations/seed/features/tracked-links_down.sql` | Delete those links |
+| `scripts/supabase-master-seed.mjs` | Applies every feature up, or every down in reverse |
 
-Prerequisite: the schema migrations are already applied (`npm run supabase:push`). The seed aborts with a clear message if `public.users` or `public.posts` is missing.
+Prerequisite: the schema migrations are already applied (`npm run supabase:push`). The core seed aborts with a clear message if `public.users` or `public.posts` is missing.
+
+A row that points at a missing seed id is skipped, and the rest of that file still applies. The summary counts at the end of the file are the rows that landed. A changed row with the same id is updated. A missing table still stops the file.
 
 ---
 
@@ -102,7 +106,7 @@ Consequences worth knowing:
 
 The runner prints the target project ref before it does anything. `--dry-run` shows the statement count and byte size without sending a request.
 
-No token, or the API is blocked? Paste `supabase/seed/dev_seed.sql` into the dashboard SQL editor and run it as one batch — Postgres wraps a multi-statement batch in a single implicit transaction, so a failure rolls the whole thing back.
+No token, or the API is blocked? Paste `supabase/migrations/seed/features/core.sql` into the dashboard SQL editor and run it as one batch — Postgres wraps a multi-statement batch in a single implicit transaction, so a failure rolls the whole thing back.
 
 ---
 
