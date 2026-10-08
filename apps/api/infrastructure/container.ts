@@ -8,6 +8,7 @@ import { createPostsModule } from '@api/infrastructure/composition/posts';
 import { createSearchModule } from '@api/infrastructure/composition/search';
 import { createStarsModule } from '@api/infrastructure/composition/stars';
 import { createStorageModule } from '@api/infrastructure/composition/storage';
+import { createTrackedLinksModule } from '@api/infrastructure/composition/trackedLinks';
 import { createUsersModule } from '@api/infrastructure/composition/users';
 import { isE2eSeedEnabled, seedFosterfolioE2eData } from '@api/infrastructure/e2eSeed';
 import { Logger } from '@api/utils/logger';
@@ -32,6 +33,7 @@ export class Container {
   private readonly search: ReturnType<typeof createSearchModule>;
   private readonly inquiries: ReturnType<typeof createInquiriesModule>;
   private readonly storage: ReturnType<typeof createStorageModule>;
+  private readonly trackedLinks: ReturnType<typeof createTrackedLinksModule>;
   private readonly allowlist: ReturnType<typeof createAllowlistModule>;
 
   constructor() {
@@ -72,6 +74,7 @@ export class Container {
       this.pets.petRepository
     );
     this.storage = createStorageModule(dataAdapter);
+    this.trackedLinks = createTrackedLinksModule(dataAdapter, this.pets.petRepository);
     this.allowlist = createAllowlistModule(dataAdapter);
 
     if (isE2eSeedEnabled()) {
@@ -173,6 +176,26 @@ export class Container {
 
   getSignUploadUseCase() {
     return this.storage.getSignUploadUseCase();
+  }
+
+  getCreateTrackedLinkUseCase() {
+    return this.trackedLinks.getCreateTrackedLinkUseCase();
+  }
+
+  getListTrackedLinksUseCase() {
+    return this.trackedLinks.getListTrackedLinksUseCase();
+  }
+
+  getUpdateTrackedLinkUseCase() {
+    return this.trackedLinks.getUpdateTrackedLinkUseCase();
+  }
+
+  getResolveTrackedLinkUseCase() {
+    return this.trackedLinks.getResolveTrackedLinkUseCase();
+  }
+
+  getListChannelsUseCase() {
+    return this.trackedLinks.getListChannelsUseCase();
   }
 }
 

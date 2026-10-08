@@ -7,6 +7,7 @@ import { PostErrors } from '@api/domain/errors/catalogs/PostErrors';
 import { SearchErrors } from '@api/domain/errors/catalogs/SearchErrors';
 import { StarErrors } from '@api/domain/errors/catalogs/StarErrors';
 import { StorageErrors } from '@api/domain/errors/catalogs/StorageErrors';
+import { TrackedLinkErrors } from '@api/domain/errors/catalogs/TrackedLinkErrors';
 import { UserErrors } from '@api/domain/errors/catalogs/UserErrors';
 
 /**
@@ -47,6 +48,10 @@ export class ErrorCatalog {
   static readonly INQUIRY_TARGET_NOT_FOUND = InquiryErrors.TARGET_NOT_FOUND;
   static readonly INQUIRY_EMAIL_FAILED = InquiryErrors.EMAIL_FAILED;
 
+  static readonly TRACKED_LINK_NOT_FOUND = TrackedLinkErrors.NOT_FOUND;
+  static readonly TRACKED_LINK_FORBIDDEN = TrackedLinkErrors.FORBIDDEN;
+  static readonly TRACKED_LINK_INVALID_INPUT = TrackedLinkErrors.INVALID_INPUT;
+
   static readonly STORAGE_INVALID_INPUT = StorageErrors.INVALID_INPUT;
   static readonly STORAGE_CONTENT_TYPE_INVALID = StorageErrors.CONTENT_TYPE_INVALID;
   static readonly STORAGE_CAP_EXCEEDED = StorageErrors.CAP_EXCEEDED;
@@ -73,5 +78,6 @@ export {
   SearchErrors,
   StarErrors,
   StorageErrors,
+  TrackedLinkErrors,
   UserErrors,
 };

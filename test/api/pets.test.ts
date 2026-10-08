@@ -147,6 +147,14 @@ describe('Pets API', () => {
     expect(tooMany.body.error.code).toBe('PET_PHOTOS_LIMIT');
   });
 
+  it('does not treat a path word as a pet id', async () => {
+    const { app } = createTestAppWithContainer();
+    const links = await request(app).get('/pets/links').expect(404);
+    const updates = await request(app).get('/pets/updates').expect(404);
+    expect(links.body.error.code).toBeUndefined();
+    expect(updates.body.error.code).toBeUndefined();
+  });
+
   it('rejects unauthenticated create', async () => {
     const { app } = createTestAppWithContainer();
     await request(app)

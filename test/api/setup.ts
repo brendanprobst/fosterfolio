@@ -3,6 +3,11 @@
  */
 import { AddStarUseCase } from '@api/application/use-cases/AddStarUseCase';
 import { CreateInquiryUseCase } from '@api/application/use-cases/CreateInquiryUseCase';
+import { CreateTrackedLinkUseCase } from '@api/application/use-cases/CreateTrackedLinkUseCase';
+import { ListChannelsUseCase } from '@api/application/use-cases/ListChannelsUseCase';
+import { ListTrackedLinksUseCase } from '@api/application/use-cases/ListTrackedLinksUseCase';
+import { ResolveTrackedLinkUseCase } from '@api/application/use-cases/ResolveTrackedLinkUseCase';
+import { UpdateTrackedLinkUseCase } from '@api/application/use-cases/UpdateTrackedLinkUseCase';
 import { CreatePetUseCase } from '@api/application/use-cases/CreatePetUseCase';
 import { CreatePostUseCase } from '@api/application/use-cases/CreatePostUseCase';
 import { GetPetUpdatesUseCase } from '@api/application/use-cases/GetPetUpdatesUseCase';
@@ -32,6 +37,7 @@ import { LoggingEmailAdapter } from '@api/infrastructure/adapters/email/LoggingE
 import { InMemoryStorageAdapter } from '@api/infrastructure/adapters/storage/InMemoryStorageAdapter';
 import { Container } from '@api/infrastructure/container';
 import { InMemoryInquiryRepository } from '@api/infrastructure/repositories/InMemoryInquiryRepository';
+import { InMemoryTrackedLinkRepository } from '@api/infrastructure/repositories/InMemoryTrackedLinkRepository';
 import { InMemoryPetRepository } from '@api/infrastructure/repositories/InMemoryPetRepository';
 import { InMemoryPostRepository } from '@api/infrastructure/repositories/InMemoryPostRepository';
 import { InMemorySearchRepository } from '@api/infrastructure/repositories/InMemorySearchRepository';
@@ -48,6 +54,7 @@ export class TestContainer {
   );
   readonly starRepository = new InMemoryStarRepository(this.userRepository);
   readonly inquiryRepository = new InMemoryInquiryRepository();
+  readonly trackedLinkRepository = new InMemoryTrackedLinkRepository();
   readonly searchRepository = new InMemorySearchRepository(
     this.userRepository,
     this.petRepository
@@ -197,6 +204,26 @@ export class TestContainer {
 
   getSignUploadUseCase() {
     return new SignUploadUseCase(this.storageAdapter, this.storageCapBytes);
+  }
+
+  getCreateTrackedLinkUseCase() {
+    return new CreateTrackedLinkUseCase(this.trackedLinkRepository, this.petRepository);
+  }
+
+  getListTrackedLinksUseCase() {
+    return new ListTrackedLinksUseCase(this.trackedLinkRepository, this.petRepository);
+  }
+
+  getUpdateTrackedLinkUseCase() {
+    return new UpdateTrackedLinkUseCase(this.trackedLinkRepository);
+  }
+
+  getResolveTrackedLinkUseCase() {
+    return new ResolveTrackedLinkUseCase(this.trackedLinkRepository);
+  }
+
+  getListChannelsUseCase() {
+    return new ListChannelsUseCase(this.trackedLinkRepository);
   }
 }
 
