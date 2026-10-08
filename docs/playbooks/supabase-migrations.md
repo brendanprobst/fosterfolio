@@ -23,19 +23,25 @@ Linking is **per git clone**, not global. `NEXT_PUBLIC_SUPABASE_URL` in env does
 ```text
 supabase/
   config.toml
-  .env.example          # tracked — copy to .env.local
-  .env.local            # gitignored — project ref, PAT, DB URL
+  .env.example
+  .env.local
   migrations/
-    YYYYMMDDHHMMSS_platform_<name>.sql
-    YYYYMMDDHHMMSS_app_<name>.sql
-  seed/                 # data, not schema — never applied by `db push`
-    dev_seed.sql
-    dev_seed_down.sql
+    master-migration/
+      archive/
+      LATEST_YYYYMMDD.sql
+    feature-migrations/
+      YYYYMMDDHHMMSS_platform_<name>.sql
+      YYYYMMDDHHMMSS_app_<name>.sql
+    seed/features/
+      <feature>.sql
+      <feature>_down.sql
+    YYYYMMDDHHMMSS_*.sql       # symlinks into feature-migrations
 scripts/supabase-cli.mjs
-scripts/supabase-seed.mjs
+scripts/supabase-master-seed.mjs
+scripts/sync-feature-migrations.mjs
 ```
 
-`supabase/seed/` holds **data** for local and dev projects — see [development seed data](dev-seed-data.md). It lives outside `migrations/` so `db push` cannot ship seed rows to production.
+`supabase/migrations/master-migration/LATEST_YYYYMMDD.sql` creates the whole schema on an empty database. When the schema changes, move that file to `archive/` and write a new one from the feature migrations in timestamp order. `npm run supabase:push` applies only the timestamped symlinks directly in `supabase/migrations/`. It does not enter subfolders, so the master file and `seed/features/` stay out of a push. See [development seed data](dev-seed-data.md).
 
 ---
 
@@ -85,7 +91,7 @@ Do **not** commit database passwords or `supabase/.temp/`.
 
 ## Migration naming
 
-The CLI requires a **flat** `supabase/migrations/` directory. Filenames must use a timestamp prefix plus one of these infixes so [upstream harvest](upstream-harvest.md) can separate reusable platform SQL from product schema:
+Write new incremental SQL in `supabase/migrations/feature-migrations/`. The CLI applies only timestamped files that sit directly in `supabase/migrations/`. Those are symlinks into `feature-migrations/`, and `npm run supabase:push` refreshes them. Do not give `LATEST_*.sql` or a seed file a timestamp prefix. Filenames must use a timestamp prefix plus one of these infixes so [upstream harvest](upstream-harvest.md) can separate reusable platform SQL from product schema:
 
 | Infix | Meaning | Harvest |
 |-------|---------|---------|
@@ -110,6 +116,8 @@ npm run supabase:push:dry
 npm run supabase:push
 npm run supabase:list                # local vs remote history
 ```
+
+`npm run supabase:push` is disarmed until the supabase env file sets `SUPABASE_PUSH_ENABLED=1`. Dry-run, list, and link stay available. Set the flag, push, then set it back to `0`. Copy the line from `supabase/.env.example`.
 
 The remote tracks applied files in `supabase_migrations.schema_migrations`. Re-running `push` skips migrations already applied.
 
