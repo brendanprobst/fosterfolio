@@ -4,6 +4,10 @@ export type CreateInquiryPayload = {
   senderName: string;
   senderEmail: string;
   message: string;
+  zipCode?: string | null;
+  sourceLinkId?: string | null;
+  sourceChannelKey?: string | null;
+  turnstileToken?: string | null;
 };
 
 export type Inquiry = {
@@ -14,4 +18,5 @@ export type Inquiry = {
   senderEmail: string;
   message: string;
   createdAt: string;
+  sourceToken: string;
 };

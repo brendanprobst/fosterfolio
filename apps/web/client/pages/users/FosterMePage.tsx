@@ -4,6 +4,8 @@ import { useAuth } from "@client/auth";
 import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
 import { useOwnerPets, usePet } from "@client/features/pets";
 import { useUser } from "@client/features/users";
+import { syncPetCaptureSuppression } from "@client/lib/analytics/initFosterfolioAnalytics";
+import { usePetViewCapture } from "@client/lib/analytics/usePetViewCapture";
 import { isFosterfolioSearchEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { selectFosterMePet } from "@client/lib/selectFosterMePet";
 import {
@@ -54,6 +56,14 @@ export function FosterMePage() {
   const ownerRef = handle ?? (user ? publicHandle(user) : "");
   const fosterMePath = ownerRef ? fosterMeHref(ownerRef) : "";
   const isOwner = Boolean(viewer && user && viewer.id === user.id);
+  const petShown = Boolean(
+    pet && (selection.kind === "active" || selection.kind === "fallback"),
+  );
+  const capturePetEvents = petShown && !isOwner && pet?.status !== "adopted";
+  if (petShown && pet) {
+    syncPetCaptureSuppression({ isOwner, status: pet.status });
+  }
+  usePetViewCapture(petShown ? pet : null, capturePetEvents);
 
   const sidebar = fosterMePath ? (
     <FosterMeSidebar
@@ -65,6 +75,7 @@ export function FosterMePage() {
       ownerAvatarUrl={user?.avatarUrl ?? pet?.owner?.avatarUrl ?? null}
       isCurrentFoster={selection.kind === "active"}
       isOwner={isOwner}
+      capturePetEvents={capturePetEvents}
       fosterMePath={fosterMePath}
     />
   ) : null;

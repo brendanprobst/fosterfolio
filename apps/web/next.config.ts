@@ -15,6 +15,7 @@ const isStaticExport = process.env.NODE_ENV === "production";
 /** Monorepo root (this file: apps/web/next.config.ts) — silences lockfile/workspace root warnings. */
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../.."),
+  transpilePackages: ["@lattice/analytics"],
   ...(isStaticExport ? { output: "export" as const } : {}),
   images: {
     unoptimized: true,

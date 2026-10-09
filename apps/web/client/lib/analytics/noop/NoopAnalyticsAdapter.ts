@@ -1,4 +1,5 @@
 import type { AnalyticsAdapter } from "../AnalyticsAdapter";
+import { initFosterfolioAnalytics } from "../initFosterfolioAnalytics";
 import type { PostHog } from "posthog-js";
 
 /**
@@ -9,7 +10,9 @@ export class NoopAnalyticsAdapter implements AnalyticsAdapter {
     return false;
   }
 
-  initFromEnv(): void {}
+  initFromEnv(): void {
+    initFosterfolioAnalytics();
+  }
 
   capturePageView(_href: string): void {}
 

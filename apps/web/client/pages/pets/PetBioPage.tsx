@@ -3,6 +3,8 @@
 import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
 import { useAuth } from "@client/auth";
 import { usePet } from "@client/features/pets";
+import { syncPetCaptureSuppression } from "@client/lib/analytics/initFosterfolioAnalytics";
+import { usePetViewCapture } from "@client/lib/analytics/usePetViewCapture";
 import { petHref, petIdFromPathname } from "@client/lib/petBioPath";
 import { publicHandle } from "@client/lib/userProfilePath";
 import { usePathname } from "next/navigation";
@@ -21,6 +23,11 @@ export function PetBioPage() {
   const { data: pet, isLoading, isError, error } = usePet(petId);
   const ownerRef = pet?.owner ? publicHandle(pet.owner) : pet?.ownerId ?? "";
   const isOwner = Boolean(user && pet && user.id === pet.ownerId);
+  const capturePetEvents = Boolean(pet) && !isOwner && pet?.status !== "adopted";
+  if (pet) {
+    syncPetCaptureSuppression({ isOwner, status: pet.status });
+  }
+  usePetViewCapture(pet, capturePetEvents);
 
   return (
     <AppShell>
@@ -57,6 +64,7 @@ export function PetBioPage() {
                 ownerAvatarUrl={pet.owner?.avatarUrl ?? null}
                 isActivelyFostering={pet.status === "actively_fostering"}
                 isOwner={isOwner}
+                capturePetEvents={capturePetEvents}
               />
             }
           >

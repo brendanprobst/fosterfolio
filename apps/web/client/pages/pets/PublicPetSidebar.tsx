@@ -53,6 +53,7 @@ export function petSidebarMobileSummary({
 
 type PublicPetSidebarProps = {
   isOwner: boolean;
+  capturePetEvents?: boolean;
   ownerId: string;
   ownerRef: string;
   ownerName: string;
@@ -68,6 +69,7 @@ type PublicPetSidebarProps = {
 
 export function PublicPetSidebar({
   isOwner,
+  capturePetEvents = false,
   ownerId,
   ownerRef,
   ownerName,
@@ -98,6 +100,7 @@ export function PublicPetSidebar({
           targetPetId={petId}
           petName={petName}
           fosterName={ownerName}
+          capturePetEvents={capturePetEvents}
         />
       </>
     );

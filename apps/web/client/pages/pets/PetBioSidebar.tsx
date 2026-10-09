@@ -12,6 +12,7 @@ type PetBioSidebarProps = {
   ownerAvatarUrl: string | null;
   isActivelyFostering: boolean;
   isOwner: boolean;
+  capturePetEvents?: boolean;
 };
 
 export function PetBioSidebar({
@@ -24,10 +25,12 @@ export function PetBioSidebar({
   ownerAvatarUrl,
   isActivelyFostering,
   isOwner,
+  capturePetEvents = false,
 }: PetBioSidebarProps) {
   return (
     <PublicPetSidebar
       isOwner={isOwner}
+      capturePetEvents={capturePetEvents}
       ownerId={ownerId}
       ownerRef={ownerRef}
       ownerName={ownerName}

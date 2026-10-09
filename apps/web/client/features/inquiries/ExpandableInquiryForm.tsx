@@ -16,17 +16,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@client/components/ui/dialog";
+import { capturePetEvent } from "@client/lib/analytics/initFosterfolioAnalytics";
 import { cn } from "@client/lib/utils";
 import { Maximize2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { InquiryForm, InquirySentAlert, type InquiryDraft } from "./InquiryForm";
+import type { Inquiry } from "./types";
+import { InquiryForm, InquirySuccess, type InquiryDraft } from "./InquiryForm";
 
 type ExpandableInquiryFormProps = {
   targetUserId: string;
   targetPetId?: string | null;
   heading?: string;
   fosterName?: string;
+  petName?: string;
+  capturePetEvents?: boolean;
 };
 
 export function ExpandableInquiryForm({
@@ -34,15 +38,33 @@ export function ExpandableInquiryForm({
   targetPetId,
   heading = "Contact the foster",
   fosterName,
+  petName,
+  capturePetEvents = false,
 }: ExpandableInquiryFormProps) {
   const [expanded, setExpanded] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [sentInquiry, setSentInquiry] = useState<Inquiry | null>(null);
   const [draft, setDraft] = useState<InquiryDraft>({
     senderName: "",
     senderEmail: "",
     message: "",
+    zipCode: "",
   });
   const inPanel = useInSidebarPanel();
+  const formOpened = useRef(false);
+
+  useEffect(() => {
+    if (!capturePetEvents || !targetPetId || formOpened.current) return;
+    const desktop =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(min-width: 1024px)").matches;
+    if (!expanded && !desktop && !inPanel) return;
+    formOpened.current = true;
+    void capturePetEvent("inquiry_form_opened", {
+      id: targetPetId,
+      ownerId: targetUserId,
+    });
+  }, [capturePetEvents, expanded, inPanel, targetPetId, targetUserId]);
   const [cardSlot, setCardSlot] = useState<HTMLDivElement | null>(null);
   const [modalSlot, setModalSlot] = useState<HTMLDivElement | null>(null);
   const target = expanded && modalSlot ? modalSlot : cardSlot;
@@ -52,7 +74,7 @@ export function ExpandableInquiryForm({
       <Card size="sm">
         <CardHeader>
           <CardTitle>{heading}</CardTitle>
-          {!sent && !inPanel ? (
+          {!sentInquiry && !inPanel ? (
             <CardAction>
               <Button
                 type="button"
@@ -66,8 +88,16 @@ export function ExpandableInquiryForm({
             </CardAction>
           ) : null}
         </CardHeader>
-        <CardContent className={cn(!sent && !inPanel && "hidden lg:block")}>
-          {sent ? <InquirySentAlert fosterName={fosterName} /> : <div ref={setCardSlot} />}
+        <CardContent className={cn(!sentInquiry && !inPanel && "hidden lg:block")}>
+          {sentInquiry ? (
+            <InquirySuccess
+              fosterName={fosterName}
+              petName={petName}
+              inquiry={sentInquiry}
+            />
+          ) : (
+            <div ref={setCardSlot} />
+          )}
         </CardContent>
       </Card>
       <Dialog open={expanded} onOpenChange={setExpanded}>
@@ -81,7 +111,7 @@ export function ExpandableInquiryForm({
           <div ref={setModalSlot} />
         </DialogContent>
       </Dialog>
-      {!sent && target
+      {!sentInquiry && target
         ? createPortal(
             <InquiryForm
               targetUserId={targetUserId}
@@ -91,9 +121,11 @@ export function ExpandableInquiryForm({
               draft={draft}
               onDraftChange={setDraft}
               fosterName={fosterName}
-              onSuccess={() => {
+              petName={petName}
+              capturePetEvents={capturePetEvents}
+              onSuccess={(inquiry) => {
                 setExpanded(false);
-                setSent(true);
+                setSentInquiry(inquiry);
               }}
             />,
             target,
