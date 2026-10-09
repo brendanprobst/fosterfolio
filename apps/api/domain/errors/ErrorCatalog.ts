@@ -47,6 +47,8 @@ export class ErrorCatalog {
   static readonly INQUIRY_INVALID_INPUT = InquiryErrors.INVALID_INPUT;
   static readonly INQUIRY_TARGET_NOT_FOUND = InquiryErrors.TARGET_NOT_FOUND;
   static readonly INQUIRY_EMAIL_FAILED = InquiryErrors.EMAIL_FAILED;
+  static readonly INQUIRY_TURNSTILE_FAILED = InquiryErrors.TURNSTILE_FAILED;
+  static readonly INQUIRY_SOURCE_TOKEN_INVALID = InquiryErrors.SOURCE_TOKEN_INVALID;
 
   static readonly TRACKED_LINK_NOT_FOUND = TrackedLinkErrors.NOT_FOUND;
   static readonly TRACKED_LINK_FORBIDDEN = TrackedLinkErrors.FORBIDDEN;

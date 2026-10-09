@@ -1,6 +1,7 @@
 import request from 'supertest';
 import type { EmailAdapter, EmailMessage } from '@api/infrastructure/adapters/email/EmailAdapter';
 import { createTestAppWithContainer } from './setup';
+import { createAuthToken } from './support/authToken';
 
 describe('Inquiries API', () => {
   const ownerId = '11111111-1111-1111-1111-111111111111';
@@ -74,5 +75,153 @@ describe('Inquiries API', () => {
       .expect(502);
     expect(res.body.error.code).toBe('INQUIRY_EMAIL_FAILED');
     expect(container.inquiryRepository.records).toHaveLength(1);
+  });
+
+  it('stores zip and source, rejects a link for another pet, and accepts an archived link', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    const token = await createAuthToken(ownerId, 'foster@example.com');
+    const petRes = await request(app)
+      .post('/pets')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Mochi', species: 'dog' })
+      .expect(201);
+    const otherPet = await request(app)
+      .post('/pets')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Beans', species: 'cat' })
+      .expect(201);
+    const linkRes = await request(app)
+      .post(`/pets/${petRes.body.id}/links`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ channelKey: 'instagram' })
+      .expect(201);
+    await request(app)
+      .patch(`/links/${linkRes.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ archived: true })
+      .expect(200);
+
+    const mismatch = await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        targetPetId: otherPet.body.id,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Hello',
+        sourceLinkId: linkRes.body.id,
+        sourceChannelKey: 'instagram',
+      })
+      .expect(400);
+    expect(mismatch.body.error.code).toBe('INQUIRY_INVALID_INPUT');
+    expect(container.inquiryRepository.records).toHaveLength(0);
+
+    const sent: EmailMessage[] = [];
+    container.setEmailAdapter({
+      send: async (message) => {
+        sent.push(message);
+      },
+    });
+    const res = await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        targetPetId: petRes.body.id,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Hello from a flyer',
+        zipCode: '94107',
+        sourceLinkId: linkRes.body.id,
+        sourceChannelKey: 'wrong',
+      })
+      .expect(201);
+
+    expect(res.body.sourceToken).toEqual(expect.any(String));
+    expect(container.inquiryRepository.records[0]).toMatchObject({
+      zipCode: '94107',
+      sourceLinkId: linkRes.body.id,
+      sourceChannelKey: 'instagram',
+    });
+    expect(sent[0]?.text).not.toContain('94107');
+  });
+
+  it('accepts an inquiry with no Turnstile token when the secret is unset', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Hello',
+      })
+      .expect(201);
+  });
+
+  it('rejects a missing Turnstile token when the secret is set', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    container.setTurnstileSecret('turnstile-secret', async () => true);
+    const res = await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Hello',
+      })
+      .expect(400);
+    expect(res.body.error.code).toBe('INQUIRY_TURNSTILE_FAILED');
+    expect(container.inquiryRepository.records).toHaveLength(0);
+  });
+
+  it('accepts one self-reported source within 30 minutes and rejects a second write or an expired token', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    const created = await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Hello',
+        sourceChannelKey: 'direct',
+      })
+      .expect(201);
+
+    const saved = await request(app)
+      .patch(`/inquiries/${created.body.id}/self-reported-source`)
+      .send({ token: created.body.sourceToken, selfReportedSource: 'Shelter' })
+      .expect(200);
+    expect(saved.body.selfReportedSource).toBe('Shelter');
+
+    const again = await request(app)
+      .patch(`/inquiries/${created.body.id}/self-reported-source`)
+      .send({ token: created.body.sourceToken, selfReportedSource: 'Search' })
+      .expect(400);
+    expect(again.body.error.code).toBe('INQUIRY_SOURCE_TOKEN_INVALID');
+    expect(container.inquiryRepository.records[0]?.selfReportedSource).toBe('Shelter');
+
+    const second = await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Another',
+      })
+      .expect(201);
+    const record = container.inquiryRepository.records.find((row) => row.id === second.body.id);
+    expect(record).toBeTruthy();
+    record!.createdAt = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+
+    const expired = await request(app)
+      .patch(`/inquiries/${second.body.id}/self-reported-source`)
+      .send({ token: second.body.sourceToken, selfReportedSource: 'Other' })
+      .expect(400);
+    expect(expired.body.error.code).toBe('INQUIRY_SOURCE_TOKEN_INVALID');
+    expect(record!.selfReportedSource).toBeNull();
   });
 });

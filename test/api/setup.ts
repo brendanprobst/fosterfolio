@@ -3,6 +3,7 @@
  */
 import { AddStarUseCase } from '@api/application/use-cases/AddStarUseCase';
 import { CreateInquiryUseCase } from '@api/application/use-cases/CreateInquiryUseCase';
+import { ReportInquirySourceUseCase } from '@api/application/use-cases/ReportInquirySourceUseCase';
 import { CreateTrackedLinkUseCase } from '@api/application/use-cases/CreateTrackedLinkUseCase';
 import { ListChannelsUseCase } from '@api/application/use-cases/ListChannelsUseCase';
 import { ListTrackedLinksUseCase } from '@api/application/use-cases/ListTrackedLinksUseCase';
@@ -33,6 +34,10 @@ import { resetProtectedMiddlewareStackForTests } from '@api/auth/createProtected
 import { NoopGeoLookupAdapter } from '@api/infrastructure/adapters/geo/NoopGeoLookupAdapter';
 import type { GeoLookupAdapter } from '@api/infrastructure/adapters/geo/GeoLookupAdapter';
 import type { EmailAdapter } from '@api/infrastructure/adapters/email/EmailAdapter';
+import {
+  verifyTurnstileToken,
+  type TurnstileVerifier,
+} from '@api/infrastructure/adapters/turnstile/verifyTurnstileToken';
 import { LoggingEmailAdapter } from '@api/infrastructure/adapters/email/LoggingEmailAdapter';
 import { InMemoryStorageAdapter } from '@api/infrastructure/adapters/storage/InMemoryStorageAdapter';
 import { Container } from '@api/infrastructure/container';
@@ -64,6 +69,8 @@ export class TestContainer {
   private geoLookup: GeoLookupAdapter = new NoopGeoLookupAdapter();
   private emailAdapter: EmailAdapter = new LoggingEmailAdapter();
   private storageCapBytes = resolveStorageCapBytes();
+  private turnstileSecret: string | null = null;
+  private turnstileVerify: TurnstileVerifier = verifyTurnstileToken;
 
   setGeoLookup(adapter: GeoLookupAdapter): void {
     this.geoLookup = adapter;
@@ -71,6 +78,12 @@ export class TestContainer {
 
   setEmailAdapter(adapter: EmailAdapter): void {
     this.emailAdapter = adapter;
+  }
+
+  /** Jest leaves the secret unset so inquiries accept a missing Turnstile token. */
+  setTurnstileSecret(secret: string | null, verify?: TurnstileVerifier): void {
+    this.turnstileSecret = secret;
+    if (verify) this.turnstileVerify = verify;
   }
 
   setStorageCapBytes(bytes: number): void {
@@ -198,8 +211,17 @@ export class TestContainer {
       this.inquiryRepository,
       this.userRepository,
       this.petRepository,
-      this.emailAdapter
+      this.emailAdapter,
+      this.trackedLinkRepository,
+      {
+        getSecret: () => this.turnstileSecret,
+        verify: this.turnstileVerify,
+      }
     );
+  }
+
+  getReportInquirySourceUseCase() {
+    return new ReportInquirySourceUseCase(this.inquiryRepository);
   }
 
   getSignUploadUseCase() {

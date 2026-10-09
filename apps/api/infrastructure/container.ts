@@ -68,13 +68,14 @@ export class Container {
       this.users.userRepository,
       this.pets.petRepository
     );
+    this.trackedLinks = createTrackedLinksModule(dataAdapter, this.pets.petRepository);
     this.inquiries = createInquiriesModule(
       dataAdapter,
       this.users.userRepository,
-      this.pets.petRepository
+      this.pets.petRepository,
+      this.trackedLinks.trackedLinkRepository
     );
     this.storage = createStorageModule(dataAdapter);
-    this.trackedLinks = createTrackedLinksModule(dataAdapter, this.pets.petRepository);
     this.allowlist = createAllowlistModule(dataAdapter);
 
     if (isE2eSeedEnabled()) {
@@ -172,6 +173,10 @@ export class Container {
 
   getCreateInquiryUseCase() {
     return this.inquiries.getCreateInquiryUseCase();
+  }
+
+  getReportInquirySourceUseCase() {
+    return this.inquiries.getReportInquirySourceUseCase();
   }
 
   getSignUploadUseCase() {

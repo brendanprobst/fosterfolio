@@ -16,9 +16,24 @@ export class InMemoryInquiryRepository implements IInquiryRepository {
       senderName: input.senderName.trim(),
       senderEmail: input.senderEmail.trim(),
       message: input.message.trim(),
+      zipCode: input.zipCode ?? null,
+      sourceLinkId: input.sourceLinkId ?? null,
+      sourceChannelKey: input.sourceChannelKey ?? null,
+      selfReportedSource: null,
       createdAt: new Date().toISOString(),
     };
     this.records.push(record);
     return record;
+  }
+
+  async findById(id: string): Promise<InquiryRecord | null> {
+    return this.records.find((row) => row.id === id) ?? null;
+  }
+
+  async setSelfReportedSource(id: string, source: string): Promise<boolean> {
+    const row = this.records.find((item) => item.id === id);
+    if (!row || row.selfReportedSource) return false;
+    row.selfReportedSource = source;
+    return true;
   }
 }
