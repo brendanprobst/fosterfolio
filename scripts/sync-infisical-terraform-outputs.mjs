@@ -27,6 +27,11 @@ const OUTPUT_KEYS = [
   ["api_url", "NEXT_PUBLIC_API_URL"],
 ];
 
+/** Present after the analytics rollup Lambda has been applied. Older state skips it. */
+const OPTIONAL_OUTPUT_KEYS = [
+  ["analytics_rollup_lambda_function_name", "ANALYTICS_ROLLUP_LAMBDA_FUNCTION_NAME"],
+];
+
 function run(cmd, args) {
   const result = spawnSync(cmd, args, {
     cwd: root,
@@ -35,6 +40,17 @@ function run(cmd, args) {
   });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
+}
+
+function captureOptional(cmd, args) {
+  const result = spawnSync(cmd, args, {
+    cwd: root,
+    encoding: "utf8",
+    shell: false,
+  });
+  if (result.error || result.status !== 0) return null;
+  const value = (result.stdout || "").trim();
+  return value || null;
 }
 
 function capture(cmd, args) {
@@ -132,6 +148,16 @@ function main() {
     logSyncedKey(secretName, value);
     return `${secretName}=${value}`;
   });
+
+  for (const [outputName, secretName] of OPTIONAL_OUTPUT_KEYS) {
+    const value = captureOptional("terraform", [chdir, "output", "-raw", outputName]);
+    if (!value) {
+      console.log(`→ skip ${secretName} (terraform output ${outputName} is not in this state yet)`);
+      continue;
+    }
+    logSyncedKey(secretName, value);
+    pairs.push(`${secretName}=${value}`);
+  }
 
   const id = projectId();
   ensureSharedFolder(env, id);

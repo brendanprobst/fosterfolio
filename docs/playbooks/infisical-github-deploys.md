@@ -31,9 +31,9 @@ Fosterfolio used a git branch named `mvp` for early product work. That name is l
 
 Copy only these web keys from `apps/web/.env.local` (dev) and `apps/web/.env.prod` (prod): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the three flags. Copy only `SUPABASE_DB_URL` from `supabase/.env.local` and `supabase/.env.prod`. Do not paste `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, or the service role. The service role stays in `infra/terraform/envs/<env>/terraform.tfvars` and in SSM.
 
-`dev` and `prod` both have the same key names, with different values. Inside one environment, put Fosterfolio keys only under `/fosterfolio/**`: `/fosterfolio/shared` (Supabase URL, anon key, and the Terraform outputs), `/fosterfolio/flags` (web only), `/fosterfolio/sensitive` (`SUPABASE_DB_URL` only). **Deploy app** reads `/fosterfolio/shared` and `/fosterfolio/flags`. A key at `/` or `/shared` is invisible to that job. No GitHub identity gets `/fosterfolio/sensitive`. Do not import `/fosterfolio/sensitive` into the other folders. Do not paste a whole `.env`. Pass `--path` and only the keys for that folder.
+`dev` and `prod` both have the same key names, with different values. Inside one environment, put Fosterfolio keys only under `/fosterfolio/**`: `/fosterfolio/shared` (Supabase URL, anon key, and the Terraform outputs), `/fosterfolio/flags` (web only), `/fosterfolio/sensitive` (`SUPABASE_DB_URL`, plus the PostHog query credentials `POSTHOG_PROJECT_ID` and `POSTHOG_PERSONAL_API_KEY`). **Deploy app** reads `/fosterfolio/shared` and `/fosterfolio/flags`. A key at `/` or `/shared` is invisible to that job. No GitHub identity gets `/fosterfolio/sensitive`. Do not import `/fosterfolio/sensitive` into the other folders. Do not paste a whole `.env`. Pass `--path` and only the keys for that folder.
 
-`WEB_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `LAMBDA_FUNCTION_NAME`, and `NEXT_PUBLIC_API_URL` go in `/fosterfolio/shared` via `npm run infisical:sync-outputs`, not from a `.env`.
+`WEB_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `LAMBDA_FUNCTION_NAME`, `NEXT_PUBLIC_API_URL`, and `ANALYTICS_ROLLUP_LAMBDA_FUNCTION_NAME` go in `/fosterfolio/shared` via `npm run infisical:sync-outputs`, not from a `.env`. The rollup name appears after the analytics Lambda has been applied. `npm run deploy:aws` reads the PostHog query credentials from `/fosterfolio/sensitive` and passes them to Terraform. The personal API key is not a Terraform output and is not written back to `/fosterfolio/shared`.
 
 If you already imported keys to `/` or `/shared`, move them under `/fosterfolio/**` and delete the old copies.
 
@@ -55,7 +55,7 @@ Progress: done
 2. In `dev`, create `/fosterfolio/shared`, `/fosterfolio/flags`, and `/fosterfolio/sensitive`.
    - `/fosterfolio/shared`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `/fosterfolio/flags`: `NEXT_PUBLIC_GOOGLE_SSO`, `NEXT_PUBLIC_FOSTERFOLIO_FEED`, `NEXT_PUBLIC_FOSTERFOLIO_SEARCH` (set each to the value you want in that environment)
-   - `/fosterfolio/sensitive`: `SUPABASE_DB_URL` only (session pooler, port 5432)
+   - `/fosterfolio/sensitive`: `SUPABASE_DB_URL` only (session pooler, port 5432), plus `POSTHOG_PROJECT_ID` and `POSTHOG_PERSONAL_API_KEY` for the analytics rollup. Optional `POSTHOG_HOST` when the project is not on US Cloud (`https://us.posthog.com`).
 3. In `prod`, create the same folders with the prod values. Use `--path` on every `infisical secrets set`.
 4. Check the prod URL contains `xjafaxktmpjycuakyouv` and the dev URL contains `qrttmonymvsibqyryqpt`.
 5. Leave the four Terraform outputs for step 7.

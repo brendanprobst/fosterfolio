@@ -40,7 +40,7 @@ infisical run --env=prod -- npm run deploy:aws -- --env prod
 infisical run --env=prod -- npm run deploy:aws:web -- --env prod
 ```
 
-The script prints the Supabase host and the API host before the web build. After a successful apply, it writes `WEB_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `LAMBDA_FUNCTION_NAME`, and `NEXT_PUBLIC_API_URL` to Infisical `/fosterfolio/shared` for that environment. That write uses your Infisical login. GitHub Actions does not run it.
+The script prints the Supabase host and the API host before the web build. Before apply, it reads `POSTHOG_PROJECT_ID` and `POSTHOG_PERSONAL_API_KEY` from Infisical `/fosterfolio/sensitive` and passes them to Terraform as `TF_VAR_posthog_project_id` and `TF_VAR_posthog_personal_api_key`. A value already set in `terraform.tfvars` wins over those variables. After a successful apply, it writes `WEB_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `LAMBDA_FUNCTION_NAME`, `NEXT_PUBLIC_API_URL`, and `ANALYTICS_ROLLUP_LAMBDA_FUNCTION_NAME` to Infisical `/fosterfolio/shared` for that environment. That write uses your Infisical login. GitHub Actions does not run it. GitHub Deploy app does not upload the rollup Lambda.
 
 If the Infisical CLI is missing or the write fails, the deploy still finishes. Re-run `npm run infisical:sync-outputs -- --env <env>`. Keep `terraform.tfvars` on disk; Terraform still reads the service role from that file.
 
