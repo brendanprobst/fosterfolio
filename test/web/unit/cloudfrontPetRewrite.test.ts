@@ -41,9 +41,16 @@ describe("CloudFront vanity URL rewrite", () => {
     );
   });
 
-  it("rewrites /@handle/pet/{id} to the pet sentinel", () => {
-    expect(rewrite("/@brendan/pet/11111111-1111-1111-1111-111111111111")).toBe(
+  it("rewrites /@handle/pet/{id} and its links and analytics pages", () => {
+    const id = "11111111-1111-1111-1111-111111111111";
+    expect(rewrite(`/@brendan/pet/${id}`)).toBe(
       `/${HANDLE_SENTINEL_SEGMENT}/pet/${PET_BIO_SENTINEL_ID}.html`,
+    );
+    expect(rewrite(`/@brendan/pet/${id}/links`)).toBe(
+      `/${HANDLE_SENTINEL_SEGMENT}/pet/${PET_BIO_SENTINEL_ID}/links.html`,
+    );
+    expect(rewrite(`/@brendan/pet/${id}/analytics`)).toBe(
+      `/${HANDLE_SENTINEL_SEGMENT}/pet/${PET_BIO_SENTINEL_ID}/analytics.html`,
     );
   });
 

@@ -38,8 +38,29 @@ function rewriteHandleFamily(uri) {
   }
   if (after.indexOf("pet/") === 0) {
     var petRest = after.substring(4);
-    if (petRest.length > 0 && petRest.indexOf("/") === -1 && petRest.indexOf(".") === -1) {
-      return "/" + HANDLE_SENTINEL + "/pet/" + STATIC_EXPORT_SENTINEL_ID + ".html";
+    var petSlash = petRest.indexOf("/");
+    if (petSlash === -1) {
+      if (petRest.length > 0 && petRest.indexOf(".") === -1) {
+        return "/" + HANDLE_SENTINEL + "/pet/" + STATIC_EXPORT_SENTINEL_ID + ".html";
+      }
+    } else {
+      var petId = petRest.substring(0, petSlash);
+      var section = petRest.substring(petSlash + 1);
+      if (
+        petId.length > 0 &&
+        petId.indexOf(".") === -1 &&
+        (section === "links" || section === "analytics")
+      ) {
+        return (
+          "/" +
+          HANDLE_SENTINEL +
+          "/pet/" +
+          STATIC_EXPORT_SENTINEL_ID +
+          "/" +
+          section +
+          ".html"
+        );
+      }
     }
   }
   return null;
