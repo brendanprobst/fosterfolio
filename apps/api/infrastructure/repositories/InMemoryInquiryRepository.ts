@@ -3,6 +3,7 @@ import type {
   CreateInquiryInput,
   IInquiryRepository,
   InquiryRecord,
+  InquirySourceRow,
 } from '@api/domain/repositories/IInquiryRepository';
 
 export class InMemoryInquiryRepository implements IInquiryRepository {
@@ -35,5 +36,32 @@ export class InMemoryInquiryRepository implements IInquiryRepository {
     if (!row || row.selfReportedSource) return false;
     row.selfReportedSource = source;
     return true;
+  }
+
+  async listSourcesByPetId(petId: string, sinceIso: string | null): Promise<InquirySourceRow[]> {
+    return this.records
+      .filter(
+        (row) =>
+          row.targetPetId === petId && (sinceIso == null || row.createdAt >= sinceIso)
+      )
+      .map((row) => ({
+        sourceLinkId: row.sourceLinkId,
+        sourceChannelKey: row.sourceChannelKey,
+        createdAt: row.createdAt,
+      }));
+  }
+
+  async countBySourceLinkIds(linkIds: string[]): Promise<Map<string, number>> {
+    const wanted = new Set(linkIds);
+    const totals = new Map<string, number>();
+    for (const row of this.records) {
+      if (!row.sourceLinkId || !wanted.has(row.sourceLinkId)) continue;
+      totals.set(row.sourceLinkId, (totals.get(row.sourceLinkId) ?? 0) + 1);
+    }
+    return totals;
+  }
+
+  seed(record: InquiryRecord): void {
+    this.records.push(record);
   }
 }

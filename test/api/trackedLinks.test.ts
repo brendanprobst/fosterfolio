@@ -198,4 +198,89 @@ describe('Tracked links API', () => {
       .expect(200);
     expect(restored.body.channelKey).toBe('vet-office');
   });
+
+  it('lists all-time view and inquiry totals and leaves direct inquiries off the link', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    const petId = await createOwnedPet(app);
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+
+    const created = await request(app)
+      .post(`/pets/${petId}/links`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ channelKey: 'instagram', label: 'bio' })
+      .expect(201);
+    expect(created.body.views).toBe(0);
+    expect(created.body.inquiries).toBe(0);
+
+    const quiet = await request(app)
+      .post(`/pets/${petId}/links`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ channelKey: 'flyer' })
+      .expect(201);
+
+    container.analyticsDailyRepository.seed({
+      petId,
+      linkId: created.body.id,
+      channelKey: 'instagram',
+      city: 'Austin',
+      day: '2026-01-01',
+      views: 4,
+      approxVisitors: 3,
+      formOpens: 1,
+    });
+    container.analyticsDailyRepository.seed({
+      petId,
+      linkId: created.body.id,
+      channelKey: 'instagram',
+      city: null,
+      day: '2026-02-01',
+      views: 6,
+      approxVisitors: 5,
+      formOpens: 0,
+    });
+    container.inquiryRepository.seed({
+      id: '11111111-1111-4111-8111-111111111111',
+      targetUserId: ownerId,
+      targetPetId: petId,
+      senderName: 'Ada',
+      senderEmail: 'ada@example.com',
+      message: 'Interested',
+      zipCode: '78701',
+      sourceLinkId: created.body.id,
+      sourceChannelKey: 'instagram',
+      selfReportedSource: null,
+      createdAt: '2026-02-02T00:00:00.000Z',
+    });
+    container.inquiryRepository.seed({
+      id: '22222222-2222-4222-8222-222222222222',
+      targetUserId: ownerId,
+      targetPetId: petId,
+      senderName: 'Bea',
+      senderEmail: 'bea@example.com',
+      message: 'Direct',
+      zipCode: null,
+      sourceLinkId: null,
+      sourceChannelKey: null,
+      selfReportedSource: null,
+      createdAt: '2026-02-03T00:00:00.000Z',
+    });
+
+    const listed = await request(app)
+      .get(`/pets/${petId}/links`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const withTotals = listed.body.find((row: { id: string }) => row.id === created.body.id);
+    const withoutTotals = listed.body.find((row: { id: string }) => row.id === quiet.body.id);
+    expect(withTotals).toMatchObject({ views: 10, inquiries: 1 });
+    expect(withoutTotals).toMatchObject({ views: 0, inquiries: 0 });
+
+    const patched = await request(app)
+      .patch(`/links/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ label: 'still new totals' })
+      .expect(200);
+    expect(patched.body.views).toBe(0);
+    expect(patched.body.inquiries).toBe(0);
+  });
 });

@@ -17,7 +17,7 @@ const record: TrackedLinkRecord = {
 };
 
 describe('tracked link dto', () => {
-  it('copies the record and sets views and inquiries to 0', () => {
+  it('copies the record and defaults views and inquiries to 0', () => {
     expect(toTrackedLinkDto(record)).toEqual({
       id: 'link-1',
       petId: 'pet-1',
@@ -30,6 +30,13 @@ describe('tracked link dto', () => {
       createdAt: '2026-10-08T12:00:00.000Z',
       views: 0,
       inquiries: 0,
+    });
+  });
+
+  it('uses totals when the list passes them in', () => {
+    expect(toTrackedLinkDto(record, { views: 12, inquiries: 3 })).toMatchObject({
+      views: 12,
+      inquiries: 3,
     });
   });
 

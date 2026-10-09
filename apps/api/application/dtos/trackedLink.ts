@@ -26,8 +26,16 @@ export type ChannelOptionDto = {
   isPreset: boolean;
 };
 
-/** View and inquiry totals stay 0 until the rollup slice reads analytics_daily. */
-export function toTrackedLinkDto(record: TrackedLinkRecord): TrackedLinkDto {
+export type TrackedLinkTotals = {
+  views: number;
+  inquiries: number;
+};
+
+/** Create and patch omit totals, so a brand-new link still returns zeros. */
+export function toTrackedLinkDto(
+  record: TrackedLinkRecord,
+  totals: TrackedLinkTotals = { views: 0, inquiries: 0 }
+): TrackedLinkDto {
   return {
     id: record.id,
     petId: record.petId,
@@ -38,8 +46,8 @@ export function toTrackedLinkDto(record: TrackedLinkRecord): TrackedLinkDto {
     label: record.label,
     archivedAt: record.archivedAt,
     createdAt: record.createdAt,
-    views: 0,
-    inquiries: 0,
+    views: totals.views,
+    inquiries: totals.inquiries,
   };
 }
 

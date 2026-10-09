@@ -1,6 +1,8 @@
 /**
  * Test setup - Creates isolated test app instances
  */
+import { GetPetAnalyticsSummaryUseCase } from '@api/application/use-cases/GetPetAnalyticsSummaryUseCase';
+import { GetPetAnalyticsUseCase } from '@api/application/use-cases/GetPetAnalyticsUseCase';
 import { AddStarUseCase } from '@api/application/use-cases/AddStarUseCase';
 import { CreateInquiryUseCase } from '@api/application/use-cases/CreateInquiryUseCase';
 import { ReportInquirySourceUseCase } from '@api/application/use-cases/ReportInquirySourceUseCase';
@@ -41,6 +43,7 @@ import {
 import { LoggingEmailAdapter } from '@api/infrastructure/adapters/email/LoggingEmailAdapter';
 import { InMemoryStorageAdapter } from '@api/infrastructure/adapters/storage/InMemoryStorageAdapter';
 import { Container } from '@api/infrastructure/container';
+import { InMemoryAnalyticsDailyRepository } from '@api/infrastructure/repositories/InMemoryAnalyticsDailyRepository';
 import { InMemoryInquiryRepository } from '@api/infrastructure/repositories/InMemoryInquiryRepository';
 import { InMemoryTrackedLinkRepository } from '@api/infrastructure/repositories/InMemoryTrackedLinkRepository';
 import { InMemoryPetRepository } from '@api/infrastructure/repositories/InMemoryPetRepository';
@@ -59,6 +62,7 @@ export class TestContainer {
   );
   readonly starRepository = new InMemoryStarRepository(this.userRepository);
   readonly inquiryRepository = new InMemoryInquiryRepository();
+  readonly analyticsDailyRepository = new InMemoryAnalyticsDailyRepository();
   readonly trackedLinkRepository = new InMemoryTrackedLinkRepository();
   readonly searchRepository = new InMemorySearchRepository(
     this.userRepository,
@@ -233,7 +237,12 @@ export class TestContainer {
   }
 
   getListTrackedLinksUseCase() {
-    return new ListTrackedLinksUseCase(this.trackedLinkRepository, this.petRepository);
+    return new ListTrackedLinksUseCase(
+      this.trackedLinkRepository,
+      this.petRepository,
+      this.analyticsDailyRepository,
+      this.inquiryRepository
+    );
   }
 
   getUpdateTrackedLinkUseCase() {
@@ -246,6 +255,22 @@ export class TestContainer {
 
   getListChannelsUseCase() {
     return new ListChannelsUseCase(this.trackedLinkRepository);
+  }
+
+  getGetPetAnalyticsUseCase() {
+    return new GetPetAnalyticsUseCase(
+      this.petRepository,
+      this.analyticsDailyRepository,
+      this.inquiryRepository
+    );
+  }
+
+  getGetPetAnalyticsSummaryUseCase() {
+    return new GetPetAnalyticsSummaryUseCase(
+      this.petRepository,
+      this.analyticsDailyRepository,
+      this.inquiryRepository
+    );
   }
 }
 

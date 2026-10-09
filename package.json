@@ -103,7 +103,8 @@
       "!apps/api/dist/**"
     ],
     "moduleNameMapper": {
-      "^@api/(.*)$": "<rootDir>/apps/api/$1"
+      "^@api/(.*)$": "<rootDir>/apps/api/$1",
+      "^@lattice/analytics/server$": "<rootDir>/packages/analytics/src/server.ts"
     },
     "transform": {
       "^.+\\.ts$": [

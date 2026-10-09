@@ -81,6 +81,7 @@ Authentication:
     './config/swagger/decorators/search.decorators.ts',
     './config/swagger/decorators/inquiries.decorators.ts',
     './config/swagger/decorators/trackedLinks.decorators.ts',
+    './config/swagger/decorators/analytics.decorators.ts',
     './config/swagger/decorators/storage.decorators.ts',
     './config/swagger/decorators/profile.decorators.ts',
     './config/swagger/decorators/index.decorators.ts',

@@ -2,6 +2,7 @@ import type {
   CreateInquiryInput,
   IInquiryRepository,
   InquiryRecord,
+  InquirySourceRow,
 } from '@api/domain/repositories/IInquiryRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
 
@@ -80,5 +81,36 @@ export class InquiryRepository implements IInquiryRepository {
       { headers: { Prefer: 'return=representation' } }
     );
     return Array.isArray(rows) && rows.length > 0;
+  }
+
+  async listSourcesByPetId(petId: string, sinceIso: string | null): Promise<InquirySourceRow[]> {
+    const since = sinceIso ? `&created_at=gte.${encodeURIComponent(sinceIso)}` : '';
+    const rows = await this.dataAdapter.get<
+      Array<{
+        source_link_id: string | null;
+        source_channel_key: string | null;
+        created_at: string;
+      }>
+    >(
+      `${this.table}?select=source_link_id,source_channel_key,created_at&target_pet_id=eq.${encodeURIComponent(petId)}${since}&limit=10000`
+    );
+    return rows.map((row) => ({
+      sourceLinkId: row.source_link_id,
+      sourceChannelKey: row.source_channel_key,
+      createdAt: row.created_at,
+    }));
+  }
+
+  async countBySourceLinkIds(linkIds: string[]): Promise<Map<string, number>> {
+    const totals = new Map<string, number>();
+    if (linkIds.length === 0) return totals;
+    const rows = await this.dataAdapter.get<Array<{ source_link_id: string | null }>>(
+      `${this.table}?select=source_link_id&source_link_id=in.(${linkIds.join(',')})&limit=10000`
+    );
+    for (const row of rows) {
+      if (!row.source_link_id) continue;
+      totals.set(row.source_link_id, (totals.get(row.source_link_id) ?? 0) + 1);
+    }
+    return totals;
   }
 }

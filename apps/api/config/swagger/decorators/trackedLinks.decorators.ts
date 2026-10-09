@@ -30,7 +30,7 @@
  *           type: string
  *     responses:
  *       200:
- *         description: Links with zeroed view and inquiry totals
+ *         description: Links with view and inquiry totals
  * /links/{id}:
  *   patch:
  *     summary: Edit a link label or channel, or archive / unarchive it

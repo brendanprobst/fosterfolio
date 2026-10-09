@@ -1,4 +1,5 @@
 import { ResultError } from '@api/domain/errors/ResultError';
+import { AnalyticsErrors } from '@api/domain/errors/catalogs/AnalyticsErrors';
 import { AuthErrors } from '@api/domain/errors/catalogs/AuthErrors';
 import { CommonErrors } from '@api/domain/errors/catalogs/CommonErrors';
 import { InquiryErrors } from '@api/domain/errors/catalogs/InquiryErrors';
@@ -50,6 +51,9 @@ export class ErrorCatalog {
   static readonly INQUIRY_TURNSTILE_FAILED = InquiryErrors.TURNSTILE_FAILED;
   static readonly INQUIRY_SOURCE_TOKEN_INVALID = InquiryErrors.SOURCE_TOKEN_INVALID;
 
+  static readonly ANALYTICS_FORBIDDEN = AnalyticsErrors.FORBIDDEN;
+  static readonly ANALYTICS_INVALID_RANGE = AnalyticsErrors.INVALID_RANGE;
+
   static readonly TRACKED_LINK_NOT_FOUND = TrackedLinkErrors.NOT_FOUND;
   static readonly TRACKED_LINK_FORBIDDEN = TrackedLinkErrors.FORBIDDEN;
   static readonly TRACKED_LINK_INVALID_INPUT = TrackedLinkErrors.INVALID_INPUT;
@@ -72,6 +76,7 @@ export class ErrorCatalog {
 }
 
 export {
+  AnalyticsErrors,
   AuthErrors,
   CommonErrors,
   InquiryErrors,

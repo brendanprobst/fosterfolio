@@ -1,6 +1,7 @@
 import { SupabaseAdapter } from '@api/infrastructure/adapters/supabase/SupabaseAdapter';
 import { NoopGeoLookupAdapter } from '@api/infrastructure/adapters/geo/NoopGeoLookupAdapter';
 import { ZippopotamGeoLookupAdapter } from '@api/infrastructure/adapters/geo/ZippopotamGeoLookupAdapter';
+import { createAnalyticsModule } from '@api/infrastructure/composition/analytics';
 import { createAllowlistModule } from '@api/infrastructure/composition/allowlist';
 import { createInquiriesModule } from '@api/infrastructure/composition/inquiries';
 import { createPetsModule } from '@api/infrastructure/composition/pets';
@@ -8,7 +9,10 @@ import { createPostsModule } from '@api/infrastructure/composition/posts';
 import { createSearchModule } from '@api/infrastructure/composition/search';
 import { createStarsModule } from '@api/infrastructure/composition/stars';
 import { createStorageModule } from '@api/infrastructure/composition/storage';
-import { createTrackedLinksModule } from '@api/infrastructure/composition/trackedLinks';
+import {
+  createTrackedLinksModule,
+  type LinkTotalsPorts,
+} from '@api/infrastructure/composition/trackedLinks';
 import { createUsersModule } from '@api/infrastructure/composition/users';
 import { isE2eSeedEnabled, seedFosterfolioE2eData } from '@api/infrastructure/e2eSeed';
 import { Logger } from '@api/utils/logger';
@@ -34,6 +38,7 @@ export class Container {
   private readonly inquiries: ReturnType<typeof createInquiriesModule>;
   private readonly storage: ReturnType<typeof createStorageModule>;
   private readonly trackedLinks: ReturnType<typeof createTrackedLinksModule>;
+  private readonly analytics: ReturnType<typeof createAnalyticsModule>;
   private readonly allowlist: ReturnType<typeof createAllowlistModule>;
 
   constructor() {
@@ -68,13 +73,25 @@ export class Container {
       this.users.userRepository,
       this.pets.petRepository
     );
-    this.trackedLinks = createTrackedLinksModule(dataAdapter, this.pets.petRepository);
+    const linkTotals: LinkTotalsPorts = {};
+    this.trackedLinks = createTrackedLinksModule(
+      dataAdapter,
+      this.pets.petRepository,
+      linkTotals
+    );
     this.inquiries = createInquiriesModule(
       dataAdapter,
       this.users.userRepository,
       this.pets.petRepository,
       this.trackedLinks.trackedLinkRepository
     );
+    this.analytics = createAnalyticsModule(
+      dataAdapter,
+      this.pets.petRepository,
+      this.inquiries.inquiryRepository
+    );
+    linkTotals.analyticsDailyRepository = this.analytics.analyticsDailyRepository;
+    linkTotals.inquiryRepository = this.inquiries.inquiryRepository;
     this.storage = createStorageModule(dataAdapter);
     this.allowlist = createAllowlistModule(dataAdapter);
 
@@ -201,6 +218,14 @@ export class Container {
 
   getListChannelsUseCase() {
     return this.trackedLinks.getListChannelsUseCase();
+  }
+
+  getGetPetAnalyticsUseCase() {
+    return this.analytics.getGetPetAnalyticsUseCase();
+  }
+
+  getGetPetAnalyticsSummaryUseCase() {
+    return this.analytics.getGetPetAnalyticsSummaryUseCase();
   }
 }
 
