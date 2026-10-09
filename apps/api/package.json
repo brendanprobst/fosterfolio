@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "build:lambda": "esbuild lambda.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/index.js",
+    "build:lambda": "esbuild lambda.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/index.js && esbuild analyticsRollup.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/rollup.js",
     "start": "node ./dist/bin/www.js",
     "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only ./bin/www.ts",
     "dev:prod": "FOSTERFOLIO_ENV=prod ts-node-dev -r tsconfig-paths/register --respawn --transpile-only ./bin/www.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit && tsc --noEmit -p tsconfig.rollup.json"
   },
   "dependencies": {
     "@aws-sdk/client-ssm": "^3.1014.0",

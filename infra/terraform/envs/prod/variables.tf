@@ -59,6 +59,37 @@ variable "api_lambda_bundle_path" {
   default     = "../../../../apps/api/dist-lambda/index.js"
 }
 
+variable "analytics_rollup_lambda_bundle_path" {
+  description = "Path to the analytics rollup Lambda bundle from `npm run build:lambda -w @lattice/api`."
+  type        = string
+  default     = "../../../../apps/api/dist-lambda/rollup.js"
+}
+
+variable "analytics_rollup_lambda_timeout_seconds" {
+  description = "Analytics rollup Lambda timeout in seconds."
+  type        = number
+  default     = 60
+}
+
+variable "posthog_api_host" {
+  description = "PostHog query API host for the hourly rollup. This is not the ingestion host."
+  type        = string
+  default     = "https://us.posthog.com"
+}
+
+variable "posthog_project_id" {
+  description = "PostHog project id for the hourly rollup. Set in terraform.tfvars; not applied by this slice."
+  type        = string
+  default     = ""
+}
+
+variable "posthog_personal_api_key" {
+  description = "PostHog personal API key for the HogQL query API. Set in terraform.tfvars; not applied by this slice."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "api_lambda_runtime" {
   description = "Lambda runtime for the API function."
   type        = string

@@ -114,6 +114,59 @@ resource "aws_lambda_function" "api" {
   ]
 }
 
+data "archive_file" "analytics_rollup_lambda_zip" {
+  type        = "zip"
+  source_file = var.analytics_rollup_lambda_bundle_path
+  output_path = "${path.module}/.generated/analytics-rollup-lambda.zip"
+}
+
+resource "aws_lambda_function" "analytics_rollup" {
+  function_name = "${local.name_prefix}-analytics-rollup"
+  role          = aws_iam_role.api_lambda.arn
+  runtime       = var.api_lambda_runtime
+  handler       = "rollup.handler"
+  memory_size   = var.api_lambda_memory_mb
+  timeout       = var.analytics_rollup_lambda_timeout_seconds
+  filename      = data.archive_file.analytics_rollup_lambda_zip.output_path
+
+  source_code_hash = data.archive_file.analytics_rollup_lambda_zip.output_base64sha256
+
+  environment {
+    variables = {
+      NODE_ENV                        = "production"
+      SUPABASE_URL_PARAM              = local.supabase_parameter_names.url
+      SUPABASE_SERVICE_ROLE_KEY_PARAM = local.supabase_parameter_names.service_role_key
+      POSTHOG_HOST                    = var.posthog_api_host
+      POSTHOG_PROJECT_ID              = var.posthog_project_id
+      POSTHOG_PERSONAL_API_KEY        = var.posthog_personal_api_key
+    }
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.api_lambda_basic_execution
+  ]
+}
+
+resource "aws_cloudwatch_event_rule" "analytics_rollup_hourly" {
+  name                = "${local.name_prefix}-analytics-rollup-hourly"
+  description         = "Hourly PostHog rollup into analytics_daily"
+  schedule_expression = "rate(1 hour)"
+}
+
+resource "aws_cloudwatch_event_target" "analytics_rollup_hourly" {
+  rule      = aws_cloudwatch_event_rule.analytics_rollup_hourly.name
+  target_id = "analytics-rollup"
+  arn       = aws_lambda_function.analytics_rollup.arn
+}
+
+resource "aws_lambda_permission" "analytics_rollup_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.analytics_rollup.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.analytics_rollup_hourly.arn
+}
+
 resource "aws_apigatewayv2_api" "api_http" {
   name          = "${local.name_prefix}-http-api"
   protocol_type = "HTTP"

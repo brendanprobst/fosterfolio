@@ -18,6 +18,11 @@ output "api_lambda_function_name" {
   value       = aws_lambda_function.api.function_name
 }
 
+output "analytics_rollup_lambda_function_name" {
+  description = "Lambda function name for the hourly analytics rollup."
+  value       = aws_lambda_function.analytics_rollup.function_name
+}
+
 output "api_url" {
   description = "Public HTTP API endpoint URL."
   value       = aws_apigatewayv2_api.api_http.api_endpoint
