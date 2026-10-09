@@ -56,6 +56,7 @@ export class InMemoryPetRepository implements IPetRepository {
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
+      analyticsStoppedAt: null,
     });
     this.pets.set(pet.id, pet);
     return pet;

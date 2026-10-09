@@ -33,6 +33,7 @@ type PetRecord = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  analytics_stopped_at: string | null;
 };
 
 type PostUpdateRecord = {
@@ -44,7 +45,7 @@ type PostUpdateRecord = {
 };
 
 const PET_SELECT =
-  'id,owner_id,name,species,breed,age_value,age_unit,sex,size,status,sub_status,shelter_link_name,shelter_link_url,primary_photo_url,photos,bio_markdown,important_links,created_at,updated_at,deleted_at';
+  'id,owner_id,name,species,breed,age_value,age_unit,sex,size,status,sub_status,shelter_link_name,shelter_link_url,primary_photo_url,photos,bio_markdown,important_links,created_at,updated_at,deleted_at,analytics_stopped_at';
 
 function toPet(row: PetRecord): Pet {
   const species = isPetSpecies(row.species) ? row.species : 'other';
@@ -69,6 +70,7 @@ function toPet(row: PetRecord): Pet {
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
+    analyticsStoppedAt: row.analytics_stopped_at ? new Date(row.analytics_stopped_at) : null,
   });
 }
 
