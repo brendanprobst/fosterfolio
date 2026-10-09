@@ -12,7 +12,8 @@
     "node": ">=22.0.0 <23"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "build": "turbo run build",
@@ -89,7 +90,8 @@
     "preset": "ts-jest",
     "testEnvironment": "node",
     "roots": [
-      "<rootDir>/test/api"
+      "<rootDir>/test/api",
+      "<rootDir>/packages/analytics"
     ],
     "testMatch": [
       "**/__tests__/**/*.ts",

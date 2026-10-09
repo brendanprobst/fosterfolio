@@ -15,6 +15,6 @@
     },
     "types": ["jest", "node"]
   },
-  "include": ["test/api/**/*.ts", "apps/api/**/*.ts"],
+  "include": ["test/api/**/*.ts", "apps/api/**/*.ts", "packages/analytics/src/**/*.ts"],
   "exclude": ["node_modules", "apps/api/dist"]
 }
