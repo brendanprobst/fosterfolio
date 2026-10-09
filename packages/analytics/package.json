@@ -5,7 +5,8 @@
   "description": "Cookieless first-touch attribution and a single PostHog browser client.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
