@@ -1,4 +1,5 @@
 import { signInquirySourceToken } from '@api/application/inquiries/inquirySourceToken';
+import { ensureInquiryReceivedRegistered } from '@api/application/notifications/inquiryReceived';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IInquiryRepository } from '@api/domain/repositories/IInquiryRepository';
@@ -6,8 +7,8 @@ import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
 import type { TurnstileVerifier } from '@api/infrastructure/adapters/turnstile/verifyTurnstileToken';
-import type { EmailAdapter } from '@api/infrastructure/adapters/email/EmailAdapter';
 import { Logger } from '@api/utils/logger';
+import { dispatch, type DispatchDependencies } from '@lattice/notifications';
 
 export type CreateInquiryCommand = {
   targetUserId: string;
@@ -44,7 +45,7 @@ export class CreateInquiryUseCase {
     private readonly inquiryRepository: IInquiryRepository,
     private readonly userRepository: IUserRepository,
     private readonly petRepository: IPetRepository,
-    private readonly emailAdapter: EmailAdapter,
+    private readonly notifications: DispatchDependencies,
     private readonly trackedLinkRepository: ITrackedLinkRepository,
     private readonly turnstile: TurnstileGate
   ) {}
@@ -95,6 +96,7 @@ export class CreateInquiryUseCase {
       }
 
       let storedChannel = sourceChannelKey;
+      let linkLabel: string | null = null;
       if (sourceLinkId) {
         if (!targetPetId) {
           return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
@@ -104,6 +106,7 @@ export class CreateInquiryUseCase {
           return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
         }
         storedChannel = link.channelKey;
+        linkLabel = link.label;
       }
 
       const created = await this.inquiryRepository.create({
@@ -117,31 +120,29 @@ export class CreateInquiryUseCase {
         sourceChannelKey: storedChannel,
       });
 
-      const subject = petName
-        ? `Fosterfolio inquiry about ${petName}`
-        : 'Fosterfolio inquiry';
-      const text = [
-        `You have a new inquiry on Fosterfolio.`,
-        petName ? `Pet: ${petName}` : null,
-        `From: ${senderName} <${senderEmail}>`,
-        '',
-        message,
-      ]
-        .filter((line) => line !== null)
-        .join('\n');
-
+      ensureInquiryReceivedRegistered();
       try {
-        await this.emailAdapter.send({
-          to: target.email,
-          subject,
-          text,
-          replyTo: senderEmail,
+        await dispatch(this.notifications, {
+          recipientId: target.id,
+          recipientEmail: target.email,
+          type: 'inquiry_received',
+          payload: {
+            senderName,
+            senderEmail,
+            zip: zipCode,
+            message,
+            petId: targetPetId,
+            petName,
+            sourceChannelKey: storedChannel,
+            linkLabel,
+            selfReportedSource: null,
+          },
+          entityRef: { entityType: 'inquiry', entityId: created.id },
         });
       } catch (error) {
         Logger.warning(
-          `[inquiry] email failed after persist (${error instanceof Error ? error.message : 'unknown'})`
+          `[inquiry] notification dispatch failed after persist (${error instanceof Error ? error.message : 'unknown'})`
         );
-        return Result.failure(ErrorCatalog.INQUIRY_EMAIL_FAILED);
       }
 
       return Result.success({

@@ -91,7 +91,8 @@
     "testEnvironment": "node",
     "roots": [
       "<rootDir>/test/api",
-      "<rootDir>/packages/analytics"
+      "<rootDir>/packages/analytics",
+      "<rootDir>/packages/notifications"
     ],
     "testMatch": [
       "**/__tests__/**/*.ts",
@@ -104,7 +105,8 @@
     ],
     "moduleNameMapper": {
       "^@api/(.*)$": "<rootDir>/apps/api/$1",
-      "^@lattice/analytics/server$": "<rootDir>/packages/analytics/src/server.ts"
+      "^@lattice/analytics/server$": "<rootDir>/packages/analytics/src/server.ts",
+      "^@lattice/notifications$": "<rootDir>/packages/notifications/src/index.ts"
     },
     "transform": {
       "^.+\\.ts$": [

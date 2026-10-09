@@ -2,6 +2,11 @@
  * Test setup - Creates isolated test app instances
  */
 import { GetPetAnalyticsSummaryUseCase } from '@api/application/use-cases/GetPetAnalyticsSummaryUseCase';
+import { GetNotificationPreferencesUseCase, PutNotificationPreferenceUseCase } from '@api/application/use-cases/NotificationPreferencesUseCases';
+import { GetUnreadNotificationCountUseCase } from '@api/application/use-cases/GetUnreadNotificationCountUseCase';
+import { ListNotificationsUseCase } from '@api/application/use-cases/ListNotificationsUseCase';
+import { UpdateNotificationUseCase } from '@api/application/use-cases/UpdateNotificationUseCase';
+import { ensureInquiryReceivedRegistered } from '@api/application/notifications/inquiryReceived';
 import { GetPetAnalyticsUseCase } from '@api/application/use-cases/GetPetAnalyticsUseCase';
 import { AddStarUseCase } from '@api/application/use-cases/AddStarUseCase';
 import { CreateInquiryUseCase } from '@api/application/use-cases/CreateInquiryUseCase';
@@ -41,6 +46,8 @@ import {
   type TurnstileVerifier,
 } from '@api/infrastructure/adapters/turnstile/verifyTurnstileToken';
 import { LoggingEmailAdapter } from '@api/infrastructure/adapters/email/LoggingEmailAdapter';
+import { EmailChannelAdapter } from '@api/infrastructure/adapters/email/EmailChannelAdapter';
+import { InMemoryNotificationRepository } from '@api/infrastructure/repositories/InMemoryNotificationRepository';
 import { InMemoryStorageAdapter } from '@api/infrastructure/adapters/storage/InMemoryStorageAdapter';
 import { Container } from '@api/infrastructure/container';
 import { InMemoryAnalyticsDailyRepository } from '@api/infrastructure/repositories/InMemoryAnalyticsDailyRepository';
@@ -64,6 +71,7 @@ export class TestContainer {
   readonly inquiryRepository = new InMemoryInquiryRepository();
   readonly analyticsDailyRepository = new InMemoryAnalyticsDailyRepository();
   readonly trackedLinkRepository = new InMemoryTrackedLinkRepository();
+  readonly notificationRepository = new InMemoryNotificationRepository();
   readonly searchRepository = new InMemorySearchRepository(
     this.userRepository,
     this.petRepository
@@ -211,11 +219,16 @@ export class TestContainer {
   }
 
   getCreateInquiryUseCase() {
+    ensureInquiryReceivedRegistered();
     return new CreateInquiryUseCase(
       this.inquiryRepository,
       this.userRepository,
       this.petRepository,
-      this.emailAdapter,
+      {
+        inApp: this.notificationRepository,
+        email: new EmailChannelAdapter(this.emailAdapter),
+        preferences: this.notificationRepository,
+      },
       this.trackedLinkRepository,
       {
         getSecret: () => this.turnstileSecret,
@@ -271,6 +284,31 @@ export class TestContainer {
       this.analyticsDailyRepository,
       this.inquiryRepository
     );
+  }
+
+  getListNotificationsUseCase() {
+    return new ListNotificationsUseCase(
+      this.notificationRepository,
+      this.inquiryRepository,
+      this.petRepository,
+      this.trackedLinkRepository
+    );
+  }
+
+  getUnreadNotificationCountUseCase() {
+    return new GetUnreadNotificationCountUseCase(this.notificationRepository);
+  }
+
+  getUpdateNotificationUseCase() {
+    return new UpdateNotificationUseCase(this.notificationRepository);
+  }
+
+  getNotificationPreferencesUseCase() {
+    return new GetNotificationPreferencesUseCase(this.notificationRepository);
+  }
+
+  getPutNotificationPreferenceUseCase() {
+    return new PutNotificationPreferenceUseCase(this.notificationRepository);
   }
 }
 

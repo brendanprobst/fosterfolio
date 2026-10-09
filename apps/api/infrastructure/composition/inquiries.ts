@@ -6,9 +6,11 @@ import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLi
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
 import type { EmailAdapter } from '@api/infrastructure/adapters/email/EmailAdapter';
+import { EmailChannelAdapter } from '@api/infrastructure/adapters/email/EmailChannelAdapter';
 import { LoggingEmailAdapter } from '@api/infrastructure/adapters/email/LoggingEmailAdapter';
 import { SesEmailAdapter } from '@api/infrastructure/adapters/email/SesEmailAdapter';
 import { verifyTurnstileToken } from '@api/infrastructure/adapters/turnstile/verifyTurnstileToken';
+import type { INotificationRepository } from '@api/domain/repositories/INotificationRepository';
 import { InMemoryInquiryRepository } from '@api/infrastructure/repositories/InMemoryInquiryRepository';
 import { InquiryRepository } from '@api/infrastructure/repositories/InquiryRepository';
 
@@ -31,6 +33,7 @@ export function createInquiriesModule(
   userRepository: IUserRepository,
   petRepository: IPetRepository,
   trackedLinkRepository: ITrackedLinkRepository,
+  notificationRepository: INotificationRepository,
   emailAdapter: EmailAdapter = createEmailAdapter()
 ): InquiriesModule {
   const inquiryRepository: IInquiryRepository = dataAdapter
@@ -44,7 +47,11 @@ export function createInquiriesModule(
         inquiryRepository,
         userRepository,
         petRepository,
-        emailAdapter,
+        {
+          inApp: notificationRepository,
+          email: new EmailChannelAdapter(emailAdapter),
+          preferences: notificationRepository,
+        },
         trackedLinkRepository,
         {
           getSecret: () => process.env.TURNSTILE_SECRET_KEY?.trim() || null,

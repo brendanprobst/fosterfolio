@@ -12,10 +12,11 @@
     "baseUrl": ".",
     "paths": {
       "@api/*": ["apps/api/*"],
-      "@lattice/analytics/server": ["packages/analytics/src/server.ts"]
+      "@lattice/analytics/server": ["packages/analytics/src/server.ts"],
+      "@lattice/notifications": ["packages/notifications/src/index.ts"]
     },
     "types": ["jest", "node"]
   },
-  "include": ["test/api/**/*.ts", "apps/api/**/*.ts", "packages/analytics/src/**/*.ts"],
+  "include": ["test/api/**/*.ts", "apps/api/**/*.ts", "packages/analytics/src/**/*.ts", "packages/notifications/src/**/*.ts"],
   "exclude": ["node_modules", "apps/api/dist"]
 }

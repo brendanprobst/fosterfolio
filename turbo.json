@@ -24,6 +24,7 @@
         "test/api/**/*.ts",
         "apps/api/**/*.ts",
         "packages/analytics/src/**/*.ts",
+        "packages/notifications/src/**/*.ts",
         "!apps/api/dist/**"
       ],
       "outputs": []
@@ -36,6 +37,7 @@
         "test/api/**/*.ts",
         "apps/api/**/*.ts",
         "packages/analytics/src/**/*.ts",
+        "packages/notifications/src/**/*.ts",
         "!apps/api/dist/**"
       ],
       "outputs": ["test/coverage/**"]

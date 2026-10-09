@@ -3,6 +3,7 @@ import { AnalyticsErrors } from '@api/domain/errors/catalogs/AnalyticsErrors';
 import { AuthErrors } from '@api/domain/errors/catalogs/AuthErrors';
 import { CommonErrors } from '@api/domain/errors/catalogs/CommonErrors';
 import { InquiryErrors } from '@api/domain/errors/catalogs/InquiryErrors';
+import { NotificationErrors } from '@api/domain/errors/catalogs/NotificationErrors';
 import { PetErrors } from '@api/domain/errors/catalogs/PetErrors';
 import { PostErrors } from '@api/domain/errors/catalogs/PostErrors';
 import { SearchErrors } from '@api/domain/errors/catalogs/SearchErrors';
@@ -58,6 +59,11 @@ export class ErrorCatalog {
   static readonly TRACKED_LINK_FORBIDDEN = TrackedLinkErrors.FORBIDDEN;
   static readonly TRACKED_LINK_INVALID_INPUT = TrackedLinkErrors.INVALID_INPUT;
 
+  static readonly NOTIFICATION_NOT_FOUND = NotificationErrors.NOT_FOUND;
+  static readonly NOTIFICATION_INVALID_INPUT = NotificationErrors.INVALID_INPUT;
+  static readonly NOTIFICATION_INVALID_STATUS = NotificationErrors.INVALID_STATUS;
+  static readonly NOTIFICATION_UNKNOWN_TYPE = NotificationErrors.UNKNOWN_TYPE;
+
   static readonly STORAGE_INVALID_INPUT = StorageErrors.INVALID_INPUT;
   static readonly STORAGE_CONTENT_TYPE_INVALID = StorageErrors.CONTENT_TYPE_INVALID;
   static readonly STORAGE_CAP_EXCEEDED = StorageErrors.CAP_EXCEEDED;
@@ -80,6 +86,7 @@ export {
   AuthErrors,
   CommonErrors,
   InquiryErrors,
+  NotificationErrors,
   PetErrors,
   PostErrors,
   SearchErrors,

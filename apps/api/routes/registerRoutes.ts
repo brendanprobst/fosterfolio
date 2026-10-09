@@ -8,6 +8,7 @@ import { swaggerSpec } from '@api/config/swagger/index';
 import type { Container } from '@api/infrastructure/container';
 import indexRouter from '@api/routes/index';
 import { createInquiryRouter } from '@api/routes/inquiries';
+import { createNotificationRouter } from '@api/routes/notifications';
 import { createChannelRouter, createTrackedLinkRouter } from '@api/routes/links';
 import { createPetRouter } from '@api/routes/pets';
 import { createPostRouter } from '@api/routes/posts';
@@ -37,6 +38,7 @@ export function registerRoutes(app: Express, container: Container): void {
   app.use('/profile', createProfileRouter(container, { requireAuth }));
   app.use('/me', createProfileRouter(container, { requireAuth }));
   app.use('/me', createChannelRouter(container, { requireAuth }));
+  app.use('/me', createNotificationRouter(container, { requireAuth }));
   app.use('/users', createUserRouter(container, { requireAuth, optionalAuth }));
   app.use('/pets', createPetRouter(container, { requireAuth }));
   app.use('/posts', createPostRouter(container, { requireAuth }));

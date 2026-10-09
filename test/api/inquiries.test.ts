@@ -34,6 +34,13 @@ describe('Inquiries API', () => {
       senderEmail: 'jamie@example.com',
     });
     expect(container.inquiryRepository.records).toHaveLength(1);
+    expect(container.notificationRepository.records).toHaveLength(1);
+    expect(container.notificationRepository.records[0]).toMatchObject({
+      type: 'inquiry_received',
+      entityType: 'inquiry',
+      entityId: res.body.id,
+    });
+    expect(container.notificationRepository.records[0]?.emailedAt).toEqual(expect.any(String));
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({
       to: 'foster@example.com',
@@ -55,7 +62,7 @@ describe('Inquiries API', () => {
     expect(res.body.error.code).toBe('INQUIRY_TARGET_NOT_FOUND');
   });
 
-  it('returns 502 when email send fails after persist', async () => {
+  it('keeps the inquiry and in-app row when email send fails', async () => {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'foster@example.com' });
     container.setEmailAdapter({
@@ -72,9 +79,10 @@ describe('Inquiries API', () => {
         senderEmail: 'jamie@example.com',
         message: 'Hello',
       })
-      .expect(502);
-    expect(res.body.error.code).toBe('INQUIRY_EMAIL_FAILED');
+      .expect(201);
     expect(container.inquiryRepository.records).toHaveLength(1);
+    expect(container.notificationRepository.records).toHaveLength(1);
+    expect(container.notificationRepository.records[0]?.emailedAt).toBeNull();
   });
 
   it('stores zip and source, rejects a link for another pet, and accepts an archived link', async () => {

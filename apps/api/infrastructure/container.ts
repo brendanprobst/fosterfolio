@@ -4,6 +4,7 @@ import { ZippopotamGeoLookupAdapter } from '@api/infrastructure/adapters/geo/Zip
 import { createAnalyticsModule } from '@api/infrastructure/composition/analytics';
 import { createAllowlistModule } from '@api/infrastructure/composition/allowlist';
 import { createInquiriesModule } from '@api/infrastructure/composition/inquiries';
+import { createNotificationsModule, createNotificationRepository } from '@api/infrastructure/composition/notifications';
 import { createPetsModule } from '@api/infrastructure/composition/pets';
 import { createPostsModule } from '@api/infrastructure/composition/posts';
 import { createSearchModule } from '@api/infrastructure/composition/search';
@@ -36,6 +37,7 @@ export class Container {
   private readonly stars: ReturnType<typeof createStarsModule>;
   private readonly search: ReturnType<typeof createSearchModule>;
   private readonly inquiries: ReturnType<typeof createInquiriesModule>;
+  private readonly notifications: ReturnType<typeof createNotificationsModule>;
   private readonly storage: ReturnType<typeof createStorageModule>;
   private readonly trackedLinks: ReturnType<typeof createTrackedLinksModule>;
   private readonly analytics: ReturnType<typeof createAnalyticsModule>;
@@ -79,9 +81,17 @@ export class Container {
       this.pets.petRepository,
       linkTotals
     );
+    const notificationRepository = createNotificationRepository(dataAdapter);
     this.inquiries = createInquiriesModule(
       dataAdapter,
       this.users.userRepository,
+      this.pets.petRepository,
+      this.trackedLinks.trackedLinkRepository,
+      notificationRepository
+    );
+    this.notifications = createNotificationsModule(
+      notificationRepository,
+      this.inquiries.inquiryRepository,
       this.pets.petRepository,
       this.trackedLinks.trackedLinkRepository
     );
@@ -226,6 +236,26 @@ export class Container {
 
   getGetPetAnalyticsSummaryUseCase() {
     return this.analytics.getGetPetAnalyticsSummaryUseCase();
+  }
+
+  getListNotificationsUseCase() {
+    return this.notifications.getListNotificationsUseCase();
+  }
+
+  getUnreadNotificationCountUseCase() {
+    return this.notifications.getUnreadNotificationCountUseCase();
+  }
+
+  getUpdateNotificationUseCase() {
+    return this.notifications.getUpdateNotificationUseCase();
+  }
+
+  getNotificationPreferencesUseCase() {
+    return this.notifications.getNotificationPreferencesUseCase();
+  }
+
+  getPutNotificationPreferenceUseCase() {
+    return this.notifications.getPutNotificationPreferenceUseCase();
   }
 }
 
