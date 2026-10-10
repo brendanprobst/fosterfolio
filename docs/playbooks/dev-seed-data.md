@@ -31,7 +31,7 @@ Seeds deliberately sit **outside** `supabase/migrations/feature-migrations/` so 
 |---|---|
 | `supabase/migrations/seed/features/core.sql` | Fosters, pets, posts, stars, inquiries |
 | `supabase/migrations/seed/features/core_down.sql` | Delete exactly what the core seed created |
-| `supabase/migrations/seed/features/tracked-links.sql` | Sample links for Mochi |
+| `supabase/migrations/seed/features/tracked-links.sql` | 3 pet links for Mochi, plus 1 foster-me link for the same owner |
 | `supabase/migrations/seed/features/tracked-links_down.sql` | Delete those links |
 | `scripts/supabase-master-seed.mjs` | Applies every feature up, or every down in reverse |
 

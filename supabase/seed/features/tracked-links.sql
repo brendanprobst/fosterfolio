@@ -4,10 +4,12 @@
 --   npm run supabase:seed:tracked-links:down -- --yes
 --
 -- Ids start with f05e. Re-running upserts.
--- A link whose pet or owner is missing is skipped. The other links still apply.
+-- 3 pet links for Mochi, plus 1 foster-me link for the same owner.
+-- A pet link whose pet or owner is missing is skipped. A foster-me link
+-- whose owner is missing is skipped. The other links still apply.
 
 insert into public.tracked_links (
-  id, pet_id, owner_id, code, channel_key, channel_name, label, archived_at, created_at
+  id, pet_id, owner_id, code, channel_key, channel_name, label, archived_at, created_at, target
 )
 select * from (
 values
@@ -19,8 +21,9 @@ values
     'lawn_sign',
     'Lawn sign',
     'front yard',
-    null,
-    now() - interval '3 days'
+    null::timestamptz,
+    now() - interval '3 days',
+    'pet'
   ),
   (
     'f05e0005-0000-4000-8000-000000000002'::uuid,
@@ -30,8 +33,9 @@ values
     'vet-office',
     'Vet Office',
     'lobby',
-    null,
-    now() - interval '2 days'
+    null::timestamptz,
+    now() - interval '2 days',
+    'pet'
   ),
   (
     'f05e0005-0000-4000-8000-000000000003'::uuid,
@@ -42,11 +46,27 @@ values
     'Flyer',
     'corner of 5th',
     now() - interval '1 day',
-    now() - interval '4 days'
+    now() - interval '4 days',
+    'pet'
+  ),
+  (
+    'f05e0005-0000-4000-8000-000000000004'::uuid,
+    null::uuid,
+    'f05e0000-0000-4000-8000-000000000001'::uuid,
+    'ALEXFM01',
+    'instagram',
+    'Instagram',
+    'foster-me page',
+    null::timestamptz,
+    now() - interval '1 day',
+    'foster_me'
   )
-) as v(id, pet_id, owner_id, code, channel_key, channel_name, label, archived_at, created_at)
-where exists (select 1 from public.pets p where p.id = v.pet_id)
-  and exists (select 1 from public.users u where u.id = v.owner_id)
+) as v(id, pet_id, owner_id, code, channel_key, channel_name, label, archived_at, created_at, target)
+where exists (select 1 from public.users u where u.id = v.owner_id)
+  and (
+    (v.target = 'pet' and exists (select 1 from public.pets p where p.id = v.pet_id))
+    or (v.target = 'foster_me' and v.pet_id is null)
+  )
 on conflict (id) do update
   set pet_id = excluded.pet_id,
       owner_id = excluded.owner_id,
@@ -55,7 +75,8 @@ on conflict (id) do update
       channel_name = excluded.channel_name,
       label = excluded.label,
       archived_at = excluded.archived_at,
-      created_at = excluded.created_at;
+      created_at = excluded.created_at,
+      target = excluded.target;
 
 select entity, rows
 from (

@@ -81,7 +81,7 @@ Raised after a demo with a target-demographic user. Grounded against the current
 - ~~The vanity URL should default to the owner's most recent foster, not their profile~~ — **resolved, superseded by [`vanity_urls.plan.md`](vanity_urls.plan.md).** Rather than changing what the root vanity URL points at, the root stays the profile and gets a dedicated sibling, `/@handle/foster-me`, for this exact use case. See that plan for the selection rule (still a defaulted, not fully confirmed, decision) and why it must not redirect to a fixed pet permalink.
 - **Pets should support multiple photos, not one.** — **Write path in; public gallery still open (item 6.1).** `photos jsonb` migration + create/update + the pet editor list (add / remove / reorder, `primaryPhotoUrl` = cover / first) are in. Pet bio, cards, and search still render only `primaryPhotoUrl`. Existing single-URL pets should keep working as a one-item array.
 - **Basic page-view analytics per pet, and maybe per profile.** PostHog is already wired (`apps/web/client/lib/analytics/`, `docs/playbooks/posthog-analytics.md`), but that's third-party event/session analytics with no read path back into the product — it can't power a number shown on `/profile` today. A real "views" count needs its own counter: most likely a small table incremented on `GET /pets/:id` / `GET /users/:id` (mirroring how `profile_stars` already counts something per-user), surfaced as a number or tiny chart in the owner-only view of `PetBioPage.tsx` and somewhere on `/profile`. No existing seam covers this — it's new end-to-end work, not a wiring change.
-- **`/@handle/foster-me` and the pet bio (`/@handle/pet/{id}`) should not be the same page.** Today `FosterMePage` renders `PetBioView`, so a flyer scan and a permalink look identical. They have different jobs. Foster-me is the stable "whoever I'm fostering now" address (it must not redirect to a pet id — see [vanity URLs](vanity_urls.plan.md)). Optimize that page for the two actions a visitor should take on the spot: **submit an inquiry**, and/or **save the current pet's permalink** so they can reopen `/@handle/pet/{id}` later in the adoption process. The pet bio stays the durable detail page (gallery, bio, facts) for that one animal. A save/bookmark of the pet page is not the same as the post-MVP "add Fosterfolio to the home screen" item below — this one is "keep this pet," and it can be a copy-link / share-sheet / browser-bookmark prompt pointed at the pet URL. Do not encode the foster-me URL as the thing they save; that address will show a different animal later. → Addressed by slice 5b (foster-me preview page).
+- ~~**`/@handle/foster-me` and the pet bio (`/@handle/pet/{id}`) should not be the same page.**~~ **Done in 5b — foster-me is a preview page.** The old idea of putting the inquiry form on foster-me is superseded: the preview is intentionally minimal and inquiries happen on the pet bio. See [slice 5b](v2_slice5b_foster_me_links.plan.md).
 - **Stretch, post-MVP — a bookmark/add-to-home-screen CTA on pet bio pages.** Nothing to build on yet: no `manifest.json` or install-prompt handling exists in `apps/web` today. Browser support is uneven — the `beforeinstallprompt` event Chrome/Android uses has no equivalent on iOS Safari, which only offers a manual "Add to Home Screen" via the share sheet, so the CTA would need to degrade to an instructional prompt there.
 - **Stretch, post-MVP — a resources section (unlisted YouTube videos) for new foster parents.** No existing embed component or resources route. No architectural blocker; scopes cleanly later as a new `client/pages/resources/` page wrapping `<iframe>` embeds.
 
@@ -146,6 +146,21 @@ Slice 5a complete — next: [slice 5b](v2_slice5b_foster_me_links.plan.md) (impl
 Known red, still open: the 3 `test/web/unit/SearchPage.test.tsx` tests. Their `next/navigation` mock does not provide `usePathname`, which `useUnreadNotificationCount` now calls.
 
 Deferred, not this slice: draw `apps/web/app/icon.svg` in the center of the QR preview and all three downloads. The `qrcode` package has no logo option — raise error correction to `H`, composite the mark onto the PNG canvas and into the SVG string, keep it about 15–20% of the code width on a white pad, then scan a PNG and the SVG.
+
+---
+
+## 8. v2 slice 5b — foster-me links
+
+Plan: [v2_slice5b_foster_me_links.plan.md](v2_slice5b_foster_me_links.plan.md).
+
+- [x] 5b-todo-md — wire this section
+- [x] 5b-schema — `tracked_links.target` + nullable `pet_id`; `analytics_owner_daily`; `inquiries.via_foster_me`
+- [ ] 5b-api-links — foster-me link create/list, resolve returns target, reserved `default` channel
+- [ ] 5b-events-rollup — `foster_me_viewed`, via-foster-me marker, owner rollup
+- [ ] 5b-owner-analytics-api — `GET /me/links/analytics`
+- [ ] 5b-preview-page — foster-me preview: avatars, name/weight/age, taps go to the pet bio
+- [ ] 5b-links-page — `/profile/links`: modal create, tutorial, legacy pet links read-only
+- [ ] 5b-rewire — entry points, retire `/pets/[id]/links` and the summary endpoint
 
 ---
 
