@@ -18,8 +18,17 @@ export function petBioHref(ownerIdOrHandle: string, petId: string): string {
 export function petIdFromPathname(
   pathname: string | null | undefined,
 ): string | null {
+  return petIdFromPetPath(pathname, null);
+}
+
+/** Pet id from the bio path, or from `/links` or `/analytics` under it. */
+export function petIdFromPetPath(
+  pathname: string | null | undefined,
+  section: "links" | "analytics" | null,
+): string | null {
   const path = normalizeAppPathname(pathname);
-  const match = path.match(/^\/@[^/]+\/pet\/([^/]+)\/?$/);
+  const suffix = section ? `\\/${section}` : "";
+  const match = path.match(new RegExp(`^\\/@[^/]+\\/pet\\/([^/]+)${suffix}\\/?$`));
   if (!match?.[1]) return null;
   const id = match[1];
   if (id === PET_BIO_SENTINEL_ID) return null;

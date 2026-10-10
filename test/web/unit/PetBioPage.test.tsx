@@ -208,7 +208,14 @@ describe("PetBioPage", () => {
       screen.queryByRole("link", { name: /view your public profile/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /QR code/i })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "QR code" }));
-    expect(await screen.findByRole("button", { name: /download png/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "QR code" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View analytics" })).toHaveAttribute(
+      "href",
+      `/@owner-1/pet/${petId}/analytics`,
+    );
+    expect(screen.getByRole("link", { name: "Manage links" })).toHaveAttribute(
+      "href",
+      `/@owner-1/pet/${petId}/links`,
+    );
   });
 });

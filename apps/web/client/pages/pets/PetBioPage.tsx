@@ -64,6 +64,7 @@ export function PetBioPage() {
                 ownerAvatarUrl={pet.owner?.avatarUrl ?? null}
                 isActivelyFostering={pet.status === "actively_fostering"}
                 isOwner={isOwner}
+                adopted={pet.status === "adopted"}
                 capturePetEvents={capturePetEvents}
               />
             }

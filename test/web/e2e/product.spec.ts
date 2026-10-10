@@ -186,7 +186,7 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(dialog.getByRole("button", { name: "Save" })).toBeVisible();
     });
 
-    test("owner can generate a pet-bio QR on demand", async ({ page }) => {
+    test("owner sees analytics links instead of the pet-bio QR card", async ({ page }) => {
       await page.goto(E2E_PATHS.petBio);
       await expect(page.getByText(`Edit ${E2E_SEED.petName}'s bio`)).toBeVisible();
       await expect(page.getByRole("link", { name: "Edit bio" })).toHaveAttribute(
@@ -195,12 +195,10 @@ test.describe("Fosterfolio product smoke", () => {
       );
       await expect(page.getByRole("form", { name: /contact the foster/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /send inquiry/i })).toHaveCount(0);
-      await expect(page.getByRole("img", { name: /QR code/i })).toHaveCount(0);
-      await page.getByRole("button", { name: "QR code" }).click();
-      const dialog = page.getByRole("dialog");
-      await expect(dialog.getByRole("heading", { name: `${E2E_SEED.petName} QR` })).toBeVisible();
-      await expect(dialog.getByRole("img", { name: `QR code for ${E2E_SEED.petName}` })).toBeVisible();
-      await expect(dialog.getByRole("button", { name: /download png/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: "QR code" })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "Manage links" })).toBeVisible();
+      await page.getByRole("link", { name: "Manage links" }).click();
+      await expect(page.getByRole("heading", { name: "Original QR" })).toBeVisible();
     });
 
     test("owner public profile offers edit, not inquiry", async ({ page }) => {

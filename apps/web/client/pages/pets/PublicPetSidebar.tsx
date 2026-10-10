@@ -2,6 +2,7 @@
 
 import type { SidebarMobileSummary } from "@client/components/layout/PageWithSidebar";
 import { ContactFosterBlock } from "@client/features/inquiries";
+import type { ReactNode } from "react";
 import { FosterStatusCard } from "./FosterStatusCard";
 import { EditPetBioCard } from "./EditPetBioCard";
 import { ShareLinkCard, type ShareLinkCardProps } from "./ShareLinkCard";
@@ -38,8 +39,7 @@ export function petSidebarMobileSummary({
         }
       : {
           title: `Your tools for ${petName}`,
-          description:
-            "Edit this bio, or share a link that stays on this pet.",
+          description: "Edit this bio, or see which links are working.",
         };
   }
   return {
@@ -64,7 +64,8 @@ type PublicPetSidebarProps = {
   fosterStatusMode: "permalink" | "foster-me";
   editReturnPath: string;
   editLinkLabel: string;
-  share: ShareLinkCardProps;
+  share?: ShareLinkCardProps;
+  ownerPanel?: ReactNode;
 };
 
 export function PublicPetSidebar({
@@ -81,6 +82,7 @@ export function PublicPetSidebar({
   editReturnPath,
   editLinkLabel,
   share,
+  ownerPanel,
 }: PublicPetSidebarProps) {
   if (!isOwner) {
     return (
@@ -116,7 +118,7 @@ export function PublicPetSidebar({
           linkLabel={editLinkLabel}
         />
       ) : null}
-      <ShareLinkCard {...share} />
+      {ownerPanel ?? (share ? <ShareLinkCard {...share} /> : null)}
     </>
   );
 }
