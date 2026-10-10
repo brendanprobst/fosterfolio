@@ -93,11 +93,12 @@ export class InMemoryNotificationRepository implements INotificationRepository {
   async markRead(
     id: string,
     recipientId: string,
-    readAt: string
+    readAt: string | null
   ): Promise<NotificationRecord | null> {
     const row = await this.findForRecipient(id, recipientId);
     if (!row) return null;
-    if (!row.readAt) row.readAt = readAt;
+    if (readAt === null) row.readAt = null;
+    else if (!row.readAt) row.readAt = readAt;
     return row;
   }
 

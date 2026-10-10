@@ -44,7 +44,7 @@ export class NotificationController {
         actorId,
         String(req.params.id ?? ''),
         {
-          ...(body.read === true ? { read: true } : {}),
+          ...(typeof body.read === 'boolean' ? { read: body.read } : {}),
           ...(typeof body.archived === 'boolean' ? { archived: body.archived } : {}),
         }
       );

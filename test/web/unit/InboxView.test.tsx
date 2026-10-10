@@ -1,5 +1,5 @@
-import { InboxView } from "@client/pages/inbox/InboxView";
 import type { InboxItem } from "@client/features/notifications/types";
+import { InboxView } from "@client/pages/inbox/InboxView";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -34,25 +34,35 @@ function Harness({ items }: { items: InboxItem[] }) {
       channels={[{ key: "lawn_sign", name: "Lawn sign", isPreset: true }]}
       ownerRef="alex"
       selectedId={selectedId}
-      onSelect={(next) => setSelectedId(next.id)}
+      unreadCount={1}
+      onOpen={(next) => setSelectedId(next.id)}
+      onBack={() => setSelectedId(null)}
+      onArchive={vi.fn()}
+      onMarkUnread={vi.fn()}
     />
   );
 }
 
 describe("InboxView", () => {
-  it("emphasizes unread rows and shows source, zip, and reply", () => {
+  it("shows the sender, source, zip, pet link, and a reply subject", () => {
     render(<Harness items={[item]} />);
-    fireEvent.click(screen.getByRole("button", { name: "Jamie" }));
-    expect(screen.getByText("Can I meet Mochi?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Jamie/ }));
+    expect(screen.getByRole("heading", { name: "Jamie" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "jamie@example.com" })).toHaveAttribute(
+      "href",
+      "mailto:jamie@example.com",
+    );
+    expect(screen.getAllByText("Can I meet Mochi?").length).toBeGreaterThan(0);
     expect(screen.getByText("via Lawn sign — front yard")).toBeInTheDocument();
-    expect(screen.getByText("Zip 94107")).toBeInTheDocument();
+    expect(screen.getByText("Near 94107")).toBeInTheDocument();
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mochi" })).toHaveAttribute(
       "href",
       "/@alex/pet/pet-1",
     );
     expect(screen.getByRole("link", { name: "Reply by email" })).toHaveAttribute(
       "href",
-      "mailto:jamie@example.com",
+      "mailto:jamie@example.com?subject=Re%3A%20Mochi",
     );
   });
 
@@ -74,13 +84,18 @@ describe("InboxView", () => {
         channels={[]}
         ownerRef="alex"
         selectedId="n1"
-        onSelect={vi.fn()}
+        unreadCount={0}
+        onOpen={vi.fn()}
+        onBack={vi.fn()}
+        onArchive={vi.fn()}
+        onMarkUnread={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "archived" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: "all" }));
+    expect(screen.getByRole("button", { name: "Archived" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "All" }));
     expect(onStatus).toHaveBeenCalledWith("all");
     expect(screen.getByText("No longer available")).toBeInTheDocument();
     expect(screen.getByText("Shelter")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move to inbox" })).toBeInTheDocument();
   });
 });

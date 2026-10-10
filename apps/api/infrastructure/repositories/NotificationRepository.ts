@@ -135,11 +135,11 @@ export class NotificationRepository implements INotificationRepository {
   async markRead(
     id: string,
     recipientId: string,
-    readAt: string
+    readAt: string | null
   ): Promise<NotificationRecord | null> {
     const existing = await this.findForRecipient(id, recipientId);
     if (!existing) return null;
-    if (existing.readAt) return existing;
+    if (readAt !== null && existing.readAt) return existing;
     const rows = await this.dataAdapter.update<NotificationRow[]>(
       `${this.table}?id=eq.${encodeURIComponent(id)}&recipient_id=eq.${encodeURIComponent(recipientId)}`,
       { read_at: readAt },

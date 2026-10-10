@@ -16,23 +16,23 @@ export class UpdateNotificationUseCase {
     id: string,
     command: UpdateNotificationCommand
   ): Promise<Result<NotificationRecord>> {
-    const markRead = command.read === true;
+    const hasRead = typeof command.read === 'boolean';
     const hasArchive = typeof command.archived === 'boolean';
-    if (!markRead && !hasArchive) {
+    if (!hasRead && !hasArchive) {
       return Result.failure(ErrorCatalog.NOTIFICATION_INVALID_INPUT);
     }
     try {
       const existing = await this.notificationRepository.findForRecipient(id, recipientId);
       if (!existing) return Result.failure(ErrorCatalog.NOTIFICATION_NOT_FOUND);
       let current = existing;
-      if (markRead) {
-        const read = await this.notificationRepository.markRead(
+      if (hasRead) {
+        const updated = await this.notificationRepository.markRead(
           id,
           recipientId,
-          new Date().toISOString()
+          command.read ? new Date().toISOString() : null
         );
-        if (!read) return Result.failure(ErrorCatalog.NOTIFICATION_NOT_FOUND);
-        current = read;
+        if (!updated) return Result.failure(ErrorCatalog.NOTIFICATION_NOT_FOUND);
+        current = updated;
       }
       if (hasArchive) {
         const archived = await this.notificationRepository.setArchived(

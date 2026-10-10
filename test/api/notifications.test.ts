@@ -109,6 +109,51 @@ describe('Notifications API', () => {
     ).toHaveLength(0);
   });
 
+  it('marks a read notification unread and keeps the first read timestamp', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    const token = await createAuthToken(ownerId, 'foster@example.com');
+    await sendInquiry(app);
+
+    const unread = await request(app)
+      .get('/me/notifications?status=unread')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const notificationId = unread.body.items[0].id as string;
+
+    const empty = await request(app)
+      .patch(`/me/notifications/${notificationId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+      .expect(400);
+    expect(empty.body.error.code).toBe('NOTIFICATION_INVALID_INPUT');
+
+    const first = await request(app)
+      .patch(`/me/notifications/${notificationId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ read: true })
+      .expect(200);
+    const second = await request(app)
+      .patch(`/me/notifications/${notificationId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ read: true })
+      .expect(200);
+    expect(second.body.readAt).toBe(first.body.readAt);
+
+    const markedUnread = await request(app)
+      .patch(`/me/notifications/${notificationId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ read: false })
+      .expect(200);
+    expect(markedUnread.body.readAt).toBeNull();
+
+    const count = await request(app)
+      .get('/me/notifications/unread-count')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(count.body.count).toBe(1);
+  });
+
   it('defaults inquiry email on and stores an off preference', async () => {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'foster@example.com' });

@@ -2,7 +2,7 @@ import { cn } from "@client/lib/utils";
 
 type DataPageSkeletonProps = {
   label: string;
-  variant: "profile" | "pet" | "editor" | "list" | "analytics";
+  variant: "profile" | "pet" | "editor" | "list" | "analytics" | "inbox";
   /** Sit inside an existing page column instead of the full page frame. */
   embedded?: boolean;
 };
@@ -99,6 +99,24 @@ function AnalyticsShape() {
   );
 }
 
+function InboxShape() {
+  return (
+    <div className="space-y-4">
+      <Bone className="h-8 w-32" />
+      <div className="grid gap-4 md:grid-cols-[22rem_1fr]">
+        <div className="space-y-2">
+          <Bone className="h-16" />
+          <Bone className="h-16" />
+          <Bone className="h-16" />
+          <Bone className="h-16" />
+          <Bone className="h-16" />
+        </div>
+        <Bone className="h-80" />
+      </div>
+    </div>
+  );
+}
+
 function ListShape() {
   return (
     <div className="space-y-3">
@@ -123,6 +141,8 @@ export function DataPageSkeleton({ label, variant, embedded = false }: DataPageS
       <EditorShape />
     ) : variant === "analytics" ? (
       <AnalyticsShape />
+    ) : variant === "inbox" ? (
+      <InboxShape />
     ) : (
       <ListShape />
     );

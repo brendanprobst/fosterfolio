@@ -35,7 +35,7 @@ export interface INotificationRepository extends InAppChannel, NotificationPrefe
   ): Promise<NotificationPage>;
   countUnread(recipientId: string): Promise<number>;
   findForRecipient(id: string, recipientId: string): Promise<NotificationRecord | null>;
-  markRead(id: string, recipientId: string, readAt: string): Promise<NotificationRecord | null>;
+  markRead(id: string, recipientId: string, readAt: string | null): Promise<NotificationRecord | null>;
   setArchived(
     id: string,
     recipientId: string,
