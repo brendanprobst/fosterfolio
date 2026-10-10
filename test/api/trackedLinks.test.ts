@@ -8,8 +8,6 @@ const PRESET_KEYS = [
   'facebook',
   'tiktok',
   'flyer',
-  'shelter_listing',
-  'other',
 ];
 
 describe('Tracked links API', () => {

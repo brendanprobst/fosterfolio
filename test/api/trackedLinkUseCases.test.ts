@@ -130,7 +130,7 @@ describe('tracked link use cases', () => {
 
     it('rejects a non-owner', async () => {
       const pet = await seedPet(pets, 'owner-1');
-      const created = await createLink.execute('owner-1', pet.id, { channelKey: 'other' });
+      const created = await createLink.execute('owner-1', pet.id, { channelKey: 'flyer' });
       expect(created.isFailure()).toBe(false);
 
       const result = await updateLink.execute('someone-else', created.getValue().id, {

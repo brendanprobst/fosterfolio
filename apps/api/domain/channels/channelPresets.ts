@@ -8,8 +8,6 @@ export const CHANNEL_PRESETS = [
   { key: 'facebook', name: 'Facebook' },
   { key: 'tiktok', name: 'TikTok' },
   { key: 'flyer', name: 'Flyer' },
-  { key: 'shelter_listing', name: 'Shelter listing' },
-  { key: 'other', name: 'Other' },
 ] as const;
 
 export type ChannelPresetKey = (typeof CHANNEL_PRESETS)[number]['key'];

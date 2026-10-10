@@ -12,8 +12,6 @@ describe('channel presets', () => {
       'facebook',
       'tiktok',
       'flyer',
-      'shelter_listing',
-      'other',
     ]);
     expect(CHANNEL_PRESETS.map((preset) => preset.name)).toEqual([
       'Lawn sign',
@@ -21,8 +19,6 @@ describe('channel presets', () => {
       'Facebook',
       'TikTok',
       'Flyer',
-      'Shelter listing',
-      'Other',
     ]);
   });
 
