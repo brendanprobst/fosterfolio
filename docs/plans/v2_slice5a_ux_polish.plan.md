@@ -17,7 +17,7 @@ todos:
     status: completed
   - id: 5a-owner-widget
     content: "Owner analytics widget: stat tiles + sparklines + week-over-week delta, reads the cached analytics query"
-    status: pending
+    status: completed
   - id: 5a-owner-shell
     content: "OwnerPageLayout shell (admin hero + 'Public preview' section); owner pet bio uses it; remove OwnerOnlyLabel from bio"
     status: pending

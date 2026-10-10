@@ -1,7 +1,7 @@
 ---
 name: v2 slice 5a — implementation plan 1 of 3 (quick wins + analytics)
 overview: First of three implementation sessions for docs/plans/v2_slice5a_ux_polish.plan.md. Covers 5a-todo-md, 5a-presets, 5a-qr-sizes, 5a-charts, 5a-analytics-page, 5a-owner-widget. Inbox (plan 2) and the owner/guest/profile layouts (plan 3) are separate sessions and are NOT written yet.
-status: pending
+status: completed
 todos:
   - id: cp0
     content: "CP0 — todo.md §7 + trim channel presets"
@@ -20,7 +20,7 @@ todos:
     status: completed
   - id: cp5
     content: "CP5 — owner analytics widget: tiles, sparklines, week-over-week, empty state"
-    status: pending
+    status: completed
 ---
 
 # Slice 5a — implementation plan 1 of 3: quick wins + analytics
