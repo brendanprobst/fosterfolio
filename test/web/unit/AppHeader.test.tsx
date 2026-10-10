@@ -13,6 +13,10 @@ vi.mock("@client/lib/fosterfolioFeatureFlags", () => ({
   isFosterfolioSearchEnabled: vi.fn(() => false),
 }));
 
+vi.mock("@client/features/notifications/useUnreadNotificationCount", () => ({
+  useUnreadNotificationCount: vi.fn(() => 0),
+}));
+
 describe("AppHeader", () => {
   beforeEach(async () => {
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());

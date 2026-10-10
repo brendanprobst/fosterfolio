@@ -24,8 +24,9 @@ import {
   isFosterfolioFeedEnabled,
   isFosterfolioSearchEnabled,
 } from "@client/lib/fosterfolioFeatureFlags";
+import { useUnreadNotificationCount } from "@client/features/notifications/useUnreadNotificationCount";
 import { cn } from "@client/lib/utils";
-import { LogOut, Menu, PawPrint, Search, UserRound } from "lucide-react";
+import { LogOut, Inbox, Menu, PawPrint, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 
 type AppHeaderProps = {
@@ -51,6 +52,7 @@ export function AppHeader({ active }: AppHeaderProps) {
   const accountLabel = user?.email ?? "Account";
   const showFeed = isFosterfolioFeedEnabled();
   const showSearch = isFosterfolioSearchEnabled();
+  const unread = useUnreadNotificationCount(signedIn);
 
   return (
     <header className="border-border bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
@@ -84,6 +86,20 @@ export function AppHeader({ active }: AppHeaderProps) {
         ) : null}
 
         <div className="ml-auto flex items-center gap-2">
+          {signedIn ? (
+            <Link
+              href="/inbox"
+              aria-label={unread > 0 ? `Inbox, ${unread} unread` : "Inbox"}
+              className="text-muted-foreground hover:bg-muted hover:text-foreground relative inline-flex size-9 items-center justify-center rounded-md"
+            >
+              <Inbox aria-hidden className="size-4" />
+              {unread > 0 ? (
+                <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 inline-flex min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-4">
+                  {unread}
+                </span>
+              ) : null}
+            </Link>
+          ) : null}
           {showSearch ? (
             <Link
               href="/search"
@@ -170,6 +186,19 @@ export function AppHeader({ active }: AppHeaderProps) {
                     }
                   >
                     Feed
+                  </SheetClose>
+                ) : null}
+                {signedIn ? (
+                  <SheetClose
+                    nativeButton={false}
+                    render={
+                      <Link
+                        href="/inbox"
+                        className={navLinkClass(false)}
+                      />
+                    }
+                  >
+                    Inbox{unread > 0 ? ` (${unread})` : ""}
                   </SheetClose>
                 ) : null}
                 {signedIn ? (

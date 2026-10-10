@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit && tsc --noEmit -p tsconfig.rollup.json"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.1148.0",
     "@aws-sdk/client-ssm": "^3.1014.0",
     "@lattice/analytics": "*",
     "@lattice/notifications": "*",
