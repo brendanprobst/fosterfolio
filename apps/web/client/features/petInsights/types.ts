@@ -27,6 +27,7 @@ export type PetAnalytics = {
   byLink: Array<{ linkId: string; channelKey: string; views: number; inquiries: number }>;
   byCity: Array<{ city: string; views: number }>;
   viewsByDay: Array<{ day: string; views: number }>;
+  inquiriesByDay: Array<{ day: string; inquiries: number }>;
 };
 
 export type PetAnalyticsSummary = {

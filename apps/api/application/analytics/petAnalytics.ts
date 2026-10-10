@@ -14,6 +14,7 @@ export type PetAnalyticsDto = {
   byLink: Array<{ linkId: string; channelKey: string; views: number; inquiries: number }>;
   byCity: Array<{ city: string; views: number }>;
   viewsByDay: Array<{ day: string; views: number }>;
+  inquiriesByDay: Array<{ day: string; inquiries: number }>;
 };
 
 export type PetAnalyticsSummaryDto = {
@@ -71,8 +72,11 @@ export function buildPetAnalytics(
 
   const inquiriesByChannel = new Map<string, number>();
   const inquiriesByLink = new Map<string, number>();
+  const inquiriesByDay = new Map<string, number>();
   const inquiryChannelByLink = new Map<string, Map<string, number>>();
   for (const inquiry of inquiries) {
+    const day = inquiry.createdAt.slice(0, 10);
+    inquiriesByDay.set(day, (inquiriesByDay.get(day) ?? 0) + 1);
     if (inquiry.sourceChannelKey) {
       inquiriesByChannel.set(
         inquiry.sourceChannelKey,
@@ -136,6 +140,9 @@ export function buildPetAnalytics(
     byCity,
     viewsByDay: [...viewsByDay.entries()]
       .map(([day, dayViews]) => ({ day, views: dayViews }))
+      .sort((a, b) => a.day.localeCompare(b.day)),
+    inquiriesByDay: [...inquiriesByDay.entries()]
+      .map(([day, count]) => ({ day, inquiries: count }))
       .sort((a, b) => a.day.localeCompare(b.day)),
   };
 }

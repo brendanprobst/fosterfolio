@@ -11,7 +11,7 @@ todos:
     status: completed
   - id: cp2
     content: "CP2 — chart primitives: shadcn chart, series color tokens, Sparkline, jsdom ResizeObserver stub"
-    status: pending
+    status: completed
   - id: cp3
     content: "CP3 — API: inquiriesByDay on PetAnalyticsDto + range regression test"
     status: pending

@@ -133,7 +133,7 @@ Plan: [v2_slice5a_ux_polish.plan.md](v2_slice5a_ux_polish.plan.md). Implementati
 
 - [x] 5a-presets — drop "Other" and "Shelter listing" presets
 - [x] 5a-qr-sizes — Web / A4 / Large print QR downloads
-- [ ] 5a-charts — shared chart primitives
+- [x] 5a-charts — shared chart primitives
 - [ ] 5a-analytics-page — real charts, prefetched ranges, right skeleton
 - [ ] 5a-owner-widget — tiles + sparklines + week-over-week
 - [ ] 5a-inbox — facelift + 4 bugs, harvest-ready (plan 2)

@@ -8,6 +8,7 @@ const emptyAnalytics = {
   byLink: [],
   byCity: [],
   viewsByDay: [],
+  inquiriesByDay: [],
 };
 
 describe("AnalyticsView", () => {

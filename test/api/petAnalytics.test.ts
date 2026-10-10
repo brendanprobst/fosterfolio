@@ -46,7 +46,7 @@ describe('pet analytics API', () => {
     return { petId: res.body.id as string, token };
   }
 
-  it('returns owner rollup analytics and counts inquiries from the inquiries table', async () => {
+  async function seedRollup() {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'owner@example.com' });
     container.seedUser({ id: otherId, email: 'other@example.com' });
@@ -149,6 +149,19 @@ describe('pet analytics API', () => {
       })
     );
 
+    return {
+      app,
+      petId,
+      token,
+      otherToken,
+      linkAId: linkA.body.id as string,
+      linkBId: linkB.body.id as string,
+    };
+  }
+
+  it('returns owner rollup analytics and counts inquiries from the inquiries table', async () => {
+    const { app, petId, token, otherToken, linkAId, linkBId } = await seedRollup();
+
     const res = await request(app)
       .get(`/pets/${petId}/analytics`)
       .set('Authorization', `Bearer ${token}`)
@@ -169,13 +182,17 @@ describe('pet analytics API', () => {
     ]);
     expect(res.body.byCity).toEqual([{ city: 'Austin', views: 14 }]);
     expect(res.body.byLink).toEqual([
-      { linkId: linkB.body.id, channelKey: 'lawn_sign', views: 10, inquiries: 1 },
-      { linkId: linkA.body.id, channelKey: 'instagram', views: 5, inquiries: 2 },
+      { linkId: linkBId, channelKey: 'lawn_sign', views: 10, inquiries: 1 },
+      { linkId: linkAId, channelKey: 'instagram', views: 5, inquiries: 2 },
     ]);
     expect(res.body.viewsByDay).toEqual([
       { day: utcDay(-20), views: 100 },
       { day: utcDay(-2), views: 10 },
       { day: utcDay(-1), views: 5 },
+    ]);
+    expect(res.body.inquiriesByDay).toEqual([
+      { day: utcDay(-20), inquiries: 1 },
+      { day: utcDay(-1), inquiries: 3 },
     ]);
 
     const week = await request(app)
@@ -223,6 +240,26 @@ describe('pet analytics API', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(400);
     expect(badRange.body.error.code).toBe('ANALYTICS_INVALID_RANGE');
+  });
+
+  it('scopes byLink to the requested range', async () => {
+    const { app, petId, token, linkAId } = await seedRollup();
+
+    const week = await request(app)
+      .get(`/pets/${petId}/analytics?range=7d`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(week.body.byLink.find((row: { linkId: string }) => row.linkId === linkAId)).toMatchObject({
+      views: 5,
+    });
+
+    const all = await request(app)
+      .get(`/pets/${petId}/analytics?range=all`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(all.body.byLink.find((row: { linkId: string }) => row.linkId === linkAId)).toMatchObject({
+      views: 12,
+    });
   });
 
   it('returns a null conversion rate and a null top channel when there are no views', async () => {

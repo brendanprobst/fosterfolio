@@ -8,7 +8,7 @@ todos:
     status: completed
   - id: 5a-charts
     content: "Shared chart primitives: shadcn `chart` (Recharts) + views/inquiries color tokens"
-    status: pending
+    status: completed
   - id: 5a-inbox
     content: "Inbox facelift + 4 bugs; generic, harvest-ready inbox UI under client/components/inbox/"
     status: pending
