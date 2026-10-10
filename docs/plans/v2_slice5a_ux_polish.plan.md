@@ -1,7 +1,7 @@
 ---
 name: v2 slice 5a — UX polish, bugs, and low-hanging fruit
 overview: Facelift the v2 owner surfaces (inbox, pet analytics, owner pet bio, guest pet bio, /profile) and fix the bugs found in the 2026-10-09 stress test. Everything here ships on the current tracked-links model. The foster-me links rework is a separate plan (v2_slice5b_foster_me_links.plan.md) and must land AFTER this one, because it reuses the chart primitives, the QR download menu, and the owner layout shell built here.
-status: pending
+status: completed
 todos:
   - id: 5a-todo-md
     content: "Add §7 'v2 slice 5a' to docs/plans/todo.md linking this plan; tick items as they land"
@@ -11,7 +11,7 @@ todos:
     status: completed
   - id: 5a-inbox
     content: "Inbox facelift + 4 bugs; generic, harvest-ready inbox UI under client/components/inbox/"
-    status: pending
+    status: completed
   - id: 5a-analytics-page
     content: "Pet analytics page: real charts, prefetch all 3 ranges, analytics skeleton, color; add inquiriesByDay to the DTO"
     status: completed
@@ -20,13 +20,13 @@ todos:
     status: completed
   - id: 5a-owner-shell
     content: "OwnerPageLayout shell (admin hero + 'Public preview' section); owner pet bio uses it; remove OwnerOnlyLabel from bio"
-    status: pending
+    status: completed
   - id: 5a-guest-bio
     content: "Guest pet bio: single column, facts below bio, floating inquiry CTA opening a Sheet"
-    status: pending
+    status: completed
   - id: 5a-profile
     content: "/profile uses OwnerPageLayout: Add pet in hero, active fosters above the fold, everything else below"
-    status: pending
+    status: completed
   - id: 5a-presets
     content: "Remove 'Other' and 'Shelter listing' from the preset list (no guard; existing rows deleted manually)"
     status: completed

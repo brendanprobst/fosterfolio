@@ -90,10 +90,12 @@ describe("ProfilePage", () => {
       screen.queryByRole("link", { name: /view public profile/i }),
     ).not.toBeInTheDocument();
     const tools = screen.getByRole("region", { name: "Your tools" });
-    expect(within(tools).getByRole("link", { name: "Add pet" })).toHaveAttribute(
-      "href",
-      "/profile/pets/new",
-    );
+    const addPet = within(tools).getByRole("link", { name: "Add pet" });
+    expect(addPet).toHaveAttribute("href", "/profile/pets/new");
+    expect(
+      addPet.compareDocumentPosition(within(tools).getByText("Sharing your profile")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(within(tools).getByText("Sharing your profile")).toBeInTheDocument();
     expect(screen.getAllByText("Sharing your profile")).toHaveLength(2);
     expect(

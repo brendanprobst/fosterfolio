@@ -47,8 +47,14 @@ export function ProfilePage() {
   const shareRef = publicHandle(profile ?? user);
   const active = petList.filter((pet) => pet.status === "actively_fostering");
   const past = petList.filter((pet) => pet.status !== "actively_fostering");
-  const shareCard = (
-    <ProfileLinkCard handleOrId={shareRef} hasHandle={Boolean(profile?.handle)} />
+  const sharePanel = (
+    <div className="space-y-4">
+      <Link href={petEditorNewHref()} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
+        <Plus aria-hidden />
+        Add pet
+      </Link>
+      <ProfileLinkCard handleOrId={shareRef} hasHandle={Boolean(profile?.handle)} />
+    </div>
   );
 
   function petGrid(items: typeof petList) {
@@ -82,7 +88,6 @@ export function ProfilePage() {
           hero={
             <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
               <div className="space-y-8">
-              <div className="space-y-4">
                 <header className="flex items-start gap-4">
                   {profile ? (
                     <section className="w-fit shrink-0" aria-label="Profile picture">
@@ -131,11 +136,6 @@ export function ProfilePage() {
                     )}
                   </div>
                 </header>
-                <Link href={petEditorNewHref()} className={cn(buttonVariants({ size: "lg" }))}>
-                  <Plus aria-hidden />
-                  Add pet
-                </Link>
-              </div>
             {own.isError ? (
               <p className="text-destructive text-sm">
                 {own.error instanceof Error ? own.error.message : "Unable to load profile from API."}
@@ -164,12 +164,12 @@ export function ProfilePage() {
               {active.length > 0 ? petGrid(active) : null}
             </section>
               </div>
-              <div className="hidden lg:block">{shareCard}</div>
+              <div className="hidden lg:block">{sharePanel}</div>
             </div>
           }
         />
         <div className="mx-auto max-w-5xl space-y-10 px-4 pb-16">
-          <div className="lg:hidden">{shareCard}</div>
+          <div className="lg:hidden">{sharePanel}</div>
           {past.length > 0 ? (
             <section className="space-y-3" aria-label="Past fosters">
               <h2 className="text-lg font-medium">Past fosters</h2>

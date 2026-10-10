@@ -136,10 +136,14 @@ Plan: [v2_slice5a_ux_polish.plan.md](v2_slice5a_ux_polish.plan.md). Implementati
 - [x] 5a-charts — shared chart primitives
 - [x] 5a-analytics-page — real charts, prefetched ranges, right skeleton
 - [x] 5a-owner-widget — tiles + sparklines + week-over-week
-- [ ] 5a-inbox — facelift + 4 bugs, harvest-ready (plan 2)
-- [ ] 5a-owner-shell — admin hero + public preview (plan 3)
-- [ ] 5a-guest-bio — single column + floating inquiry CTA (plan 3)
-- [ ] 5a-profile — /profile on the owner shell (plan 3)
+- [x] 5a-inbox — facelift + 4 bugs, harvest-ready (plan 2)
+- [x] 5a-owner-shell — admin hero + public preview (plan 3)
+- [x] 5a-guest-bio — single column + floating inquiry CTA (plan 3)
+- [x] 5a-profile — /profile on the owner shell (plan 3)
+
+Slice 5a complete — next: [slice 5b](v2_slice5b_foster_me_links.plan.md) (implementation plans to be written).
+
+Known red, still open: the 3 `test/web/unit/SearchPage.test.tsx` tests. Their `next/navigation` mock does not provide `usePathname`, which `useUnreadNotificationCount` now calls.
 
 Deferred, not this slice: draw `apps/web/app/icon.svg` in the center of the QR preview and all three downloads. The `qrcode` package has no logo option — raise error correction to `H`, composite the mark onto the PNG canvas and into the SVG string, keep it about 15–20% of the code width on a white pad, then scan a PNG and the SVG.
 

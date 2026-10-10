@@ -12,6 +12,12 @@
 import { Button } from "@client/components/ui/button";
 ```
 
+## Harvestable
+
+- **`inbox/`**, **`charts/`**, and **`qr/`** are harvestable. They take data through props. ESLint blocks `@client/features` and `@client/pages` imports in those folders.
+- **`layout/OwnerPageLayout`** is harvestable the same way: a structural shell with no feature or page imports.
+- Keep new harvestable modules free of Fosterfolio nouns so a later app can copy them as-is.
+
 ## Scaling
 
 - **Feature-specific composed widgets** (e.g. the pet list used on multiple routes): prefer **`client/features/<name>/`** when you introduce it; keep **`components/ui/`** generic.
