@@ -32,7 +32,7 @@ todos:
     status: completed
   - id: 5a-qr-sizes
     content: "QrDownloadMenu: Web / A4 flyer / Large print (SVG); delete the 'settings will land here later' placeholder"
-    status: pending
+    status: completed
 ---
 
 # v2 slice 5a — UX polish, bugs, and low-hanging fruit

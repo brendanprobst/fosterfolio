@@ -8,7 +8,7 @@ todos:
     status: completed
   - id: cp1
     content: "CP1 — QR download sizes (QrDownloadMenu) + kill the placeholder dialog copy"
-    status: pending
+    status: completed
   - id: cp2
     content: "CP2 — chart primitives: shadcn chart, series color tokens, Sparkline, jsdom ResizeObserver stub"
     status: pending

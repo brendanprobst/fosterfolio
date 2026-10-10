@@ -132,7 +132,7 @@ Pre-deploy prep = item 2 (`terraform.tfvars` + `deploy:aws`) and item 1 (allowli
 Plan: [v2_slice5a_ux_polish.plan.md](v2_slice5a_ux_polish.plan.md). Implementation: [plan 1](v2_slice5a_impl_1_analytics_and_quick_wins.plan.md) (plans 2–3 written after plan 1 lands).
 
 - [x] 5a-presets — drop "Other" and "Shelter listing" presets
-- [ ] 5a-qr-sizes — Web / A4 / Large print QR downloads
+- [x] 5a-qr-sizes — Web / A4 / Large print QR downloads
 - [ ] 5a-charts — shared chart primitives
 - [ ] 5a-analytics-page — real charts, prefetched ranges, right skeleton
 - [ ] 5a-owner-widget — tiles + sparklines + week-over-week
