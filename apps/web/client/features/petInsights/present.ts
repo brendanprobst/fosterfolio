@@ -75,3 +75,34 @@ export function formatConversion(rate: number | null): string {
   if (rate == null) return "—";
   return `${Math.round(rate * 100)}%`;
 }
+
+/** Zero-filled values for the last `days` UTC days ending today, oldest → newest. */
+export function lastNDays<T extends { day: string }>(
+  points: T[],
+  pick: (point: T) => number,
+  days: number,
+  today = new Date(),
+): number[] {
+  const byDay = new Map(points.map((point) => [point.day, pick(point)]));
+  const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const out: number[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(end);
+    day.setUTCDate(end.getUTCDate() - i);
+    out.push(byDay.get(day.toISOString().slice(0, 10)) ?? 0);
+  }
+  return out;
+}
+
+export function sum(values: number[]): number {
+  return values.reduce((total, value) => total + value, 0);
+}
+
+/** Feel-good framing: increases celebrated, decreases stated neutrally, never red. */
+export function weekOverWeekCopy(current: number, previous: number): string | null {
+  if (previous === 0) return current > 0 ? "New this week" : null;
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct >= 5) return `↑ ${pct}% vs last week`;
+  if (pct <= -5) return "Quieter than last week";
+  return "Steady with last week";
+}

@@ -32,6 +32,7 @@ export function fetchPetAnalyticsSummary(
   token: string,
   petId: string,
 ): Promise<PetAnalyticsSummary> {
+  // Unused since 5a-owner-widget; endpoint removed in slice 5b.
   return authedJson(
     token,
     `/pets/${encodeURIComponent(petId)}/analytics/summary`,

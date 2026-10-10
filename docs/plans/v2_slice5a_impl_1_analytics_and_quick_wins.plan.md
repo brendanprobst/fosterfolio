@@ -17,7 +17,7 @@ todos:
     status: completed
   - id: cp4
     content: "CP4 — pet analytics page: prefetch 3 ranges, analytics skeleton, real charts, color"
-    status: pending
+    status: completed
   - id: cp5
     content: "CP5 — owner analytics widget: tiles, sparklines, week-over-week, empty state"
     status: pending

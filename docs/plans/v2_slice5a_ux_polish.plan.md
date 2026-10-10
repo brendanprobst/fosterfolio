@@ -14,7 +14,7 @@ todos:
     status: pending
   - id: 5a-analytics-page
     content: "Pet analytics page: real charts, prefetch all 3 ranges, analytics skeleton, color; add inquiriesByDay to the DTO"
-    status: pending
+    status: completed
   - id: 5a-owner-widget
     content: "Owner analytics widget: stat tiles + sparklines + week-over-week delta, reads the cached analytics query"
     status: pending

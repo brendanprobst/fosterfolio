@@ -1,16 +1,22 @@
 "use client";
 
-import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
-import { Card, CardContent, CardHeader, CardTitle } from "@client/components/ui/card";
 import { useAuth } from "@client/auth";
-import { channelDisplayName } from "@client/features/petInsights/present";
+import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
+import { Sparkline } from "@client/components/charts";
+import { buttonVariants } from "@client/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@client/components/ui/card";
 import {
-  fetchChannels,
-  fetchPetAnalyticsSummary,
-} from "@client/features/petInsights/petInsightsApi";
+  channelDisplayName,
+  lastNDays,
+  sum,
+  weekOverWeekCopy,
+} from "@client/features/petInsights/present";
+import { fetchChannels, fetchPetAnalytics } from "@client/features/petInsights/petInsightsApi";
 import { petHref } from "@client/lib/petBioPath";
+import { cn } from "@client/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 type OwnerAnalyticsWidgetProps = {
   petId: string;
@@ -26,41 +32,124 @@ export function OwnerAnalyticsWidget({
   adopted,
 }: OwnerAnalyticsWidgetProps) {
   const { getAccessToken } = useAuth();
-  const summary = useQuery({
-    queryKey: ["pet-analytics-summary", petId],
-    queryFn: async () => fetchPetAnalyticsSummary((await getAccessToken()) ?? "", petId),
+  const d30 = useQuery({
+    queryKey: ["pet-analytics", petId, "30d"],
+    staleTime: 60_000,
+    queryFn: async () => fetchPetAnalytics((await getAccessToken()) ?? "", petId, "30d"),
+  });
+  const d7 = useQuery({
+    queryKey: ["pet-analytics", petId, "7d"],
+    staleTime: 60_000,
+    queryFn: async () => fetchPetAnalytics((await getAccessToken()) ?? "", petId, "7d"),
   });
   const channels = useQuery({
     queryKey: ["me-channels"],
     queryFn: async () => fetchChannels((await getAccessToken()) ?? ""),
   });
-  const top = summary.data?.topChannel;
-  const topName = top ? channelDisplayName(top.channelKey, channels.data ?? []) : "—";
+
   const analyticsHref = `${petHref(ownerRef, petId)}/analytics`;
   const linksHref = `${petHref(ownerRef, petId)}/links`;
+  const loading = d30.isLoading || d7.isLoading;
+  const views14 = lastNDays(d30.data?.viewsByDay ?? [], (point) => point.views, 14);
+  const inq14 = lastNDays(d30.data?.inquiriesByDay ?? [], (point) => point.inquiries, 14);
+  const views7 = views14.slice(7);
+  const inq7 = inq14.slice(7);
+  const top = d7.data?.byChannel[0] ?? null;
+  const topShare =
+    top && d7.data && d7.data.funnel.views > 0
+      ? Math.round((top.views / d7.data.funnel.views) * 100)
+      : null;
+  const empty =
+    !loading && (d30.data?.funnel.views ?? 0) === 0 && (d30.data?.funnel.inquiries ?? 0) === 0;
 
   return (
-    <Card size="sm">
+    <Card className="@container">
       <CardHeader>
         <div className="space-y-1">
           <OwnerOnlyLabel />
-          <CardTitle>Last 7 days</CardTitle>
+          <CardTitle>{petName} this week</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2 text-sm">
-        {adopted ? <p>Final results — {petName} was adopted 🎉</p> : null}
-        <p>{summary.data?.views ?? "—"} views</p>
-        <p>{summary.data?.inquiries ?? "—"} inquiries</p>
-        <p>Top channel: {topName}</p>
-        <div className="flex flex-col gap-1">
-          <Link href={analyticsHref} className="text-foreground underline">
+      <CardContent className="space-y-4">
+        {adopted ? (
+          <p className="text-sm" role="status">
+            Final results — {petName} was adopted 🎉
+          </p>
+        ) : null}
+        {loading ? (
+          <div className="grid gap-3 @lg:grid-cols-3">
+            <div className="bg-muted h-24 animate-pulse rounded-xl" />
+            <div className="bg-muted h-24 animate-pulse rounded-xl" />
+            <div className="bg-muted h-24 animate-pulse rounded-xl" />
+          </div>
+        ) : empty ? (
+          <p className="text-muted-foreground text-sm">
+            No visits yet. Share {petName}&apos;s link to start seeing views here.
+          </p>
+        ) : (
+          <div className="grid gap-3 @lg:grid-cols-3">
+            <Tile
+              dot="bg-series-views"
+              label="Views"
+              value={sum(views7)}
+              delta={adopted ? null : weekOverWeekCopy(sum(views7), sum(views14.slice(0, 7)))}
+            >
+              <Sparkline values={views7} series="views" label="Views per day, last 7 days" />
+            </Tile>
+            <Tile
+              dot="bg-series-inquiries"
+              label="Inquiries"
+              value={sum(inq7)}
+              delta={adopted ? null : weekOverWeekCopy(sum(inq7), sum(inq14.slice(0, 7)))}
+            >
+              <Sparkline values={inq7} series="inquiries" label="Inquiries per day, last 7 days" />
+            </Tile>
+            <Tile
+              label="Top channel"
+              value={top ? channelDisplayName(top.channelKey, channels.data ?? []) : "—"}
+              delta={topShare != null ? `${topShare}% of views` : null}
+            />
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Link href={analyticsHref} className={buttonVariants({ size: "sm" })}>
             View analytics
           </Link>
-          <Link href={linksHref} className="text-foreground underline">
+          <Link href={linksHref} className={buttonVariants({ variant: "outline", size: "sm" })}>
             Manage links
           </Link>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  dot,
+  delta,
+  children,
+}: {
+  label: string;
+  value: string | number;
+  dot?: string;
+  delta?: string | null;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="bg-muted/40 space-y-1 rounded-xl p-3">
+      <p className="text-muted-foreground flex items-center gap-2 text-xs">
+        {dot ? <span aria-hidden className={cn("size-2 rounded-full", dot)} /> : null}
+        {label}
+      </p>
+      <p className="text-foreground text-2xl font-semibold tabular-nums">{value}</p>
+      {children}
+      {delta ? (
+        <p className={cn("text-xs", delta.startsWith("↑") ? "text-foreground" : "text-muted-foreground")}>
+          {delta}
+        </p>
+      ) : null}
+    </div>
   );
 }
