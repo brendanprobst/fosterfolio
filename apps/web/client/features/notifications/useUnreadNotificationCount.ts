@@ -2,38 +2,29 @@
 
 import { useAuth } from "@client/auth";
 import { fetchUnreadCount } from "@client/features/notifications/notificationsApi";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
+import { notificationKeys } from "./queryKeys";
 
-/** Polls on focus and whenever the route changes. No websocket. */
+/** Refetches on window focus (React Query default) and on route change. No websocket. */
 export function useUnreadNotificationCount(enabled: boolean): number {
   const { getAccessToken } = useAuth();
   const pathname = usePathname();
-  const [count, setCount] = useState(0);
+  const queryClient = useQueryClient();
 
-  const load = useCallback(async () => {
-    if (!enabled) return;
-    try {
+  const query = useQuery({
+    queryKey: notificationKeys.unreadCount,
+    enabled,
+    queryFn: async () => {
       const token = await getAccessToken();
-      if (!token) return;
-      setCount(await fetchUnreadCount(token));
-    } catch {
-      setCount(0);
-    }
-  }, [enabled, getAccessToken]);
+      return token ? fetchUnreadCount(token) : 0;
+    },
+  });
 
   useEffect(() => {
-    void load();
-  }, [load, pathname]);
+    if (enabled) void queryClient.invalidateQueries({ queryKey: notificationKeys.unreadCount });
+  }, [enabled, pathname, queryClient]);
 
-  useEffect(() => {
-    if (!enabled) return;
-    const onFocus = () => {
-      void load();
-    };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [enabled, load]);
-
-  return count;
+  return enabled ? (query.data ?? 0) : 0;
 }

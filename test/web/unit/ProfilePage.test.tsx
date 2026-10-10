@@ -128,7 +128,7 @@ describe("ProfilePage", () => {
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Profile QR" })).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /download png/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /download qr/i })).toBeInTheDocument();
   });
 
   it("shows a claimed handle and handle-based share links", () => {

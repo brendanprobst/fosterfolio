@@ -129,7 +129,7 @@ Pre-deploy prep = item 2 (`terraform.tfvars` + `deploy:aws`) and item 1 (allowli
 
 ## 7. v2 slice 5a — UX polish
 
-Plan: [v2_slice5a_ux_polish.plan.md](v2_slice5a_ux_polish.plan.md). Implementation: [plan 1](v2_slice5a_impl_1_analytics_and_quick_wins.plan.md) (plans 2–3 written after plan 1 lands).
+Plan: [v2_slice5a_ux_polish.plan.md](v2_slice5a_ux_polish.plan.md). Implementation: [plan 1](v2_slice5a_impl_1_analytics_and_quick_wins.plan.md), [plan 2 — inbox](v2_slice5a_impl_2_inbox.plan.md), [plan 3 — layouts](v2_slice5a_impl_3_layouts.plan.md).
 
 - [x] 5a-presets — drop "Other" and "Shelter listing" presets
 - [x] 5a-qr-sizes — Web / A4 / Large print QR downloads
