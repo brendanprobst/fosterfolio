@@ -189,7 +189,7 @@ describe("FosterMePage", () => {
     expect(
       screen.getByText(/always opens whoever this foster is listing now/i),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("Visible only to you")).toHaveLength(2);
+    expect(screen.queryByText("Visible only to you")).not.toBeInTheDocument();
     expect(screen.queryByText("Locked for you, open to visitors")).not.toBeInTheDocument();
     expect(screen.queryByRole("form", { name: /contact the foster/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /send inquiry/i })).not.toBeInTheDocument();

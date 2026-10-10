@@ -99,6 +99,8 @@ describe("PetBioPage", () => {
 
     renderWithQueryClient(<PetBioPage />);
 
+    expect(screen.queryByRole("region", { name: "Your tools" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "View analytics" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Mochi" })).toBeInTheDocument();
     expect(screen.getByText("actively fostering")).toBeInTheDocument();
     expect(screen.getByLabelText("Age: 2 years")).toBeInTheDocument();
@@ -209,6 +211,8 @@ describe("PetBioPage", () => {
     renderWithQueryClient(<PetBioPage />);
 
     expect(screen.getByText(/interested in mochi/i)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Your tools" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "View analytics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "QR code" })).not.toBeInTheDocument();
     expect(screen.queryByText("Share this bio")).not.toBeInTheDocument();
   });
@@ -226,11 +230,14 @@ describe("PetBioPage", () => {
 
     renderWithQueryClient(<PetBioPage />);
 
-    expect(screen.getByText("Edit Mochi's bio")).toBeInTheDocument();
-    expect(screen.getAllByText("Visible only to you")).toHaveLength(2);
+    expect(screen.getByRole("region", { name: "Your tools" })).toBeInTheDocument();
+    expect(screen.getByText("Public preview — this is what visitors see")).toBeInTheDocument();
+    expect(screen.queryByText("Edit Mochi's bio")).not.toBeInTheDocument();
+    expect(screen.queryByText("Visible only to you")).not.toBeInTheDocument();
     expect(screen.queryByText("Locked for you, open to visitors")).not.toBeInTheDocument();
     expect(screen.queryByRole("form", { name: /contact the foster/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /send inquiry/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask about Mochi" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Expand" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Edit bio" })).toHaveAttribute(
       "href",
@@ -240,7 +247,7 @@ describe("PetBioPage", () => {
       screen.queryByRole("link", { name: /view your public profile/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /QR code/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "QR code" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "QR code" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View analytics" })).toHaveAttribute(
       "href",
       `/@owner-1/pet/${petId}/analytics`,

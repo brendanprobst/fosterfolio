@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth } from "@client/auth";
-import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
 import { Sparkline } from "@client/components/charts";
 import { buttonVariants } from "@client/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@client/components/ui/card";
@@ -65,10 +64,7 @@ export function OwnerAnalyticsWidget({
   return (
     <Card className="@container">
       <CardHeader>
-        <div className="space-y-1">
-          <OwnerOnlyLabel />
-          <CardTitle>{petName} this week</CardTitle>
-        </div>
+        <CardTitle>{petName} this week</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {adopted ? (

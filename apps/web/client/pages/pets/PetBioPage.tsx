@@ -1,6 +1,6 @@
 "use client";
 
-import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
+import { AppShell, DataPageSkeleton, OwnerPageLayout } from "@client/components/layout";
 import { useAuth } from "@client/auth";
 import { InquiryCta } from "@client/features/inquiries";
 import { usePet } from "@client/features/pets";
@@ -10,8 +10,7 @@ import { petHref, petIdFromPathname } from "@client/lib/petBioPath";
 import { publicHandle } from "@client/lib/userProfilePath";
 import { usePathname } from "next/navigation";
 import { FosterStatusCard } from "./FosterStatusCard";
-import { petSidebarMobileSummary } from "./PublicPetSidebar";
-import { PetBioSidebar } from "./PetBioSidebar";
+import { OwnerPetHero } from "./OwnerPetHero";
 import { PetBioView } from "./PetBioView";
 
 /**
@@ -74,31 +73,35 @@ export function PetBioPage() {
           </div>
         ) : null}
         {pet && isOwner ? (
-          <PageWithSidebar
-            mobileSummary={petSidebarMobileSummary({
-              isOwner,
-              petName: pet.name,
-              fosterName: pet.owner?.displayName || "Foster",
-              variant: "permalink",
-            })}
-            sidebar={
-              <PetBioSidebar
-                petName={pet.name}
-                petId={pet.id}
-                petPath={petHref(ownerRef, pet.id)}
-                ownerId={pet.ownerId}
-                ownerRef={ownerRef}
-                ownerName={pet.owner?.displayName || "Foster"}
-                ownerAvatarUrl={pet.owner?.avatarUrl ?? null}
-                isActivelyFostering={pet.status === "actively_fostering"}
-                isOwner={isOwner}
-                adopted={pet.status === "adopted"}
-                capturePetEvents={capturePetEvents}
-              />
+          <OwnerPageLayout
+            fillFold
+            hero={<OwnerPetHero pet={pet} ownerRef={ownerRef} petPath={petHref(ownerRef, pet.id)} />}
+            preview={
+              <div className="mx-auto max-w-3xl space-y-8">
+                <PetBioView
+                  pet={pet}
+                  afterDetails={
+                    <FosterStatusCard
+                      petName={pet.name}
+                      ownerRef={ownerRef}
+                      ownerName={pet.owner?.displayName || "Foster"}
+                      ownerAvatarUrl={pet.owner?.avatarUrl ?? null}
+                      mode="permalink"
+                      isCurrentFoster={pet.status === "actively_fostering"}
+                    />
+                  }
+                />
+                {pet.status !== "adopted" ? (
+                  <InquiryCta
+                    preview
+                    targetUserId={pet.ownerId}
+                    targetPetId={pet.id}
+                    petName={pet.name}
+                  />
+                ) : null}
+              </div>
             }
-          >
-            <PetBioView pet={pet} />
-          </PageWithSidebar>
+          />
         ) : null}
       </main>
     </AppShell>
