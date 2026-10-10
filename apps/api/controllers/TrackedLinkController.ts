@@ -120,6 +120,26 @@ export class TrackedLinkController {
     }
   }
 
+  async getOwnerLinkAnalytics(req: Request, res: Response): Promise<void> {
+    try {
+      const actorId = (req as RequestWithUser).user.id;
+      const range = req.query.range;
+      const rangeRaw = Array.isArray(range)
+        ? typeof range[0] === 'string'
+          ? range[0]
+          : undefined
+        : typeof range === 'string'
+          ? range
+          : undefined;
+      const result = await this.container
+        .getGetOwnerLinkAnalyticsUseCase()
+        .execute(actorId, rangeRaw);
+      ResponseHandler.handleResult(result, res);
+    } catch (error) {
+      ResponseHandler.handleError(error, res);
+    }
+  }
+
   async listOwnerLinks(req: Request, res: Response): Promise<void> {
     try {
       const actorId = (req as RequestWithUser).user.id;

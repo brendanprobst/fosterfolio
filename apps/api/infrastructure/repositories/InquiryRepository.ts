@@ -104,6 +104,27 @@ export class InquiryRepository implements IInquiryRepository {
     }));
   }
 
+  async listFosterMeSourcesByOwner(
+    ownerId: string,
+    sinceIso: string | null
+  ): Promise<InquirySourceRow[]> {
+    const since = sinceIso ? `&created_at=gte.${encodeURIComponent(sinceIso)}` : '';
+    const rows = await this.dataAdapter.get<
+      Array<{
+        source_link_id: string | null;
+        source_channel_key: string | null;
+        created_at: string;
+      }>
+    >(
+      `${this.table}?select=source_link_id,source_channel_key,created_at&target_user_id=eq.${encodeURIComponent(ownerId)}&via_foster_me=eq.true${since}&limit=10000`
+    );
+    return rows.map((row) => ({
+      sourceLinkId: row.source_link_id,
+      sourceChannelKey: row.source_channel_key,
+      createdAt: row.created_at,
+    }));
+  }
+
   async countBySourceLinkIds(linkIds: string[]): Promise<Map<string, number>> {
     const totals = new Map<string, number>();
     if (linkIds.length === 0) return totals;

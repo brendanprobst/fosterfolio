@@ -7,6 +7,7 @@ import { GetUnreadNotificationCountUseCase } from '@api/application/use-cases/Ge
 import { ListNotificationsUseCase } from '@api/application/use-cases/ListNotificationsUseCase';
 import { UpdateNotificationUseCase } from '@api/application/use-cases/UpdateNotificationUseCase';
 import { ensureInquiryReceivedRegistered } from '@api/application/notifications/inquiryReceived';
+import { GetOwnerLinkAnalyticsUseCase } from '@api/application/use-cases/GetOwnerLinkAnalyticsUseCase';
 import { GetPetAnalyticsUseCase } from '@api/application/use-cases/GetPetAnalyticsUseCase';
 import { AddStarUseCase } from '@api/application/use-cases/AddStarUseCase';
 import { CreateInquiryUseCase } from '@api/application/use-cases/CreateInquiryUseCase';
@@ -53,6 +54,7 @@ import { InMemoryNotificationRepository } from '@api/infrastructure/repositories
 import { InMemoryStorageAdapter } from '@api/infrastructure/adapters/storage/InMemoryStorageAdapter';
 import { Container } from '@api/infrastructure/container';
 import { InMemoryAnalyticsDailyRepository } from '@api/infrastructure/repositories/InMemoryAnalyticsDailyRepository';
+import { InMemoryAnalyticsOwnerDailyRepository } from '@api/infrastructure/repositories/InMemoryAnalyticsOwnerDailyRepository';
 import { InMemoryInquiryRepository } from '@api/infrastructure/repositories/InMemoryInquiryRepository';
 import { InMemoryTrackedLinkRepository } from '@api/infrastructure/repositories/InMemoryTrackedLinkRepository';
 import { InMemoryPetRepository } from '@api/infrastructure/repositories/InMemoryPetRepository';
@@ -72,6 +74,7 @@ export class TestContainer {
   readonly starRepository = new InMemoryStarRepository(this.userRepository);
   readonly inquiryRepository = new InMemoryInquiryRepository();
   readonly analyticsDailyRepository = new InMemoryAnalyticsDailyRepository();
+  readonly analyticsOwnerDailyRepository = new InMemoryAnalyticsOwnerDailyRepository();
   readonly trackedLinkRepository = new InMemoryTrackedLinkRepository();
   readonly notificationRepository = new InMemoryNotificationRepository();
   readonly searchRepository = new InMemorySearchRepository(
@@ -292,6 +295,13 @@ export class TestContainer {
     return new GetPetAnalyticsSummaryUseCase(
       this.petRepository,
       this.analyticsDailyRepository,
+      this.inquiryRepository
+    );
+  }
+
+  getGetOwnerLinkAnalyticsUseCase() {
+    return new GetOwnerLinkAnalyticsUseCase(
+      this.analyticsOwnerDailyRepository,
       this.inquiryRepository
     );
   }

@@ -8,6 +8,19 @@ import { analyticsOwnerDailyKey } from '@api/infrastructure/analytics/analyticsO
 export class InMemoryAnalyticsOwnerDailyRepository implements IAnalyticsOwnerDailyRepository {
   readonly records: AnalyticsOwnerDailyRecord[] = [];
 
+  async listByOwnerId(
+    ownerId: string,
+    sinceDay: string | null
+  ): Promise<AnalyticsOwnerDailyRecord[]> {
+    return this.records
+      .filter((row) => row.ownerId === ownerId && (sinceDay == null || row.day >= sinceDay))
+      .sort((a, b) => a.day.localeCompare(b.day));
+  }
+
+  seed(row: AnalyticsOwnerDailyRecord): void {
+    this.records.push({ ...row });
+  }
+
   async upsert(rows: AnalyticsOwnerDailyWrite[]): Promise<void> {
     for (const row of rows) {
       const key = analyticsOwnerDailyKey(row);

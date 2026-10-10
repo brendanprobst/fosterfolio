@@ -52,6 +52,17 @@ export class AnalyticsOwnerDailyRepository implements IAnalyticsOwnerDailyReposi
       process.env.SUPABASE_ANALYTICS_OWNER_DAILY_TABLE?.trim() || 'analytics_owner_daily';
   }
 
+  async listByOwnerId(
+    ownerId: string,
+    sinceDay: string | null
+  ): Promise<AnalyticsOwnerDailyRecord[]> {
+    const since = sinceDay ? `&day=gte.${sinceDay}` : '';
+    const rows = await this.dataAdapter.get<AnalyticsOwnerDailyRow[]>(
+      `${this.table}?select=${SELECT}&owner_id=eq.${encodeURIComponent(ownerId)}${since}&order=day.asc&limit=10000`
+    );
+    return rows.map(toRecord);
+  }
+
   async upsert(rows: AnalyticsOwnerDailyWrite[]): Promise<void> {
     if (rows.length === 0) return;
     const ownerIds = [...new Set(rows.map((row) => row.ownerId))];

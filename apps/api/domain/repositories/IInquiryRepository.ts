@@ -39,6 +39,8 @@ export interface IInquiryRepository {
   setSelfReportedSource(id: string, source: string): Promise<boolean>;
   /** sinceIso is inclusive. Null returns every inquiry for the pet. */
   listSourcesByPetId(petId: string, sinceIso: string | null): Promise<InquirySourceRow[]>;
+  /** Owner inquiries with via_foster_me. sinceIso is inclusive. Null returns every matching row. */
+  listFosterMeSourcesByOwner(ownerId: string, sinceIso: string | null): Promise<InquirySourceRow[]>;
   /** Counts inquiries with that source_link_id. Direct inquiries are not included. */
   countBySourceLinkIds(linkIds: string[]): Promise<Map<string, number>>;
 }

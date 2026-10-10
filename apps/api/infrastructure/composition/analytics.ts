@@ -1,3 +1,4 @@
+import { GetOwnerLinkAnalyticsUseCase } from '@api/application/use-cases/GetOwnerLinkAnalyticsUseCase';
 import { GetPetAnalyticsSummaryUseCase } from '@api/application/use-cases/GetPetAnalyticsSummaryUseCase';
 import { GetPetAnalyticsUseCase } from '@api/application/use-cases/GetPetAnalyticsUseCase';
 import type { IAnalyticsDailyRepository } from '@api/domain/repositories/IAnalyticsDailyRepository';
@@ -15,6 +16,7 @@ export type AnalyticsModule = {
   analyticsOwnerDailyRepository: IAnalyticsOwnerDailyRepository;
   getGetPetAnalyticsUseCase: () => GetPetAnalyticsUseCase;
   getGetPetAnalyticsSummaryUseCase: () => GetPetAnalyticsSummaryUseCase;
+  getGetOwnerLinkAnalyticsUseCase: () => GetOwnerLinkAnalyticsUseCase;
 };
 
 export function createAnalyticsModule(
@@ -40,5 +42,7 @@ export function createAnalyticsModule(
         analyticsDailyRepository,
         inquiryRepository
       ),
+    getGetOwnerLinkAnalyticsUseCase: () =>
+      new GetOwnerLinkAnalyticsUseCase(analyticsOwnerDailyRepository, inquiryRepository),
   };
 }

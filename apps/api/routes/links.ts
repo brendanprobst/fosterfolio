@@ -32,6 +32,9 @@ export function createChannelRouter(
   router.post('/links', ...deps.requireAuth, (req, res) =>
     controller.createOwnerLink(req, res)
   );
+  router.get('/links/analytics', ...deps.requireAuth, (req, res) =>
+    controller.getOwnerLinkAnalytics(req, res)
+  );
   router.get('/links', ...deps.requireAuth, (req, res) =>
     controller.listOwnerLinks(req, res)
   );

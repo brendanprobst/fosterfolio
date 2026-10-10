@@ -52,6 +52,24 @@ export class InMemoryInquiryRepository implements IInquiryRepository {
       }));
   }
 
+  async listFosterMeSourcesByOwner(
+    ownerId: string,
+    sinceIso: string | null
+  ): Promise<InquirySourceRow[]> {
+    return this.records
+      .filter(
+        (row) =>
+          row.targetUserId === ownerId &&
+          row.viaFosterMe &&
+          (sinceIso == null || row.createdAt >= sinceIso)
+      )
+      .map((row) => ({
+        sourceLinkId: row.sourceLinkId,
+        sourceChannelKey: row.sourceChannelKey,
+        createdAt: row.createdAt,
+      }));
+  }
+
   async countBySourceLinkIds(linkIds: string[]): Promise<Map<string, number>> {
     const wanted = new Set(linkIds);
     const totals = new Map<string, number>();
