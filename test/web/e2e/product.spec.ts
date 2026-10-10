@@ -3,6 +3,11 @@ import { E2E_PATHS } from "./support/e2ePaths";
 import { E2E_SEED } from "./support/e2eSeedConstants";
 import { browseAsGuest, staySignedIn } from "./support/e2eSession";
 
+async function openPetBioInquiry(page: Page) {
+  await page.getByRole("button", { name: `Ask about ${E2E_SEED.petName}` }).click();
+  return page.getByRole("dialog");
+}
+
 async function submitInquiry(scope: Page | Locator) {
   await scope.getByLabel("Your name").fill("Jamie");
   await scope.getByLabel("Your email").fill("jamie@example.com");
@@ -10,7 +15,7 @@ async function submitInquiry(scope: Page | Locator) {
   await scope.getByRole("button", { name: /send inquiry/i }).click();
   await expect(scope.getByText("Inquiry sent")).toBeVisible();
   await expect(
-    scope.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+    scope.getByRole("alert").getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
   ).toBeVisible();
 }
 
@@ -44,8 +49,8 @@ test.describe("Fosterfolio product smoke", () => {
         page.getByRole("link", { name: E2E_SEED.userDisplayName }),
       ).toHaveAttribute("href", E2E_PATHS.publicProfile);
       await expect(page.getByText(`Actively fostering ${E2E_SEED.petName}`)).toBeVisible();
-      await expect(page.getByRole("form", { name: "Contact the foster" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Expand" })).toBeVisible();
+      const dialog = await openPetBioInquiry(page);
+      await expect(dialog.getByRole("form", { name: "Contact the foster" })).toBeVisible();
       await expect(page.getByRole("button", { name: "QR code" })).toHaveCount(0);
       await expect(page.getByRole("link", { name: /fostering now/i })).toHaveCount(0);
       await expect(page).toHaveTitle(/Mochi/);
@@ -53,25 +58,29 @@ test.describe("Fosterfolio product smoke", () => {
 
     test("inquiry form on the bio page shows success after submit", async ({ page }) => {
       await page.goto(E2E_PATHS.petBio);
-      await submitInquiry(page);
+      await submitInquiry(await openPetBioInquiry(page));
     });
 
-    test("expanding the bio inquiry keeps a draft and submits from the modal", async ({
+    test("opening the bio inquiry keeps a draft and submits from the sheet", async ({
       page,
     }) => {
       await page.goto(E2E_PATHS.petBio);
-      await page.getByLabel("Your name").fill("Jamie");
-      await page.getByRole("button", { name: "Expand" }).click();
-      const dialog = page.getByRole("dialog");
-      await expect(dialog.getByRole("heading", { name: "Contact the foster" })).toBeVisible();
+      const ask = page.getByRole("button", { name: `Ask about ${E2E_SEED.petName}` });
+      await ask.click();
+      let dialog = page.getByRole("dialog");
+      await expect(dialog.getByRole("form", { name: "Contact the foster" })).toBeVisible();
+      await dialog.getByLabel("Your name").fill("Jamie");
+      await dialog.getByRole("button", { name: "Close" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await ask.click();
+      dialog = page.getByRole("dialog");
       await expect(dialog.getByLabel("Your name")).toHaveValue("Jamie");
       await dialog.getByLabel("Your email").fill("jamie@example.com");
       await dialog.getByLabel("Message").fill("Can I meet Mochi this weekend?");
       await dialog.getByRole("button", { name: /send inquiry/i }).click();
-      await expect(page.getByText("Inquiry sent")).toBeVisible();
-      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(dialog.getByText("Inquiry sent")).toBeVisible();
       await expect(
-        page.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+        dialog.getByRole("alert").getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
       ).toBeVisible();
     });
 
@@ -130,23 +139,18 @@ test.describe("Fosterfolio product smoke", () => {
       await browseAsGuest(page);
     });
 
-    test("pet bio inquiry can be sent from the side panel", async ({ page }) => {
+    test("pet bio inquiry can be sent from the floating button", async ({ page }) => {
       await page.goto(E2E_PATHS.petBio);
-      const openPanel = page.getByRole("button", {
-        name: `Open Ask about ${E2E_SEED.petName}`,
-      });
-      await expect(openPanel).toBeVisible();
-      await openPanel.click();
-      const panel = page.getByRole("dialog", { name: `Ask about ${E2E_SEED.petName}` });
-      const form = panel.getByRole("form", { name: "Contact the foster" });
+      const dialog = await openPetBioInquiry(page);
+      const form = dialog.getByRole("form", { name: "Contact the foster" });
       await expect(form).toBeVisible();
       await form.getByLabel("Your name").fill("Jamie");
       await form.getByLabel("Your email").fill("jamie@example.com");
       await form.getByLabel("Message").fill("Can I meet Mochi this weekend?");
       await form.getByRole("button", { name: /send inquiry/i }).click();
-      await expect(panel.getByText("Inquiry sent")).toBeVisible();
+      await expect(dialog.getByText("Inquiry sent")).toBeVisible();
       await expect(
-        panel.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+        dialog.getByRole("alert").getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
       ).toBeVisible();
     });
   });
@@ -221,11 +225,12 @@ test.describe("Fosterfolio product smoke", () => {
 
       await browseAsGuest(page);
       await page.goto(E2E_PATHS.petBio);
-      await page.getByLabel("Your name").fill(sender);
-      await page.getByLabel("Your email").fill("riley.quinn@example.com");
-      await page.getByLabel("Message").fill(message);
-      await page.getByRole("button", { name: /send inquiry/i }).click();
-      await expect(page.getByText("Inquiry sent")).toBeVisible();
+      const dialog = await openPetBioInquiry(page);
+      await dialog.getByLabel("Your name").fill(sender);
+      await dialog.getByLabel("Your email").fill("riley.quinn@example.com");
+      await dialog.getByLabel("Message").fill(message);
+      await dialog.getByRole("button", { name: /send inquiry/i }).click();
+      await expect(dialog.getByText("Inquiry sent")).toBeVisible();
 
       await staySignedIn(page);
       await page.goto("/inbox");

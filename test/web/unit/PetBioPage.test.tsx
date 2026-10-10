@@ -1,5 +1,6 @@
 import { useAuth } from "@client/auth";
 import { usePet } from "@client/features/pets";
+import { capturePetEvent } from "@client/lib/analytics/initFosterfolioAnalytics";
 import { petEditorEditHref } from "@client/lib/petEditorPath";
 import type { PetPublic } from "@client/features/pets";
 import { PetBioPage } from "@client/pages/pets";
@@ -20,6 +21,15 @@ vi.mock("@client/auth", () => ({
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(),
 }));
+
+vi.mock("@client/lib/analytics/initFosterfolioAnalytics", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@client/lib/analytics/initFosterfolioAnalytics")>();
+  return {
+    ...actual,
+    capturePetEvent: vi.fn(),
+  };
+});
 
 vi.mock("@client/features/pets", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@client/features/pets")>();
@@ -75,10 +85,11 @@ describe("PetBioPage", () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());
     vi.mocked(usePathname).mockReturnValue(`/@owner-1/pet/${petId}`);
+    vi.mocked(capturePetEvent).mockClear();
     document.title = "Fosterfolio";
   });
 
-  it("sets document.title from meta and shows a guest sidebar without a pet QR", () => {
+  it("sets document.title from meta and opens the inquiry sheet for guests", () => {
     vi.mocked(usePet).mockReturnValue({
       data: pet,
       isLoading: false,
@@ -102,17 +113,19 @@ describe("PetBioPage", () => {
       "href",
       "/@owner-1",
     );
+    expect(screen.getByRole("heading", { name: "About Mochi" })).toBeInTheDocument();
     expect(screen.getByText("Actively fostering Mochi")).toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: /see who they’re fostering now/i }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("form", { name: "Contact the foster" })).toBeInTheDocument();
-    expect(screen.getByRole("form", { name: "Contact the foster" }).closest("[data-slot=card-content]")).toHaveClass(
-      "hidden",
-      "lg:block",
-    );
-    expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Contact the foster" })).not.toBeInTheDocument();
+    const ask = screen.getByRole("button", { name: "Ask about Mochi" });
+    expect(ask.parentElement).toHaveClass("max-w-3xl", "justify-end");
+    fireEvent.click(ask);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("data-side", "bottom");
+    expect(dialog).toHaveTextContent("Ask about Mochi");
+    expect(dialog).toContainElement(screen.getByRole("form", { name: "Contact the foster" }));
     expect(screen.queryByRole("button", { name: "QR code" })).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /QR code/i })).not.toBeInTheDocument();
     expect(document.title).toBe("Mochi · Fosterfolio");
@@ -135,11 +148,11 @@ describe("PetBioPage", () => {
     expect(
       screen.getByRole("link", { name: /see who they’re fostering now/i }),
     ).toHaveAttribute("href", "/@owner-1/foster-me");
-    expect(screen.getByRole("form", { name: "Contact the foster" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask about Mochi" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Contact the foster" })).not.toBeInTheDocument();
   });
 
-  it("expands the inquiry form into a modal and keeps in-progress values", () => {
+  it("keeps an in-progress inquiry draft when the sheet closes", () => {
     vi.mocked(usePet).mockReturnValue({
       data: pet,
       isLoading: false,
@@ -149,18 +162,37 @@ describe("PetBioPage", () => {
 
     renderWithQueryClient(<PetBioPage />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Ask about Mochi" }));
     fireEvent.change(screen.getByLabelText("Your name"), {
       target: { value: "Jamie" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Expand" }));
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByLabelText("Your name")).toHaveValue("Jamie");
-
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ask about Mochi" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByLabelText("Your name")).toHaveValue("Jamie");
+  });
+
+  it("records inquiry_form_opened once when a guest opens the sheet", () => {
+    vi.mocked(usePet).mockReturnValue({
+      data: pet,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof usePet>);
+
+    renderWithQueryClient(<PetBioPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Ask about Mochi" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ask about Mochi" }));
+
+    const opened = vi
+      .mocked(capturePetEvent)
+      .mock.calls.filter(([event]) => event === "inquiry_form_opened");
+    expect(opened).toEqual([["inquiry_form_opened", { id: petId, ownerId: "owner-1" }]]);
   });
 
   it("hides the pet QR from a signed-in visitor who does not own the pet", () => {

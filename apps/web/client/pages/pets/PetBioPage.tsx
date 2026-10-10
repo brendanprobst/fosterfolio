@@ -2,12 +2,14 @@
 
 import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
 import { useAuth } from "@client/auth";
+import { InquiryCta } from "@client/features/inquiries";
 import { usePet } from "@client/features/pets";
 import { syncPetCaptureSuppression } from "@client/lib/analytics/initFosterfolioAnalytics";
 import { usePetViewCapture } from "@client/lib/analytics/usePetViewCapture";
 import { petHref, petIdFromPathname } from "@client/lib/petBioPath";
 import { publicHandle } from "@client/lib/userProfilePath";
 import { usePathname } from "next/navigation";
+import { FosterStatusCard } from "./FosterStatusCard";
 import { petSidebarMobileSummary } from "./PublicPetSidebar";
 import { PetBioSidebar } from "./PetBioSidebar";
 import { PetBioView } from "./PetBioView";
@@ -45,7 +47,33 @@ export function PetBioPage() {
             {error instanceof Error ? error.message : "Failed to load pet."}
           </p>
         ) : null}
-        {pet ? (
+        {pet && !isOwner ? (
+          <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 pb-28">
+            <PetBioView
+              pet={pet}
+              afterDetails={
+                <FosterStatusCard
+                  petName={pet.name}
+                  ownerRef={ownerRef}
+                  ownerName={pet.owner?.displayName || "Foster"}
+                  ownerAvatarUrl={pet.owner?.avatarUrl ?? null}
+                  mode="permalink"
+                  isCurrentFoster={pet.status === "actively_fostering"}
+                />
+              }
+            />
+            {pet.status !== "adopted" ? (
+              <InquiryCta
+                targetUserId={pet.ownerId}
+                targetPetId={pet.id}
+                petName={pet.name}
+                fosterName={pet.owner?.displayName || "Foster"}
+                capturePetEvents={capturePetEvents}
+              />
+            ) : null}
+          </div>
+        ) : null}
+        {pet && isOwner ? (
           <PageWithSidebar
             mobileSummary={petSidebarMobileSummary({
               isOwner,
