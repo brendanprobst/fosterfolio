@@ -215,6 +215,31 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(page.getByText("Interested in adopting?")).toHaveCount(0);
     });
 
+    test("guest inquiry shows in the owner inbox and can be archived", async ({ page }) => {
+      const sender = "Riley Quinn";
+      const message = "Inbox archive path for Mochi";
+
+      await browseAsGuest(page);
+      await page.goto(E2E_PATHS.petBio);
+      await page.getByLabel("Your name").fill(sender);
+      await page.getByLabel("Your email").fill("riley.quinn@example.com");
+      await page.getByLabel("Message").fill(message);
+      await page.getByRole("button", { name: /send inquiry/i }).click();
+      await expect(page.getByText("Inquiry sent")).toBeVisible();
+
+      await staySignedIn(page);
+      await page.goto("/inbox");
+      const messagePane = page.getByRole("region", { name: "Message", exact: true });
+      await page.getByRole("button", { name: new RegExp(sender) }).click();
+      await expect(messagePane.getByText(message)).toBeVisible();
+      await expect(messagePane.getByRole("link", { name: "riley.quinn@example.com" })).toBeVisible();
+      await messagePane.getByRole("button", { name: "Archive" }).click();
+      await expect(page.getByRole("button", { name: new RegExp(sender) })).toHaveCount(0);
+
+      await page.getByRole("button", { name: "Archived" }).click();
+      await expect(page.getByRole("button", { name: new RegExp(sender) })).toBeVisible();
+    });
+
     test("owner foster-me shows share without an inquiry form", async ({ page }) => {
       await page.goto(E2E_PATHS.fosterMe);
       await expect(page).toHaveURL(/\/foster-me\/?$/);
@@ -227,7 +252,8 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(page.getByRole("button", { name: "Expand" })).toHaveCount(0);
       await page.getByRole("button", { name: "QR code" }).click();
       await expect(page.getByRole("heading", { name: "Foster-me QR" })).toBeVisible();
-      await expect(page.getByRole("button", { name: /download png/i })).toBeVisible();
+      await page.getByRole("button", { name: "Download QR" }).click();
+      await expect(page.getByRole("menuitem", { name: /for sharing on the web/i })).toBeVisible();
     });
   });
 });
