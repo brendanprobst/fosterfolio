@@ -9,9 +9,10 @@ import {
   fetchPetAnalytics,
   fetchPetLinks,
 } from "@client/features/petInsights/petInsightsApi";
+import type { PetAnalytics } from "@client/features/petInsights/types";
 import { petHref, petIdFromPetPath } from "@client/lib/petBioPath";
 import { publicHandle } from "@client/lib/userProfilePath";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AnalyticsView } from "./AnalyticsView";
@@ -22,7 +23,7 @@ export function PetAnalyticsPage() {
   const pathname = usePathname();
   const petId = petIdFromPetPath(pathname, "analytics");
   const pet = usePet(petId);
-  const [range, setRange] = useState<"7d" | "30d" | "all">("30d");
+  const [range, setRange] = useState<Range>("30d");
   const isOwner = Boolean(user && pet.data && user.id === pet.data.ownerId);
 
   const links = useQuery({
@@ -35,23 +36,47 @@ export function PetAnalyticsPage() {
     enabled: Boolean(isOwner),
     queryFn: async () => fetchChannels((await getAccessToken()) ?? ""),
   });
-  const analytics = useQuery({
-    queryKey: ["pet-analytics", petId, range],
-    enabled: Boolean(petId && isOwner),
-    queryFn: async () => fetchPetAnalytics((await getAccessToken()) ?? "", petId!, range),
+  const analytics = useQueries({
+    queries: RANGES.map((value) => ({
+      queryKey: ["pet-analytics", petId, value] as const,
+      enabled: Boolean(petId && isOwner),
+      staleTime: 60_000,
+      queryFn: async () => fetchPetAnalytics((await getAccessToken()) ?? "", petId!, value),
+    })),
+    combine: (results) => ({
+      byRange: Object.fromEntries(RANGES.map((value, index) => [value, results[index]?.data])) as Record<
+        Range,
+        PetAnalytics | undefined
+      >,
+      isLoading: results.some((query) => query.isLoading),
+      isError: results.some((query) => query.isError),
+    }),
   });
+  const current = analytics.byRange[range];
 
   if (loading || pet.isLoading || (isOwner && (analytics.isLoading || links.isLoading))) {
     return (
       <AppShell>
         <main>
-          <DataPageSkeleton variant="pet" label="Loading analytics" />
+          <DataPageSkeleton variant="analytics" label="Loading analytics" />
         </main>
       </AppShell>
     );
   }
 
-  if (!isOwner || !pet.data || !petId || !analytics.data) {
+  if (isOwner && analytics.isError) {
+    return (
+      <AppShell>
+        <main>
+          <p className="text-muted-foreground mx-auto max-w-3xl px-4 py-8 text-sm">
+            Couldn&apos;t load analytics. Try again in a moment.
+          </p>
+        </main>
+      </AppShell>
+    );
+  }
+
+  if (!isOwner || !pet.data || !petId || !current) {
     return (
       <AppShell>
         <main>
@@ -71,12 +96,13 @@ export function PetAnalyticsPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold">Analytics for {pet.data.name}</h1>
           <div className="flex gap-2" role="group" aria-label="Range">
-            {(["7d", "30d", "all"] as const).map((value) => (
+            {RANGES.map((value) => (
               <Button
                 key={value}
                 type="button"
                 size="sm"
                 variant={range === value ? "default" : "outline"}
+                aria-pressed={range === value}
                 onClick={() => setRange(value)}
               >
                 {value === "all" ? "All" : value}
@@ -90,9 +116,14 @@ export function PetAnalyticsPage() {
           adopted={pet.data.status === "adopted"}
           links={links.data ?? []}
           channels={channels.data ?? []}
-          analytics={analytics.data}
+          analytics={current}
+          range={range}
         />
       </main>
     </AppShell>
   );
 }
+
+const RANGES = ["7d", "30d", "all"] as const;
+type Range = (typeof RANGES)[number];
+

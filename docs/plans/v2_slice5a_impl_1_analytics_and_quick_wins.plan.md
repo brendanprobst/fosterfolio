@@ -14,7 +14,7 @@ todos:
     status: completed
   - id: cp3
     content: "CP3 — API: inquiriesByDay on PetAnalyticsDto + range regression test"
-    status: pending
+    status: completed
   - id: cp4
     content: "CP4 — pet analytics page: prefetch 3 ranges, analytics skeleton, real charts, color"
     status: pending

@@ -1,13 +1,13 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@client/components/ui/card";
-import {
-  bucketViewsByDay,
-  channelDisplayName,
-  formatConversion,
-} from "@client/features/petInsights/present";
+import { bucketTrend, channelDisplayName, formatConversion } from "@client/features/petInsights/present";
 import type { ChannelOption, PetAnalytics, TrackedLinkItem } from "@client/features/petInsights/types";
+import { cn } from "@client/lib/utils";
 import Link from "next/link";
+import { ChannelBarChart, TrendCharts } from "./analyticsCharts";
+
+type AnalyticsRange = "7d" | "30d" | "all";
 
 type AnalyticsViewProps = {
   petName: string;
@@ -16,6 +16,13 @@ type AnalyticsViewProps = {
   links: TrackedLinkItem[];
   channels: ChannelOption[];
   analytics: PetAnalytics;
+  range: AnalyticsRange;
+};
+
+const RANGE_CAPTION: Record<AnalyticsRange, string> = {
+  "7d": "last 7 days",
+  "30d": "last 30 days",
+  all: "all time",
 };
 
 export function AnalyticsView({
@@ -25,10 +32,19 @@ export function AnalyticsView({
   links,
   channels,
   analytics,
+  range,
 }: AnalyticsViewProps) {
   const nameFor = (key: string) => channelDisplayName(key, channels, links);
-  const series = bucketViewsByDay(analytics.viewsByDay);
+  const trend = bucketTrend(analytics.viewsByDay, analytics.inquiriesByDay);
   const empty = links.length === 0;
+  const period = RANGE_CAPTION[range];
+  const channelRows = analytics.byChannel.map((row) => ({
+    key: row.channelKey,
+    name: nameFor(row.channelKey),
+    views: row.views,
+    inquiries: row.inquiries,
+  }));
+  const cityMax = Math.max(1, ...analytics.byCity.map((city) => city.views));
 
   return (
     <div className="space-y-6">
@@ -39,9 +55,9 @@ export function AnalyticsView({
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Views" value={String(analytics.funnel.views)} />
-        <Stat label="Inquiries" value={String(analytics.funnel.inquiries)} />
-        <Stat label="Conversion rate" value={formatConversion(analytics.funnel.conversionRate)} />
+        <Stat label={`Views · ${period}`} value={String(analytics.funnel.views)} dot="views" />
+        <Stat label={`Inquiries · ${period}`} value={String(analytics.funnel.inquiries)} dot="inquiries" />
+        <Stat label={`Conversion rate · ${period}`} value={formatConversion(analytics.funnel.conversionRate)} />
       </div>
 
       {empty ? (
@@ -58,7 +74,22 @@ export function AnalyticsView({
               <CardTitle>Channels</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChannelBars rows={analytics.byChannel} nameFor={nameFor} />
+              {channelRows.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No channel data yet.</p>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2">
+                  <ChannelBarChart
+                    title="Views by channel"
+                    series="views"
+                    rows={channelRows.map((row) => ({ name: row.name, value: row.views }))}
+                  />
+                  <ChannelBarChart
+                    title="Inquiries by channel"
+                    series="inquiries"
+                    rows={channelRows.map((row) => ({ name: row.name, value: row.inquiries }))}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -71,16 +102,16 @@ export function AnalyticsView({
                 <thead>
                   <tr className="text-muted-foreground text-left">
                     <th className="py-1 font-medium">Channel</th>
-                    <th className="py-1 font-medium">Views</th>
-                    <th className="py-1 font-medium">Inquiries</th>
+                    <th className="py-1 text-right font-medium">Views</th>
+                    <th className="py-1 text-right font-medium">Inquiries</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analytics.byLink.map((row) => (
                     <tr key={row.linkId}>
                       <td className="py-1">{nameFor(row.channelKey)}</td>
-                      <td className="py-1">{row.views}</td>
-                      <td className="py-1">{row.inquiries}</td>
+                      <td className="py-1 text-right tabular-nums">{row.views}</td>
+                      <td className="py-1 text-right tabular-nums">{row.inquiries}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -96,10 +127,17 @@ export function AnalyticsView({
               {analytics.byCity.length === 0 ? (
                 <p className="text-muted-foreground text-sm">No city data yet.</p>
               ) : (
-                <ul className="space-y-1 text-sm">
+                <ul className="space-y-2 text-sm">
                   {analytics.byCity.map((city) => (
-                    <li key={city.city}>
-                      {city.city} · {city.views} views
+                    <li key={city.city} className="flex items-center gap-3">
+                      <span className="w-28 shrink-0 truncate">{city.city}</span>
+                      <span className="bg-muted h-1.5 min-w-0 flex-1 overflow-hidden rounded-full">
+                        <span
+                          className="bg-series-views block h-1.5 rounded-full"
+                          style={{ width: `${(city.views / cityMax) * 100}%` }}
+                        />
+                      </span>
+                      <span className="text-foreground tabular-nums">{city.views}</span>
                     </li>
                   ))}
                 </ul>
@@ -107,14 +145,28 @@ export function AnalyticsView({
             </CardContent>
           </Card>
 
-          <Card className="opacity-80">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-muted-foreground text-base">
-                {series.grain === "week" ? "Views by week" : "Views by day"}
+              <CardTitle>
+                {trend.grain === "week" ? "Views and inquiries by week" : "Views and inquiries by day"}
               </CardTitle>
+              <p className="text-muted-foreground flex items-center gap-4 text-sm">
+                <span className="inline-flex items-center gap-2">
+                  <span aria-hidden className="bg-series-views size-2 rounded-full" />
+                  Views
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span aria-hidden className="bg-series-inquiries size-2 rounded-full" />
+                  Inquiries
+                </span>
+              </p>
             </CardHeader>
             <CardContent>
-              <ViewsLine points={series.points} />
+              {trend.points.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No views yet.</p>
+              ) : (
+                <TrendCharts points={trend.points} />
+              )}
             </CardContent>
           </Card>
         </>
@@ -123,69 +175,34 @@ export function AnalyticsView({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  dot,
+}: {
+  label: string;
+  value: string;
+  dot?: "views" | "inquiries";
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-muted-foreground text-sm font-medium">{label}</CardTitle>
+        <CardTitle className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
+          {dot ? (
+            <span
+              aria-hidden
+              className={cn(
+                "size-2 rounded-full",
+                dot === "views" ? "bg-series-views" : "bg-series-inquiries",
+              )}
+            />
+          ) : null}
+          {label}
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-2xl font-semibold">{value}</p>
+        <p className="text-foreground text-2xl font-semibold tabular-nums">{value}</p>
       </CardContent>
     </Card>
-  );
-}
-
-function ChannelBars({
-  rows,
-  nameFor,
-}: {
-  rows: PetAnalytics["byChannel"];
-  nameFor: (key: string) => string;
-}) {
-  const max = Math.max(1, ...rows.flatMap((row) => [row.views, row.inquiries]));
-  if (rows.length === 0) {
-    return <p className="text-muted-foreground text-sm">No channel data yet.</p>;
-  }
-  const width = 320;
-  const rowHeight = 36;
-  const height = rows.length * rowHeight;
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Views and inquiries by channel" className="w-full">
-      {rows.map((row, index) => {
-        const y = index * rowHeight;
-        return (
-          <g key={row.channelKey}>
-            <text x="0" y={y + 12} className="fill-foreground" fontSize="11">
-              {nameFor(row.channelKey)}
-            </text>
-            <rect x="110" y={y + 4} height="8" width={(row.views / max) * 200} className="fill-primary" />
-            <rect x="110" y={y + 16} height="8" width={(row.inquiries / max) * 200} className="fill-muted-foreground" />
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-function ViewsLine({ points }: { points: Array<{ label: string; views: number }> }) {
-  if (points.length === 0) {
-    return <p className="text-muted-foreground text-sm">No views yet.</p>;
-  }
-  const width = 320;
-  const height = 80;
-  const max = Math.max(1, ...points.map((point) => point.views));
-  const step = points.length === 1 ? 0 : width / (points.length - 1);
-  const d = points
-    .map((point, index) => {
-      const x = index * step;
-      const y = height - (point.views / max) * (height - 8) - 4;
-      return `${index === 0 ? "M" : "L"}${x},${y}`;
-    })
-    .join(" ");
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Views over time" className="text-muted-foreground w-full">
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="2" />
-    </svg>
   );
 }

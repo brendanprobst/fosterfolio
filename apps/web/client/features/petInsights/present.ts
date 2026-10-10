@@ -1,4 +1,4 @@
-import type { ChannelOption, PetAnalytics, PetAnalyticsSummary, TrackedLinkItem } from "./types";
+import type { ChannelOption } from "./types";
 
 export function channelDisplayName(
   channelKey: string,
@@ -13,29 +13,53 @@ export function channelDisplayName(
   );
 }
 
-export type ViewBucket = { label: string; views: number };
+export type TrendBucket = { label: string; views: number; inquiries: number };
 
-/** Weekly buckets when fewer than 14 days have views. */
-export function bucketViewsByDay(points: Array<{ day: string; views: number }>): {
-  grain: "day" | "week";
-  points: ViewBucket[];
-} {
-  const daysWithViews = points.filter((point) => point.views > 0).length;
-  if (daysWithViews >= 14) {
-    return {
-      grain: "day",
-      points: points.map((point) => ({ label: point.day, views: point.views })),
-    };
+export function bucketTrend(
+  views: Array<{ day: string; views: number }>,
+  inquiries: Array<{ day: string; inquiries: number }>,
+): { grain: "day" | "week"; points: TrendBucket[] } {
+  const byDay = new Map<string, TrendBucket>();
+  for (const point of views) {
+    byDay.set(point.day, {
+      label: point.day,
+      views: point.views,
+      inquiries: byDay.get(point.day)?.inquiries ?? 0,
+    });
   }
-  const weeks = new Map<string, number>();
-  for (const point of points) {
-    const label = weekStart(point.day);
-    weeks.set(label, (weeks.get(label) ?? 0) + point.views);
+  for (const point of inquiries) {
+    byDay.set(point.day, {
+      label: point.day,
+      views: byDay.get(point.day)?.views ?? 0,
+      inquiries: point.inquiries,
+    });
   }
-  return {
-    grain: "week",
-    points: [...weeks.entries()].map(([label, views]) => ({ label, views })),
-  };
+  if (byDay.size === 0) return { grain: "day", points: [] };
+
+  const days = [...byDay.keys()].sort();
+  const filled: TrendBucket[] = [];
+  for (let day = days[0]!; day <= days[days.length - 1]!; day = addDays(day, 1)) {
+    filled.push(byDay.get(day) ?? { label: day, views: 0, inquiries: 0 });
+  }
+
+  const daysWithViews = filled.filter((point) => point.views > 0).length;
+  if (daysWithViews >= 14) return { grain: "day", points: filled };
+
+  const weeks = new Map<string, TrendBucket>();
+  for (const point of filled) {
+    const label = weekStart(point.label);
+    const week = weeks.get(label) ?? { label, views: 0, inquiries: 0 };
+    week.views += point.views;
+    week.inquiries += point.inquiries;
+    weeks.set(label, week);
+  }
+  return { grain: "week", points: [...weeks.values()] };
+}
+
+function addDays(day: string, n: number): string {
+  const date = new Date(`${day}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + n);
+  return date.toISOString().slice(0, 10);
 }
 
 function weekStart(day: string): string {

@@ -2,7 +2,7 @@ import { cn } from "@client/lib/utils";
 
 type DataPageSkeletonProps = {
   label: string;
-  variant: "profile" | "pet" | "editor" | "list";
+  variant: "profile" | "pet" | "editor" | "list" | "analytics";
   /** Sit inside an existing page column instead of the full page frame. */
   embedded?: boolean;
 };
@@ -81,6 +81,24 @@ function EditorShape() {
   );
 }
 
+function AnalyticsShape() {
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <Bone className="h-8 w-56" />
+        <Bone className="h-8 w-32" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Bone className="h-24" />
+        <Bone className="h-24" />
+        <Bone className="h-24" />
+      </div>
+      <Bone className="h-56" />
+      <Bone className="h-40" />
+    </div>
+  );
+}
+
 function ListShape() {
   return (
     <div className="space-y-3">
@@ -103,6 +121,8 @@ export function DataPageSkeleton({ label, variant, embedded = false }: DataPageS
       <PetShape />
     ) : variant === "editor" ? (
       <EditorShape />
+    ) : variant === "analytics" ? (
+      <AnalyticsShape />
     ) : (
       <ListShape />
     );

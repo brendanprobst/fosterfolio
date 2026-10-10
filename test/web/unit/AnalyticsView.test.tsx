@@ -21,6 +21,7 @@ describe("AnalyticsView", () => {
         links={[]}
         channels={[]}
         analytics={emptyAnalytics}
+        range="30d"
       />,
     );
     expect(
@@ -58,11 +59,18 @@ describe("AnalyticsView", () => {
           byChannel: [{ channelKey: "direct", views: 0, inquiries: 0 }],
           viewsByDay: [{ day: "2026-10-01", views: 0 }],
         }}
+        range="30d"
       />,
     );
     expect(screen.getByRole("status")).toHaveTextContent("Final results — Mochi was adopted 🎉");
-    expect(screen.getByText("Direct / original QR")).toBeInTheDocument();
-    expect(screen.getByText("Views by week")).toBeInTheDocument();
+    expect(screen.getAllByText("Direct / original QR").length).toBeGreaterThan(0);
+    expect(screen.getByText("Views and inquiries by week")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Views by channel" })).toHaveTextContent(
+      "Direct / original QR",
+    );
+    expect(screen.getByRole("table", { name: "Inquiries by channel" })).toHaveTextContent(
+      "Direct / original QR",
+    );
     expect(
       screen.queryByText(/Create your first tracked link/),
     ).not.toBeInTheDocument();
