@@ -14,13 +14,24 @@ type PetFactsPet = {
   species?: string | null;
 };
 
-type PetFactsProps = {
+type PetFactsBase = {
   pet: PetFactsPet;
-  /** Name (or other identity) — the most important line. */
-  title: ReactNode;
   /** Public bio shows species with the breed. Cards leave it off. */
   showSpecies?: boolean;
 };
+
+type PetFactsProps =
+  | (PetFactsBase & {
+      /** "all" (default) or "header" (title + status badges). */
+      part?: "all" | "header";
+      /** Name (or other identity) — the most important line. */
+      title: ReactNode;
+    })
+  | (PetFactsBase & {
+      /** Age/weight/sex + species/breed, without the title row. */
+      part: "details";
+      title?: ReactNode;
+    });
 
 function statusVariant(status: string): "default" | "secondary" | "outline" {
   if (status === "actively_fostering") return "default";
@@ -52,30 +63,39 @@ function weightLabel(size: string): string {
   return size.replaceAll("_", " ");
 }
 
-export function PetFacts({ pet, title, showSpecies = false }: PetFactsProps) {
+export function PetFacts({
+  pet,
+  title,
+  showSpecies = false,
+  part = "all",
+}: PetFactsProps) {
   const age = ageLabel(pet);
   const sex = pet.sex?.trim() ? pet.sex : null;
   const size = pet.size?.trim() ? pet.size : null;
   const breed = pet.breed?.trim() ? pet.breed : null;
   const species = showSpecies && pet.species?.trim() ? pet.species.trim() : null;
   const weight = size ? weightLabel(size) : null;
+  const showHeader = part !== "details";
+  const showDetails = part !== "header";
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-0 flex-1">{title}</div>
-        {pet.status ? (
-          <Badge variant={statusVariant(pet.status)} className="capitalize">
-            {humanizeToken(pet.status)}
-          </Badge>
-        ) : null}
-        {pet.subStatus ? (
-          <Badge variant="outline" className="capitalize">
-            {humanizeToken(pet.subStatus)}
-          </Badge>
-        ) : null}
-      </div>
-      {age || size || sex ? (
+      {showHeader ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1">{title}</div>
+          {pet.status ? (
+            <Badge variant={statusVariant(pet.status)} className="capitalize">
+              {humanizeToken(pet.status)}
+            </Badge>
+          ) : null}
+          {pet.subStatus ? (
+            <Badge variant="outline" className="capitalize">
+              {humanizeToken(pet.subStatus)}
+            </Badge>
+          ) : null}
+        </div>
+      ) : null}
+      {showDetails && (age || size || sex) ? (
         <ul className="flex flex-wrap gap-1" aria-label="Details">
           {age ? (
             <li>
@@ -107,7 +127,7 @@ export function PetFacts({ pet, title, showSpecies = false }: PetFactsProps) {
           ) : null}
         </ul>
       ) : null}
-      {species || breed ? (
+      {showDetails && (species || breed) ? (
         <p className="text-muted-foreground/70 text-xs tracking-wide italic">
           {species ? <span className="capitalize">{humanizeToken(species)}</span> : null}
           {species && breed ? " · " : null}
