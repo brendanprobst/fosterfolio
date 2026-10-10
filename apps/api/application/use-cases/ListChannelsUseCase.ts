@@ -1,4 +1,4 @@
-import { CHANNEL_PRESETS } from '@api/domain/channels/channelPresets';
+import { CHANNEL_PRESETS, RESERVED_CHANNEL_KEY } from '@api/domain/channels/channelPresets';
 import type { ChannelOptionDto } from '@api/application/dtos/trackedLink';
 import { Result } from '@api/domain/errors/Result';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
@@ -19,7 +19,10 @@ export class ListChannelsUseCase {
       const seen = new Set<string>();
       const custom: ChannelOptionDto[] = [];
       for (const pair of pairs) {
-        if (CHANNEL_PRESETS.some((preset) => preset.key === pair.channelKey)) {
+        if (
+          pair.channelKey === RESERVED_CHANNEL_KEY ||
+          CHANNEL_PRESETS.some((preset) => preset.key === pair.channelKey)
+        ) {
           continue;
         }
         const id = `${pair.channelKey}\0${pair.channelName}`;

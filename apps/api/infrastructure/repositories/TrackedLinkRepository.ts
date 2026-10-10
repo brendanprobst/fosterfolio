@@ -1,3 +1,5 @@
+import { RESERVED_CHANNEL_KEY } from '@api/domain/channels/channelPresets';
+import type { TrackedLinkTarget } from '@api/domain/entities/TrackedLink';
 import type {
   ChannelPair,
   CreateTrackedLinkInput,
@@ -9,7 +11,8 @@ import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataA
 
 type TrackedLinkRow = {
   id: string;
-  pet_id: string;
+  target: TrackedLinkTarget;
+  pet_id: string | null;
   owner_id: string;
   code: string;
   channel_key: string;
@@ -20,11 +23,12 @@ type TrackedLinkRow = {
 };
 
 const SELECT =
-  'id,pet_id,owner_id,code,channel_key,channel_name,label,archived_at,created_at';
+  'id,target,pet_id,owner_id,code,channel_key,channel_name,label,archived_at,created_at';
 
 function toRecord(row: TrackedLinkRow): TrackedLinkRecord {
   return {
     id: row.id,
+    target: row.target,
     petId: row.pet_id,
     ownerId: row.owner_id,
     code: row.code,
@@ -46,6 +50,7 @@ export class TrackedLinkRepository implements ITrackedLinkRepository {
   async create(input: CreateTrackedLinkInput): Promise<TrackedLinkRecord> {
     const rows = await this.dataAdapter.insertReturning<TrackedLinkRow[]>(this.table, [
       {
+        target: input.target,
         pet_id: input.petId,
         owner_id: input.ownerId,
         code: input.code,
@@ -63,9 +68,24 @@ export class TrackedLinkRepository implements ITrackedLinkRepository {
 
   async listByPetId(petId: string): Promise<TrackedLinkRecord[]> {
     const rows = await this.dataAdapter.get<TrackedLinkRow[]>(
-      `${this.table}?select=${SELECT}&pet_id=eq.${encodeURIComponent(petId)}&order=created_at.asc`
+      `${this.table}?select=${SELECT}&pet_id=eq.${encodeURIComponent(petId)}&target=eq.pet&order=created_at.asc`
     );
     return rows.map(toRecord);
+  }
+
+  async listByOwnerId(ownerId: string): Promise<TrackedLinkRecord[]> {
+    const rows = await this.dataAdapter.get<TrackedLinkRow[]>(
+      `${this.table}?select=${SELECT}&owner_id=eq.${encodeURIComponent(ownerId)}&order=created_at.asc`
+    );
+    return rows.map(toRecord);
+  }
+
+  async findActiveDefaultByOwner(ownerId: string): Promise<TrackedLinkRecord | null> {
+    const rows = await this.dataAdapter.get<TrackedLinkRow[]>(
+      `${this.table}?select=${SELECT}&owner_id=eq.${encodeURIComponent(ownerId)}&target=eq.foster_me&channel_key=eq.${RESERVED_CHANNEL_KEY}&archived_at=is.null&limit=1`
+    );
+    const row = rows[0];
+    return row ? toRecord(row) : null;
   }
 
   async findById(id: string): Promise<TrackedLinkRecord | null> {

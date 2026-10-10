@@ -12,6 +12,10 @@ export const CHANNEL_PRESETS = [
 
 export type ChannelPresetKey = (typeof CHANNEL_PRESETS)[number]['key'];
 
+/** Reserved for POST /me/links `{ isDefault: true }`. User input cannot pick it. */
+export const RESERVED_CHANNEL_KEY = 'default';
+export const RESERVED_CHANNEL_NAME = 'Default';
+
 const PRESET_KEYS = new Set<string>(CHANNEL_PRESETS.map((preset) => preset.key));
 
 export function isPresetChannelKey(key: string): boolean {
@@ -35,6 +39,14 @@ export function resolveChannel(input: {
 }): ResolvedChannel | null {
   const key = input.channelKey?.trim() ?? '';
   const name = input.channelName?.trim() ?? '';
+
+  if (
+    key.toLowerCase() === RESERVED_CHANNEL_KEY ||
+    name.toLowerCase() === RESERVED_CHANNEL_NAME.toLowerCase() ||
+    (name && slugifyChannelName(name) === RESERVED_CHANNEL_KEY)
+  ) {
+    return null;
+  }
 
   if (key) {
     const preset = CHANNEL_PRESETS.find((item) => item.key === key);

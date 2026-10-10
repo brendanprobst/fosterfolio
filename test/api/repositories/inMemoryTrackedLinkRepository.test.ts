@@ -3,6 +3,7 @@ import type { CreateTrackedLinkInput } from '@api/domain/repositories/ITrackedLi
 
 function input(overrides: Partial<CreateTrackedLinkInput> = {}): CreateTrackedLinkInput {
   return {
+    target: 'pet',
     petId: 'pet-1',
     ownerId: 'owner-1',
     code: 'Ab12Cd34',

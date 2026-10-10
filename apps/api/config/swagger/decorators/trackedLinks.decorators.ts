@@ -2,7 +2,7 @@
  * @swagger
  * /pets/{id}/links:
  *   post:
- *     summary: Create a tracked link for a pet you own
+ *     summary: Create a pet tracked link (kept on purpose; new links use POST /me/links)
  *     tags: [Tracked links]
  *     security:
  *       - bearerAuth: []
@@ -63,9 +63,28 @@
  *           type: string
  *     responses:
  *       200:
- *         description: linkId, channelKey, and petId
+ *         description: linkId, channelKey, target, petId, and ownerId
  *       404:
  *         description: Unknown code
+ * /me/links:
+ *   post:
+ *     summary: Create a foster-me tracked link for the signed-in owner
+ *     tags: [Tracked links]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Foster-me link created
+ *       409:
+ *         description: An active default link already exists
+ *   get:
+ *     summary: List every link for the owner, both targets, archived included
+ *     tags: [Tracked links]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Links with target, petId, and pet name for pet links
  * /me/channels:
  *   get:
  *     summary: Preset channels plus this owner's custom channels

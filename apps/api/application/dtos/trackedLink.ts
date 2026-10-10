@@ -1,8 +1,11 @@
+import type { TrackedLinkTarget } from '@api/domain/entities/TrackedLink';
 import type { TrackedLinkRecord } from '@api/domain/repositories/ITrackedLinkRepository';
 
 export type TrackedLinkDto = {
   id: string;
-  petId: string;
+  target: TrackedLinkTarget;
+  petId: string | null;
+  petName?: string | null;
   ownerId: string;
   code: string;
   channelKey: string;
@@ -17,7 +20,9 @@ export type TrackedLinkDto = {
 export type ResolvedTrackedLinkDto = {
   linkId: string;
   channelKey: string;
-  petId: string;
+  target: TrackedLinkTarget;
+  petId: string | null;
+  ownerId: string;
 };
 
 export type ChannelOptionDto = {
@@ -34,11 +39,14 @@ export type TrackedLinkTotals = {
 /** Create and patch omit totals, so a brand-new link still returns zeros. */
 export function toTrackedLinkDto(
   record: TrackedLinkRecord,
-  totals: TrackedLinkTotals = { views: 0, inquiries: 0 }
+  totals: TrackedLinkTotals = { views: 0, inquiries: 0 },
+  petName?: string | null
 ): TrackedLinkDto {
   return {
     id: record.id,
+    target: record.target,
     petId: record.petId,
+    ...(petName !== undefined ? { petName } : {}),
     ownerId: record.ownerId,
     code: record.code,
     channelKey: record.channelKey,

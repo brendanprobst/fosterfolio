@@ -79,6 +79,7 @@ export class Container {
     this.trackedLinks = createTrackedLinksModule(
       dataAdapter,
       this.pets.petRepository,
+      this.users.userRepository,
       linkTotals
     );
     const notificationRepository = createNotificationRepository(dataAdapter);
@@ -212,6 +213,14 @@ export class Container {
 
   getCreateTrackedLinkUseCase() {
     return this.trackedLinks.getCreateTrackedLinkUseCase();
+  }
+
+  getCreateOwnerLinkUseCase() {
+    return this.trackedLinks.getCreateOwnerLinkUseCase();
+  }
+
+  getListOwnerLinksUseCase() {
+    return this.trackedLinks.getListOwnerLinksUseCase();
   }
 
   getListTrackedLinksUseCase() {

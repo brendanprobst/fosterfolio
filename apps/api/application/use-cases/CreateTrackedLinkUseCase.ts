@@ -1,4 +1,5 @@
 import { resolveChannel } from '@api/domain/channels/channelPresets';
+import { TrackedLink } from '@api/domain/entities/TrackedLink';
 import {
   normalizeTrackedLinkLabel,
   toTrackedLinkDto,
@@ -53,8 +54,13 @@ export class CreateTrackedLinkUseCase {
         const code = generateTrackedLinkCode();
         const existing = await this.trackedLinkRepository.findByCode(code);
         if (existing) continue;
+        const shaped = TrackedLink.create('pet', pet.id);
+        if (!shaped) {
+          return Result.failure(ErrorCatalog.TRACKED_LINK_INVALID_INPUT);
+        }
         const created = await this.trackedLinkRepository.create({
-          petId: pet.id,
+          target: shaped.target,
+          petId: shaped.petId,
           ownerId: actorId,
           code,
           channelKey: channel.key,

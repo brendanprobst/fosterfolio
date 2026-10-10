@@ -1,6 +1,9 @@
+import type { TrackedLinkTarget } from '@api/domain/entities/TrackedLink';
+
 export type TrackedLinkRecord = {
   id: string;
-  petId: string;
+  target: TrackedLinkTarget;
+  petId: string | null;
   ownerId: string;
   code: string;
   channelKey: string;
@@ -11,7 +14,8 @@ export type TrackedLinkRecord = {
 };
 
 export type CreateTrackedLinkInput = {
-  petId: string;
+  target: TrackedLinkTarget;
+  petId: string | null;
   ownerId: string;
   code: string;
   channelKey: string;
@@ -34,6 +38,10 @@ export type ChannelPair = {
 export interface ITrackedLinkRepository {
   create(input: CreateTrackedLinkInput): Promise<TrackedLinkRecord>;
   listByPetId(petId: string): Promise<TrackedLinkRecord[]>;
+  /** Every link this owner has, both targets, archived included. */
+  listByOwnerId(ownerId: string): Promise<TrackedLinkRecord[]>;
+  /** Active foster-me link whose channel is the reserved default, if any. */
+  findActiveDefaultByOwner(ownerId: string): Promise<TrackedLinkRecord | null>;
   findById(id: string): Promise<TrackedLinkRecord | null>;
   findByCode(code: string): Promise<TrackedLinkRecord | null>;
   update(id: string, input: UpdateTrackedLinkInput): Promise<TrackedLinkRecord>;

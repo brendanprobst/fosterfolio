@@ -18,4 +18,10 @@ export class TrackedLinkErrors {
     'Please provide a valid channel and link details.',
     400
   );
+
+  static readonly DEFAULT_EXISTS = ResultError.create(
+    'TRACKED_LINK_DEFAULT_EXISTS',
+    'You already have an active default link.',
+    409
+  );
 }

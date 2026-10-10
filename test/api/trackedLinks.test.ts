@@ -108,7 +108,9 @@ describe('Tracked links API', () => {
     expect(active.body).toEqual({
       linkId: created.body.id,
       channelKey: 'instagram',
+      target: 'pet',
       petId,
+      ownerId,
     });
 
     await request(app)
@@ -123,7 +125,9 @@ describe('Tracked links API', () => {
     expect(archived.body).toEqual({
       linkId: created.body.id,
       channelKey: 'instagram',
+      target: 'pet',
       petId,
+      ownerId,
     });
 
     const listed = await request(app)
@@ -280,5 +284,84 @@ describe('Tracked links API', () => {
       .expect(200);
     expect(patched.body.views).toBe(0);
     expect(patched.body.inquiries).toBe(0);
+  });
+
+  it('creates a foster-me link, lists it with pet links, and blocks a second default', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({
+      id: ownerId,
+      email: 'owner@example.com',
+      displayName: 'Alex Foster',
+    });
+    const petId = await createOwnedPet(app);
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+
+    const petLink = await request(app)
+      .post(`/pets/${petId}/links`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ channelKey: 'flyer' })
+      .expect(201);
+    expect(petLink.body.target).toBe('pet');
+
+    const fosterLink = await request(app)
+      .post('/me/links')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ channelName: 'Nextdoor', label: 'story' })
+      .expect(201);
+    expect(fosterLink.body).toMatchObject({
+      target: 'foster_me',
+      petId: null,
+      channelKey: 'nextdoor',
+      label: 'story',
+    });
+
+    const listed = await request(app)
+      .get('/me/links')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(listed.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: petLink.body.id, target: 'pet', petName: 'Mochi' }),
+        expect.objectContaining({
+          id: fosterLink.body.id,
+          target: 'foster_me',
+          petId: null,
+          petName: null,
+        }),
+      ])
+    );
+
+    const firstDefault = await request(app)
+      .post('/me/links')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isDefault: true })
+      .expect(201);
+    expect(firstDefault.body.label).toBe("Alex Foster's default link");
+
+    const secondDefault = await request(app)
+      .post('/me/links')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isDefault: true })
+      .expect(409);
+    expect(secondDefault.body.error.code).toBe('TRACKED_LINK_DEFAULT_EXISTS');
+
+    const channels = await request(app)
+      .get('/me/channels')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(channels.body.some((channel: { key: string }) => channel.key === 'default')).toBe(
+      false
+    );
+
+    const resolved = await request(app)
+      .get(`/links/resolve/${fosterLink.body.code}`)
+      .expect(200);
+    expect(resolved.body).toEqual({
+      linkId: fosterLink.body.id,
+      channelKey: 'nextdoor',
+      target: 'foster_me',
+      petId: null,
+      ownerId,
+    });
   });
 });

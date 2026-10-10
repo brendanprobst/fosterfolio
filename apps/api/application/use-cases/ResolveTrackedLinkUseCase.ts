@@ -19,7 +19,9 @@ export class ResolveTrackedLinkUseCase {
       return Result.success({
         linkId: link.id,
         channelKey: link.channelKey,
+        target: link.target,
         petId: link.petId,
+        ownerId: link.ownerId,
       });
     } catch {
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);

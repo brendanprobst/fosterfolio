@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import type { CreateOwnerLinkCommand } from '@api/application/use-cases/CreateOwnerLinkUseCase';
 import type { CreateTrackedLinkCommand } from '@api/application/use-cases/CreateTrackedLinkUseCase';
 import type { UpdateTrackedLinkCommand } from '@api/application/use-cases/UpdateTrackedLinkUseCase';
 import type { RequestWithUser } from '@api/auth/types';
@@ -73,6 +74,9 @@ export class TrackedLinkController {
       if ('archived' in body) {
         command.archived = body.archived as boolean;
       }
+      if ('target' in body) {
+        command.target = body.target;
+      }
       const result = await this.container
         .getUpdateTrackedLinkUseCase()
         .execute(actorId, linkId, command);
@@ -86,6 +90,40 @@ export class TrackedLinkController {
     try {
       const code = String(req.params.code ?? '');
       const result = await this.container.getResolveTrackedLinkUseCase().execute(code);
+      ResponseHandler.handleResult(result, res);
+    } catch (error) {
+      ResponseHandler.handleError(error, res);
+    }
+  }
+
+  async createOwnerLink(req: Request, res: Response): Promise<void> {
+    try {
+      const actorId = (req as RequestWithUser).user.id;
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const command: CreateOwnerLinkCommand = {
+        ...readChannelBody(body),
+      };
+      if ('label' in body) {
+        command.label = body.label as string | null;
+      }
+      if ('isDefault' in body) {
+        command.isDefault = body.isDefault as boolean;
+      }
+      const result = await this.container.getCreateOwnerLinkUseCase().execute(actorId, command);
+      if (result.isFailure()) {
+        ResponseHandler.handleResult(result, res);
+        return;
+      }
+      res.status(201).json(result.getValue());
+    } catch (error) {
+      ResponseHandler.handleError(error, res);
+    }
+  }
+
+  async listOwnerLinks(req: Request, res: Response): Promise<void> {
+    try {
+      const actorId = (req as RequestWithUser).user.id;
+      const result = await this.container.getListOwnerLinksUseCase().execute(actorId);
       ResponseHandler.handleResult(result, res);
     } catch (error) {
       ResponseHandler.handleError(error, res);

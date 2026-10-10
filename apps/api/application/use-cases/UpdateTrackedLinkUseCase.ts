@@ -13,6 +13,8 @@ export type UpdateTrackedLinkCommand = {
   channelName?: string | null;
   label?: string | null;
   archived?: boolean;
+  /** Present only when the client tries to change target. That is not allowed. */
+  target?: unknown;
 };
 
 export class UpdateTrackedLinkUseCase {
@@ -26,6 +28,9 @@ export class UpdateTrackedLinkUseCase {
     const hasLabel = input.label !== undefined;
     const hasChannel = input.channelKey !== undefined || input.channelName !== undefined;
     const hasArchived = input.archived !== undefined;
+    if (input.target !== undefined) {
+      return Result.failure(ErrorCatalog.TRACKED_LINK_INVALID_INPUT);
+    }
     if (!linkId?.trim() || (!hasLabel && !hasChannel && !hasArchived)) {
       return Result.failure(ErrorCatalog.TRACKED_LINK_INVALID_INPUT);
     }

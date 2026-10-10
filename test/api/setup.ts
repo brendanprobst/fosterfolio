@@ -11,8 +11,10 @@ import { GetPetAnalyticsUseCase } from '@api/application/use-cases/GetPetAnalyti
 import { AddStarUseCase } from '@api/application/use-cases/AddStarUseCase';
 import { CreateInquiryUseCase } from '@api/application/use-cases/CreateInquiryUseCase';
 import { ReportInquirySourceUseCase } from '@api/application/use-cases/ReportInquirySourceUseCase';
+import { CreateOwnerLinkUseCase } from '@api/application/use-cases/CreateOwnerLinkUseCase';
 import { CreateTrackedLinkUseCase } from '@api/application/use-cases/CreateTrackedLinkUseCase';
 import { ListChannelsUseCase } from '@api/application/use-cases/ListChannelsUseCase';
+import { ListOwnerLinksUseCase } from '@api/application/use-cases/ListOwnerLinksUseCase';
 import { ListTrackedLinksUseCase } from '@api/application/use-cases/ListTrackedLinksUseCase';
 import { ResolveTrackedLinkUseCase } from '@api/application/use-cases/ResolveTrackedLinkUseCase';
 import { UpdateTrackedLinkUseCase } from '@api/application/use-cases/UpdateTrackedLinkUseCase';
@@ -247,6 +249,14 @@ export class TestContainer {
 
   getCreateTrackedLinkUseCase() {
     return new CreateTrackedLinkUseCase(this.trackedLinkRepository, this.petRepository);
+  }
+
+  getCreateOwnerLinkUseCase() {
+    return new CreateOwnerLinkUseCase(this.trackedLinkRepository, this.userRepository);
+  }
+
+  getListOwnerLinksUseCase() {
+    return new ListOwnerLinksUseCase(this.trackedLinkRepository, this.petRepository);
   }
 
   getListTrackedLinksUseCase() {

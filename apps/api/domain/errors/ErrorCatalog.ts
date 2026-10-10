@@ -58,6 +58,7 @@ export class ErrorCatalog {
   static readonly TRACKED_LINK_NOT_FOUND = TrackedLinkErrors.NOT_FOUND;
   static readonly TRACKED_LINK_FORBIDDEN = TrackedLinkErrors.FORBIDDEN;
   static readonly TRACKED_LINK_INVALID_INPUT = TrackedLinkErrors.INVALID_INPUT;
+  static readonly TRACKED_LINK_DEFAULT_EXISTS = TrackedLinkErrors.DEFAULT_EXISTS;
 
   static readonly NOTIFICATION_NOT_FOUND = NotificationErrors.NOT_FOUND;
   static readonly NOTIFICATION_INVALID_INPUT = NotificationErrors.INVALID_INPUT;

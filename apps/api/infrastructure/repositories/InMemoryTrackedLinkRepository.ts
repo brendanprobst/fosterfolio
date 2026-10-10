@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { RESERVED_CHANNEL_KEY } from '@api/domain/channels/channelPresets';
 import type {
   ChannelPair,
   CreateTrackedLinkInput,
@@ -16,6 +17,7 @@ export class InMemoryTrackedLinkRepository implements ITrackedLinkRepository {
     }
     const record: TrackedLinkRecord = {
       id: randomUUID(),
+      target: input.target,
       petId: input.petId,
       ownerId: input.ownerId,
       code: input.code,
@@ -31,8 +33,26 @@ export class InMemoryTrackedLinkRepository implements ITrackedLinkRepository {
 
   async listByPetId(petId: string): Promise<TrackedLinkRecord[]> {
     return this.records
-      .filter((row) => row.petId === petId)
+      .filter((row) => row.target === 'pet' && row.petId === petId)
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  async listByOwnerId(ownerId: string): Promise<TrackedLinkRecord[]> {
+    return this.records
+      .filter((row) => row.ownerId === ownerId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  async findActiveDefaultByOwner(ownerId: string): Promise<TrackedLinkRecord | null> {
+    return (
+      this.records.find(
+        (row) =>
+          row.ownerId === ownerId &&
+          row.target === 'foster_me' &&
+          row.channelKey === RESERVED_CHANNEL_KEY &&
+          row.archivedAt == null
+      ) ?? null
+    );
   }
 
   async findById(id: string): Promise<TrackedLinkRecord | null> {

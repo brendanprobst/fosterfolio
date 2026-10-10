@@ -6,6 +6,7 @@ import type { TrackedLinkRecord } from '@api/domain/repositories/ITrackedLinkRep
 
 const record: TrackedLinkRecord = {
   id: 'link-1',
+  target: 'pet',
   petId: 'pet-1',
   ownerId: 'owner-1',
   code: 'Ab12Cd34',
@@ -20,6 +21,7 @@ describe('tracked link dto', () => {
   it('copies the record and defaults views and inquiries to 0', () => {
     expect(toTrackedLinkDto(record)).toEqual({
       id: 'link-1',
+      target: 'pet',
       petId: 'pet-1',
       ownerId: 'owner-1',
       code: 'Ab12Cd34',

@@ -1,11 +1,16 @@
 import { CHANNEL_PRESETS } from '@api/domain/channels/channelPresets';
+import { CreateOwnerLinkUseCase } from '@api/application/use-cases/CreateOwnerLinkUseCase';
 import { CreateTrackedLinkUseCase } from '@api/application/use-cases/CreateTrackedLinkUseCase';
 import { ListChannelsUseCase } from '@api/application/use-cases/ListChannelsUseCase';
+import { ListOwnerLinksUseCase } from '@api/application/use-cases/ListOwnerLinksUseCase';
 import { ListTrackedLinksUseCase } from '@api/application/use-cases/ListTrackedLinksUseCase';
 import { ResolveTrackedLinkUseCase } from '@api/application/use-cases/ResolveTrackedLinkUseCase';
 import { UpdateTrackedLinkUseCase } from '@api/application/use-cases/UpdateTrackedLinkUseCase';
+import { TrackedLink } from '@api/domain/entities/TrackedLink';
+import { User } from '@api/domain/entities/User';
 import { InMemoryPetRepository } from '@api/infrastructure/repositories/InMemoryPetRepository';
 import { InMemoryTrackedLinkRepository } from '@api/infrastructure/repositories/InMemoryTrackedLinkRepository';
+import { InMemoryUserRepository } from '@api/infrastructure/repositories/InMemoryUserRepository';
 
 const CODE_PATTERN = /^[A-Za-z0-9]{8}$/;
 
@@ -192,7 +197,9 @@ describe('tracked link use cases', () => {
       expect(resolved.getValue()).toEqual({
         linkId: created.getValue().id,
         channelKey: 'facebook',
+        target: 'pet',
         petId: pet.id,
+        ownerId: 'owner-1',
       });
     });
   });
@@ -237,5 +244,146 @@ describe('tracked link use cases', () => {
       ]);
       expect(channels.some((channel) => channel.key === 'secret-group')).toBe(false);
     });
+
+    it('leaves the reserved default channel out of the picker', async () => {
+      const users = new InMemoryUserRepository();
+      users.seed(ownerUser('owner-1', 'Alex Foster'));
+      const createOwner = new CreateOwnerLinkUseCase(links, users);
+      const created = await createOwner.execute('owner-1', { isDefault: true });
+      expect(created.isFailure()).toBe(false);
+
+      const result = await listChannels.execute('owner-1');
+      expect(result.getValue().some((channel) => channel.key === 'default')).toBe(false);
+    });
+  });
+
+  describe('owner links', () => {
+    function ownerLinks() {
+      const users = new InMemoryUserRepository();
+      users.seed(ownerUser('owner-1', 'Alex Foster'));
+      return {
+        createOwner: new CreateOwnerLinkUseCase(links, users),
+        listOwner: new ListOwnerLinksUseCase(links, pets),
+      };
+    }
+
+    it('rejects a foster-me link that names a pet and a pet link with no pet', () => {
+      expect(TrackedLink.create('foster_me', 'pet-1')).toBeNull();
+      expect(TrackedLink.create('pet', null)).toBeNull();
+      expect(TrackedLink.create('foster_me', null)?.target).toBe('foster_me');
+    });
+
+    it('creates a foster-me link and resolves it with a null pet id', async () => {
+      const { createOwner } = ownerLinks();
+      const created = await createOwner.execute('owner-1', {
+        channelKey: 'instagram',
+        label: 'lawn',
+      });
+      expect(created.isFailure()).toBe(false);
+      const dto = created.getValue();
+      expect(dto.target).toBe('foster_me');
+      expect(dto.petId).toBeNull();
+
+      const resolved = await resolveLink.execute(dto.code);
+      expect(resolved.getValue()).toEqual({
+        linkId: dto.id,
+        channelKey: 'instagram',
+        target: 'foster_me',
+        petId: null,
+        ownerId: 'owner-1',
+      });
+    });
+
+    it('rejects default as user-typed channel input', async () => {
+      const { createOwner } = ownerLinks();
+      const result = await createOwner.execute('owner-1', { channelKey: 'default' });
+      expect(result.isFailure()).toBe(true);
+      expect(result.getError().code).toBe('TRACKED_LINK_INVALID_INPUT');
+    });
+
+    it('allows one active default per owner and names it from the display name', async () => {
+      const { createOwner } = ownerLinks();
+      const first = await createOwner.execute('owner-1', { isDefault: true });
+      expect(first.isFailure()).toBe(false);
+      expect(first.getValue()).toMatchObject({
+        target: 'foster_me',
+        petId: null,
+        channelKey: 'default',
+        channelName: 'Default',
+        label: "Alex Foster's default link",
+      });
+
+      const second = await createOwner.execute('owner-1', { isDefault: true });
+      expect(second.isFailure()).toBe(true);
+      expect(second.getError().code).toBe('TRACKED_LINK_DEFAULT_EXISTS');
+      expect(second.getError().status).toBe(409);
+
+      const archived = await updateLink.execute('owner-1', first.getValue().id, { archived: true });
+      expect(archived.isFailure()).toBe(false);
+      const again = await createOwner.execute('owner-1', { isDefault: true });
+      expect(again.isFailure()).toBe(false);
+    });
+
+    it('lists pet and foster-me links together, with the pet name only on pet links', async () => {
+      const pet = await seedPet(pets, 'owner-1');
+      const { createOwner, listOwner } = ownerLinks();
+      const petLink = await createLink.execute('owner-1', pet.id, { channelKey: 'flyer' });
+      const fosterLink = await createOwner.execute('owner-1', { channelName: 'Nextdoor' });
+      expect(petLink.isFailure()).toBe(false);
+      expect(fosterLink.isFailure()).toBe(false);
+
+      const archived = await updateLink.execute('owner-1', fosterLink.getValue().id, {
+        archived: true,
+      });
+      expect(archived.isFailure()).toBe(false);
+
+      const listed = await listOwner.execute('owner-1');
+      expect(listed.isFailure()).toBe(false);
+      const rows = listed.getValue();
+      expect(rows).toHaveLength(2);
+      expect(rows.find((row) => row.id === petLink.getValue().id)).toMatchObject({
+        target: 'pet',
+        petId: pet.id,
+        petName: 'Mochi',
+      });
+      expect(rows.find((row) => row.id === fosterLink.getValue().id)).toMatchObject({
+        target: 'foster_me',
+        petId: null,
+        petName: null,
+        archivedAt: expect.any(String),
+      });
+    });
+
+    it('refuses to change target on patch', async () => {
+      const { createOwner } = ownerLinks();
+      const created = await createOwner.execute('owner-1', { channelKey: 'flyer' });
+      expect(created.isFailure()).toBe(false);
+      const patched = await updateLink.execute('owner-1', created.getValue().id, {
+        label: 'still foster-me',
+        target: 'pet',
+      });
+      expect(patched.isFailure()).toBe(true);
+      expect(patched.getError().code).toBe('TRACKED_LINK_INVALID_INPUT');
+    });
   });
 });
+
+function ownerUser(id: string, displayName: string): User {
+  return new User({
+    id,
+    email: `${id}@example.com`,
+    handle: null,
+    displayName,
+    avatarUrl: null,
+    bio: null,
+    zipCode: null,
+    city: null,
+    state: null,
+    lat: null,
+    lng: null,
+    socialLinks: [],
+    sheltersText: null,
+    createdAt: new Date(),
+    deletedAt: null,
+  });
+}
