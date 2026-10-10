@@ -30,6 +30,7 @@ function inquiry(
     zipCode: '78701',
     sourceLinkId: source.sourceLinkId,
     sourceChannelKey: source.sourceChannelKey,
+    viaFosterMe: false,
     selfReportedSource: null,
     createdAt,
   };

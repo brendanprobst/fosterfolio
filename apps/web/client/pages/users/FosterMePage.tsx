@@ -5,7 +5,7 @@ import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/
 import { useOwnerPets, usePet } from "@client/features/pets";
 import { useUser } from "@client/features/users";
 import { syncPetCaptureSuppression } from "@client/lib/analytics/initFosterfolioAnalytics";
-import { usePetViewCapture } from "@client/lib/analytics/usePetViewCapture";
+import { useFosterMeViewCapture } from "@client/lib/analytics/usePetViewCapture";
 import { isFosterfolioSearchEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { selectFosterMePet } from "@client/lib/selectFosterMePet";
 import {
@@ -60,10 +60,15 @@ export function FosterMePage() {
     pet && (selection.kind === "active" || selection.kind === "fallback"),
   );
   const capturePetEvents = petShown && !isOwner && pet?.status !== "adopted";
-  if (petShown && pet) {
-    syncPetCaptureSuppression({ isOwner, status: pet.status });
+  const petCount = petsQuery.data?.length ?? 0;
+  if (user) {
+    syncPetCaptureSuppression({ isOwner, status: pet?.status });
   }
-  usePetViewCapture(petShown ? pet : null, capturePetEvents);
+  useFosterMeViewCapture({
+    ownerId: user?.id,
+    petCount,
+    capture: Boolean(user) && !isOwner && petCount > 0,
+  });
 
   const sidebar = fosterMePath ? (
     <FosterMeSidebar

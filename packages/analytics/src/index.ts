@@ -1,4 +1,12 @@
 export {
+  consumeMarkFromUrl,
+  hasEntityMark,
+  markEntity,
+  type MarkHistory,
+  type MarkLocation,
+  type MarkStorage,
+} from "./entityMarks";
+export {
   channelKeyFromHostname,
   referrerAttribution,
 } from "./referrer";

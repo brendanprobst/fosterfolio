@@ -36,6 +36,17 @@ export class PostHogProvider implements AnalyticsProvider {
   constructor(private readonly config: PostHogQueryConfig) {}
 
   async queryAggregates(query: AggregateQuery): Promise<AggregateRow[]> {
+    const body = await this.queryBody(query);
+    return rowsFromQueryResponse(body).map((row) => normalizeAggregateRow(row));
+  }
+
+  /** Column records before the pet-shaped aggregate normalizer. */
+  async queryRecords(query: AggregateQuery): Promise<Record<string, unknown>[]> {
+    const body = await this.queryBody(query);
+    return recordsFromQueryResponse(body);
+  }
+
+  private async queryBody(query: AggregateQuery): Promise<QueryResponse> {
     const host = this.config.host.replace(/\/+$/, "");
     const projectId = this.config.projectId.trim();
     const apiKey = this.config.personalApiKey.trim();
@@ -66,9 +77,32 @@ export class PostHogProvider implements AnalyticsProvider {
       throw new Error(`PostHog query failed (${response.status}): ${text.slice(0, 500)}`);
     }
 
-    const body = (await response.json()) as QueryResponse;
-    return rowsFromQueryResponse(body).map((row) => normalizeAggregateRow(row));
+    return (await response.json()) as QueryResponse;
   }
+}
+
+function recordsFromQueryResponse(body: QueryResponse): Record<string, unknown>[] {
+  const results = body.results;
+  if (!Array.isArray(results)) {
+    throw new Error("PostHog query response did not include results");
+  }
+  const columns = Array.isArray(body.columns)
+    ? body.columns.map((column) => String(column))
+    : [...COLUMNS];
+
+  return results.map((result) => {
+    if (Array.isArray(result)) {
+      const record: Record<string, unknown> = {};
+      columns.forEach((column, index) => {
+        record[column] = result[index];
+      });
+      return record;
+    }
+    if (result && typeof result === "object") {
+      return result as Record<string, unknown>;
+    }
+    throw new Error("PostHog query row was not an array or object");
+  });
 }
 
 function rowsFromQueryResponse(body: QueryResponse): AggregateRow[] {

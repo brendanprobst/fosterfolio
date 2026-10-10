@@ -16,12 +16,13 @@ type InquiryRow = {
   zip_code: string | null;
   source_link_id: string | null;
   source_channel_key: string | null;
+  via_foster_me: boolean;
   self_reported_source: string | null;
   created_at: string;
 };
 
 const INQUIRY_SELECT =
-  'id,target_user_id,target_pet_id,sender_name,sender_email,message,zip_code,source_link_id,source_channel_key,self_reported_source,created_at';
+  'id,target_user_id,target_pet_id,sender_name,sender_email,message,zip_code,source_link_id,source_channel_key,via_foster_me,self_reported_source,created_at';
 
 function toRecord(row: InquiryRow): InquiryRecord {
   return {
@@ -34,6 +35,7 @@ function toRecord(row: InquiryRow): InquiryRecord {
     zipCode: row.zip_code,
     sourceLinkId: row.source_link_id,
     sourceChannelKey: row.source_channel_key,
+    viaFosterMe: row.via_foster_me === true,
     selfReportedSource: row.self_reported_source,
     createdAt: row.created_at,
   };
@@ -57,6 +59,7 @@ export class InquiryRepository implements IInquiryRepository {
         zip_code: input.zipCode ?? null,
         source_link_id: input.sourceLinkId ?? null,
         source_channel_key: input.sourceChannelKey ?? null,
+        via_foster_me: input.viaFosterMe === true,
       },
     ]);
     const row = rows[0];

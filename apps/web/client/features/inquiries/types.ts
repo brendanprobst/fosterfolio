@@ -7,6 +7,7 @@ export type CreateInquiryPayload = {
   zipCode?: string | null;
   sourceLinkId?: string | null;
   sourceChannelKey?: string | null;
+  viaFosterMe?: boolean;
   turnstileToken?: string | null;
 };
 

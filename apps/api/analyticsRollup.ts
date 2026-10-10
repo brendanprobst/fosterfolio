@@ -1,6 +1,8 @@
 import { FOSTERFOLIO_DAILY_AGGREGATE_HOGQL } from '@api/application/analytics/fosterfolioDailyQuery';
+import { FOSTERFOLIO_OWNER_DAILY_HOGQL, mapOwnerDailyRow } from '@api/application/analytics/ownerDailyQuery';
 import { SupabaseAdapter } from '@api/infrastructure/adapters/supabase/SupabaseAdapter';
 import { AnalyticsDailyRepository } from '@api/infrastructure/repositories/AnalyticsDailyRepository';
+import { AnalyticsOwnerDailyRepository } from '@api/infrastructure/repositories/AnalyticsOwnerDailyRepository';
 import { loadSupabaseEnvFromSsm } from '@api/lambdaEnv';
 import { PostHogProvider, runRollup } from '@lattice/analytics/server';
 
@@ -20,8 +22,10 @@ export const handler = async (): Promise<{ rows: number }> => {
     projectId: requireEnv('POSTHOG_PROJECT_ID'),
     personalApiKey: requireEnv('POSTHOG_PERSONAL_API_KEY'),
   });
-  const repository = new AnalyticsDailyRepository(new SupabaseAdapter());
-  return runRollup({
+  const adapter = new SupabaseAdapter();
+  const repository = new AnalyticsDailyRepository(adapter);
+  const ownerRepository = new AnalyticsOwnerDailyRepository(adapter);
+  const petRollup = await runRollup({
     provider,
     query: { hogql: FOSTERFOLIO_DAILY_AGGREGATE_HOGQL },
     upsert: async (rows) => {
@@ -39,4 +43,9 @@ export const handler = async (): Promise<{ rows: number }> => {
       );
     },
   });
+  const ownerRows = (await provider.queryRecords({ hogql: FOSTERFOLIO_OWNER_DAILY_HOGQL }))
+    .map((row) => mapOwnerDailyRow(row))
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+  await ownerRepository.upsert(ownerRows);
+  return { rows: petRollup.rows + ownerRows.length };
 };

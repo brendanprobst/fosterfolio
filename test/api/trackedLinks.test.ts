@@ -251,6 +251,7 @@ describe('Tracked links API', () => {
       zipCode: '78701',
       sourceLinkId: created.body.id,
       sourceChannelKey: 'instagram',
+      viaFosterMe: false,
       selfReportedSource: null,
       createdAt: '2026-02-02T00:00:00.000Z',
     });
@@ -264,6 +265,7 @@ describe('Tracked links API', () => {
       zipCode: null,
       sourceLinkId: null,
       sourceChannelKey: null,
+      viaFosterMe: false,
       selfReportedSource: null,
       createdAt: '2026-02-03T00:00:00.000Z',
     });

@@ -28,6 +28,9 @@ export class InquiryController {
       if ('sourceChannelKey' in body) {
         command.sourceChannelKey = body.sourceChannelKey as string | null;
       }
+      if ('viaFosterMe' in body) {
+        command.viaFosterMe = body.viaFosterMe as boolean;
+      }
       if ('turnstileToken' in body) {
         command.turnstileToken = body.turnstileToken as string | null;
       }

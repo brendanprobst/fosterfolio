@@ -7,6 +7,7 @@ import { Label } from "@client/components/ui/label";
 import { Textarea } from "@client/components/ui/textarea";
 import {
   capturePetEvent,
+  petReachedViaFosterMe,
   readFosterfolioSource,
 } from "@client/lib/analytics/initFosterfolioAnalytics";
 import { ensureAttribution } from "@lattice/analytics";
@@ -260,6 +261,7 @@ export function InquiryForm({
         ...(targetPetId ? { targetPetId } : {}),
         ...(source && linkMatches && source.linkId ? { sourceLinkId: source.linkId } : {}),
         ...(source?.channelKey ? { sourceChannelKey: source.channelKey } : {}),
+        ...(targetPetId && petReachedViaFosterMe(targetPetId) ? { viaFosterMe: true } : {}),
         ...(turnstileToken ? { turnstileToken } : {}),
       },
       {

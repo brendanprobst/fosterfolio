@@ -34,6 +34,7 @@ describe('Inquiries API', () => {
       senderEmail: 'jamie@example.com',
     });
     expect(container.inquiryRepository.records).toHaveLength(1);
+    expect(container.inquiryRepository.records[0]?.viaFosterMe).toBe(false);
     expect(container.notificationRepository.records).toHaveLength(1);
     expect(container.notificationRepository.records[0]).toMatchObject({
       type: 'inquiry_received',
@@ -60,6 +61,27 @@ describe('Inquiries API', () => {
       })
       .expect(404);
     expect(res.body.error.code).toBe('INQUIRY_TARGET_NOT_FOUND');
+  });
+
+  it('stores viaFosterMe when the visitor reached the pet from foster-me', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    container.setEmailAdapter({
+      send: async () => {},
+    });
+
+    await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Saw them on the foster-me page',
+        viaFosterMe: true,
+      })
+      .expect(201);
+
+    expect(container.inquiryRepository.records[0]?.viaFosterMe).toBe(true);
   });
 
   it('keeps the inquiry and in-app row when email send fails', async () => {

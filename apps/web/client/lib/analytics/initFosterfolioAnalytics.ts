@@ -2,7 +2,9 @@
 
 import { getPublicApiBaseUrl } from "@client/lib/publicApiBaseUrl";
 import {
+  consumeMarkFromUrl,
   ensureAttribution,
+  hasEntityMark,
   init,
   isCaptureSuppressed,
   readStoredAttribution,
@@ -13,6 +15,7 @@ import {
 import { isPostHogAnalyticsConfigured } from "./analyticsEnv";
 
 const SOURCE_KEY = "ff_source";
+const VIA_FOSTER_ME_KEY = "via_foster_me";
 
 let started = false;
 
@@ -72,6 +75,19 @@ export function syncPetCaptureSuppression(input: {
   setCaptureSuppressed(input.isOwner || input.status === "adopted");
 }
 
+export function consumeViaFosterMe(petId: string): boolean {
+  return consumeMarkFromUrl({
+    param: "via",
+    value: "foster-me",
+    key: VIA_FOSTER_ME_KEY,
+    id: petId,
+  });
+}
+
+export function petReachedViaFosterMe(petId: string): boolean {
+  return hasEntityMark(VIA_FOSTER_ME_KEY, petId);
+}
+
 export async function capturePetEvent(
   event: "pet_viewed" | "inquiry_form_opened" | "inquiry_submitted",
   pet: { id: string; ownerId: string },
@@ -86,5 +102,22 @@ export async function capturePetEvent(
     link_id: linkMatches ? source.linkId : null,
     channel_key: source.channelKey,
     referrer_domain: source.referrerDomain,
+    via_foster_me: petReachedViaFosterMe(pet.id),
+  });
+}
+
+export async function captureFosterMeViewed(input: {
+  ownerId: string;
+  petCount: number;
+}): Promise<void> {
+  if (isCaptureSuppressed() || input.petCount <= 0) return;
+  const source = await ensureAttribution();
+  if (isCaptureSuppressed() || input.petCount <= 0) return;
+  track("foster_me_viewed", {
+    owner_id: input.ownerId,
+    link_id: source.linkId,
+    channel_key: source.channelKey || "direct",
+    referrer_domain: source.referrerDomain,
+    pet_count: input.petCount,
   });
 }

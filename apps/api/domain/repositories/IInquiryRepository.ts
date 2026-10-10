@@ -7,6 +7,7 @@ export type CreateInquiryInput = {
   zipCode?: string | null;
   sourceLinkId?: string | null;
   sourceChannelKey?: string | null;
+  viaFosterMe?: boolean;
 };
 
 export type InquiryRecord = {
@@ -19,6 +20,7 @@ export type InquiryRecord = {
   zipCode: string | null;
   sourceLinkId: string | null;
   sourceChannelKey: string | null;
+  viaFosterMe: boolean;
   selfReportedSource: string | null;
   createdAt: string;
 };

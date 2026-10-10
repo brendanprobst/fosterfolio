@@ -6,6 +6,11 @@ export function petHref(ownerIdOrHandle: string, petId: string): string {
   return `${handleHref(ownerIdOrHandle)}/pet/${petId}`;
 }
 
+/** Pet bio opened from a foster-me preview card. The bio consumes and strips `via`. */
+export function petHrefFromFosterMe(ownerIdOrHandle: string, petId: string): string {
+  return `${petHref(ownerIdOrHandle, petId)}?via=foster-me`;
+}
+
 /** @deprecated use petHref(ownerIdOrHandle, petId). */
 export function petBioHref(ownerIdOrHandle: string, petId: string): string {
   return petHref(ownerIdOrHandle, petId);

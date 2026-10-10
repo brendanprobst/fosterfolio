@@ -19,6 +19,7 @@ export type CreateInquiryCommand = {
   zipCode?: string | null;
   sourceLinkId?: string | null;
   sourceChannelKey?: string | null;
+  viaFosterMe?: boolean;
   turnstileToken?: string | null;
 };
 
@@ -70,6 +71,10 @@ export class CreateInquiryUseCase {
       return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
     }
     const sourceLinkId = normalizeOptional(input.sourceLinkId);
+    if (input.viaFosterMe != null && typeof input.viaFosterMe !== 'boolean') {
+      return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
+    }
+    const viaFosterMe = input.viaFosterMe === true;
 
     try {
       const secret = this.turnstile.getSecret();
@@ -118,6 +123,7 @@ export class CreateInquiryUseCase {
         zipCode,
         sourceLinkId,
         sourceChannelKey: storedChannel,
+        viaFosterMe,
       });
 
       ensureInquiryReceivedRegistered();

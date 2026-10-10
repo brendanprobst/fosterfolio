@@ -20,6 +20,7 @@ export class InMemoryInquiryRepository implements IInquiryRepository {
       zipCode: input.zipCode ?? null,
       sourceLinkId: input.sourceLinkId ?? null,
       sourceChannelKey: input.sourceChannelKey ?? null,
+      viaFosterMe: input.viaFosterMe === true,
       selfReportedSource: null,
       createdAt: new Date().toISOString(),
     };
