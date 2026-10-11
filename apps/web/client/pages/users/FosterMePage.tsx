@@ -1,29 +1,30 @@
 "use client";
 
 import { useAuth } from "@client/auth";
-import { AppShell, DataPageSkeleton, PageWithSidebar } from "@client/components/layout";
-import { useOwnerPets, usePet } from "@client/features/pets";
+import { AppShell, PageWithSidebar } from "@client/components/layout";
+import { useOwnerPets } from "@client/features/pets";
 import { useUser } from "@client/features/users";
 import { syncPetCaptureSuppression } from "@client/lib/analytics/initFosterfolioAnalytics";
 import { useFosterMeViewCapture } from "@client/lib/analytics/usePetViewCapture";
 import { isFosterfolioSearchEnabled } from "@client/lib/fosterfolioFeatureFlags";
-import { selectFosterMePet } from "@client/lib/selectFosterMePet";
+import { selectActiveFosters, selectFosterMePet } from "@client/lib/selectFosterMePet";
 import {
   fosterMeHref,
   handleFromPathname,
   publicHandle,
   userProfileHref,
 } from "@client/lib/userProfilePath";
-import { PetBioView } from "@client/pages/pets/PetBioView";
 import { petSidebarMobileSummary } from "@client/pages/pets/PublicPetSidebar";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo } from "react";
+import { FosterMePreview } from "./FosterMePreview";
 import { FosterMeSidebar } from "./FosterMeSidebar";
 
 /**
- * Stable "current foster" pointer. Resolves which pet to show on every load
- * and must not redirect to a concrete pet permalink.
+ * Stable "current foster" pointer. Shows a preview of whoever this foster is
+ * listing now and must not redirect to a concrete pet permalink.
  */
 export function FosterMePage() {
   const pathname = usePathname();
@@ -32,16 +33,17 @@ export function FosterMePage() {
   const userQuery = useUser(handle);
   const petsQuery = useOwnerPets(handle);
   const user = userQuery.data;
+  const pets = petsQuery.data ?? [];
+  const active = useMemo(
+    () => (petsQuery.isSuccess ? selectActiveFosters(pets) : []),
+    [pets, petsQuery.isSuccess],
+  );
   const selection = useMemo(
     () =>
-      petsQuery.isSuccess
-        ? selectFosterMePet(petsQuery.data ?? [])
-        : { kind: "empty" as const },
-    [petsQuery.data, petsQuery.isSuccess],
+      petsQuery.isSuccess ? selectFosterMePet(pets) : { kind: "empty" as const },
+    [pets, petsQuery.isSuccess],
   );
-  const selectedId =
-    selection.kind === "empty" ? null : selection.pet.id;
-  const petQuery = usePet(selectedId);
+  const previewPets = active.length > 0 ? active : selection.kind === "fallback" ? [selection.pet] : [];
 
   useEffect(() => {
     if (user?.displayName) {
@@ -52,17 +54,12 @@ export function FosterMePage() {
   }, [user?.displayName]);
 
   const displayName = user?.displayName || "This foster";
-  const pet = petQuery.data;
   const ownerRef = handle ?? (user ? publicHandle(user) : "");
   const fosterMePath = ownerRef ? fosterMeHref(ownerRef) : "";
   const isOwner = Boolean(viewer && user && viewer.id === user.id);
-  const petShown = Boolean(
-    pet && (selection.kind === "active" || selection.kind === "fallback"),
-  );
-  const capturePetEvents = petShown && !isOwner && pet?.status !== "adopted";
   const petCount = petsQuery.data?.length ?? 0;
   if (user) {
-    syncPetCaptureSuppression({ isOwner, status: pet?.status });
+    syncPetCaptureSuppression({ isOwner, status: null });
   }
   useFosterMeViewCapture({
     ownerId: user?.id,
@@ -72,15 +69,12 @@ export function FosterMePage() {
 
   const sidebar = fosterMePath ? (
     <FosterMeSidebar
-      petName={pet?.name}
-      petId={pet?.id}
       ownerId={user?.id ?? ""}
       ownerRef={ownerRef}
       ownerName={displayName}
-      ownerAvatarUrl={user?.avatarUrl ?? pet?.owner?.avatarUrl ?? null}
-      isCurrentFoster={selection.kind === "active"}
+      ownerAvatarUrl={user?.avatarUrl ?? null}
+      isCurrentFoster={false}
       isOwner={isOwner}
-      capturePetEvents={capturePetEvents}
       fosterMePath={fosterMePath}
     />
   ) : null;
@@ -94,7 +88,14 @@ export function FosterMePage() {
           </p>
         ) : null}
         {handle && (userQuery.isLoading || petsQuery.isLoading) ? (
-          <DataPageSkeleton variant="pet" label="Loading foster" />
+          <div
+            className="text-muted-foreground flex min-h-[50dvh] flex-col items-center justify-center gap-3"
+            role="status"
+            aria-busy="true"
+          >
+            <Loader2 className="size-8 animate-spin" aria-hidden />
+            <p className="text-sm">Loading…</p>
+          </div>
         ) : null}
         {handle && userQuery.isError ? (
           <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
@@ -143,31 +144,14 @@ export function FosterMePage() {
             </section>
           </PageWithSidebar>
         ) : null}
-        {selectedId &&
-        petQuery.isLoading &&
-        !userQuery.isLoading &&
-        !petsQuery.isLoading ? (
-          <DataPageSkeleton variant="pet" label="Loading pet" />
-        ) : null}
-        {selectedId && petQuery.isError ? (
-          <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
-            {petQuery.error instanceof Error
-              ? petQuery.error.message
-              : "Failed to load pet."}
-          </p>
-        ) : null}
-        {pet && (selection.kind === "active" || selection.kind === "fallback") ? (
-          <PageWithSidebar
-            sidebar={sidebar}
-            mobileSummary={petSidebarMobileSummary({
-              isOwner,
-              petName: pet.name,
-              fosterName: displayName,
-              variant: "foster-me",
-            })}
-          >
-            <PetBioView pet={pet} setDocumentTitle={false} />
-          </PageWithSidebar>
+        {user && petsQuery.isSuccess && previewPets.length > 0 ? (
+          <FosterMePreview
+            pets={previewPets}
+            ownerRef={ownerRef}
+            displayName={displayName}
+            fallback={active.length === 0}
+            isOwner={isOwner}
+          />
         ) : null}
       </main>
     </AppShell>
