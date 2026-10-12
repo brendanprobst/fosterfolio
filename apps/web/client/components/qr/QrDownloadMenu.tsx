@@ -17,14 +17,25 @@ type QrDownloadMenuProps = {
   url: string;
   filenameBase: string;
   triggerLabel?: string;
+  /** Merged onto the trigger button styles. */
+  triggerClassName?: string;
+  triggerSize?: "default" | "sm";
 };
 
-export function QrDownloadMenu({ url, filenameBase, triggerLabel = "Download QR" }: QrDownloadMenuProps) {
+export function QrDownloadMenu({
+  url,
+  filenameBase,
+  triggerLabel = "Download QR",
+  triggerClassName,
+  triggerSize = "sm",
+}: QrDownloadMenuProps) {
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="space-y-1">
       <DropdownMenu>
-        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+        <DropdownMenuTrigger
+          className={cn(buttonVariants({ variant: "outline", size: triggerSize }), triggerClassName)}
+        >
           <Download aria-hidden />
           {triggerLabel}
           <ChevronDown aria-hidden />

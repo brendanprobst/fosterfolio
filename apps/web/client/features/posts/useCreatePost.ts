@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@client/auth";
+import { petsKeys } from "@client/features/pets/petsKeys";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPost } from "./postsApi";
 import { postsKeys } from "./postsKeys";
@@ -16,8 +17,11 @@ export function useCreatePostMutation() {
       if (!token) throw new Error("Sign in to post.");
       return createPost(token, payload);
     },
-    onSuccess: () => {
+    onSuccess: (_post, payload) => {
       void queryClient.invalidateQueries({ queryKey: postsKeys.feed() });
+      if (payload.petId) {
+        void queryClient.invalidateQueries({ queryKey: petsKeys.detail(payload.petId) });
+      }
       if (user?.id) {
         void queryClient.invalidateQueries({
           queryKey: postsKeys.byAuthor(user.id),

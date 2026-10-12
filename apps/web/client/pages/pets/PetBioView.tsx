@@ -1,5 +1,6 @@
 "use client";
 
+import { PhotoOpener } from "@client/components/PhotoOpener";
 import { OutboundLink } from "@client/components/OutboundLink";
 import { PetFacts } from "@client/components/PetFacts";
 import { Markdown } from "@client/components/markdown";
@@ -91,12 +92,7 @@ export function PetBioView({
             {pet.updates.map((update) => (
               <li key={update.id} className="border-border space-y-2 border-t pt-4">
                 {update.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={update.imageUrl}
-                    alt=""
-                    className="border-border max-h-64 w-full rounded-md border object-cover"
-                  />
+                  <PhotoOpener src={update.imageUrl} label={`Photo from an update on ${pet.name}`} />
                 ) : null}
                 {update.bodyText ? <Markdown>{update.bodyText}</Markdown> : null}
                 <p className="text-muted-foreground text-xs">

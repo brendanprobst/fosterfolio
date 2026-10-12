@@ -73,12 +73,12 @@ export function OwnerAnalyticsWidget({
         ) : null}
         {loading ? (
           <div className="grid gap-3 @lg:grid-cols-3">
-            <div className="bg-muted h-24 animate-pulse rounded-xl" />
-            <div className="bg-muted h-24 animate-pulse rounded-xl" />
-            <div className="bg-muted h-24 animate-pulse rounded-xl" />
+            <div className="bg-muted h-32 animate-pulse rounded-xl" />
+            <div className="bg-muted h-32 animate-pulse rounded-xl" />
+            <div className="bg-muted h-32 animate-pulse rounded-xl" />
           </div>
         ) : empty ? (
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground flex min-h-32 items-center text-sm">
             No visits yet. Share {petName}&apos;s link to start seeing views here.
           </p>
         ) : (
@@ -133,7 +133,8 @@ function Tile({
   children?: ReactNode;
 }) {
   return (
-    <div className="bg-muted/40 space-y-1 rounded-xl p-3">
+    // min-h matches the loading tiles (label + value + sparkline + delta) so the card doesn't grow on load.
+    <div className="bg-muted/40 min-h-32 space-y-1 rounded-xl p-3">
       <p className="text-muted-foreground flex items-center gap-2 text-xs">
         {dot ? <span aria-hidden className={cn("size-2 rounded-full", dot)} /> : null}
         {label}

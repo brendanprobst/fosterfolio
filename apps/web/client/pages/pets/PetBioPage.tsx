@@ -4,11 +4,18 @@ import { AppShell, DataPageSkeleton, OwnerPageLayout } from "@client/components/
 import { useAuth } from "@client/auth";
 import { InquiryCta } from "@client/features/inquiries";
 import { usePet } from "@client/features/pets";
+import { useOwnUser } from "@client/features/users";
 import { syncPetCaptureSuppression } from "@client/lib/analytics/initFosterfolioAnalytics";
 import { usePetViewCapture } from "@client/lib/analytics/usePetViewCapture";
 import { petHref, petIdFromPathname } from "@client/lib/petBioPath";
-import { publicHandle } from "@client/lib/userProfilePath";
+import {
+  handleFromPathname,
+  normalizeHandleInput,
+  publicHandle,
+} from "@client/lib/userProfilePath";
+import { readViewerHint, viewerMatchesOwnerSegment, type ViewerHint } from "@client/lib/viewerHint";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { FosterStatusCard } from "./FosterStatusCard";
 import { OwnerPetHero } from "./OwnerPetHero";
 import { PetBioView } from "./PetBioView";
@@ -20,8 +27,9 @@ import { PetBioView } from "./PetBioView";
 export function PetBioPage() {
   const pathname = usePathname();
   const petId = petIdFromPathname(pathname);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { data: pet, isLoading, isError, error } = usePet(petId);
+  const own = useOwnUser(user?.id ?? null);
   const ownerRef = pet?.owner ? publicHandle(pet.owner) : pet?.ownerId ?? "";
   const isOwner = Boolean(user && pet && user.id === pet.ownerId);
   const capturePetEvents = Boolean(pet) && !isOwner && pet?.status !== "adopted";
@@ -29,6 +37,22 @@ export function PetBioPage() {
     syncPetCaptureSuppression({ isOwner, status: pet.status });
   }
   usePetViewCapture(pet, capturePetEvents);
+  // Before the pet loads, guess ownership from the URL's owner segment so the skeleton
+  // matches the owner tools. On refresh the session restores after this page starts
+  // loading, so the stored viewer hint stands in until auth resolves. `undefined` = not read
+  // yet (static HTML / first paint): show no skeleton rather than flash the public shape.
+  const [hint, setHint] = useState<ViewerHint | null | undefined>(undefined);
+  useEffect(() => setHint(readViewerHint()), []);
+  const hintPending = authLoading && hint === undefined;
+  const viewer = authLoading
+    ? hint ?? null
+    : user
+      ? { id: user.id, handle: own.data?.handle ?? (hint?.id === user.id ? hint.handle : null) }
+      : null;
+  const likelyOwner = viewerMatchesOwnerSegment(
+    viewer,
+    normalizeHandleInput(handleFromPathname(pathname) ?? ""),
+  );
 
   return (
     <AppShell>
@@ -38,8 +62,15 @@ export function PetBioPage() {
             Pet not found.
           </p>
         ) : null}
-        {petId && isLoading ? (
-          <DataPageSkeleton variant="pet" label="Loading pet" />
+        {petId && isLoading && !hintPending ? (
+          likelyOwner ? (
+            <OwnerPageLayout
+              fillFold
+              hero={<DataPageSkeleton variant="owner-pet" label="Loading pet" embedded />}
+            />
+          ) : (
+            <DataPageSkeleton variant="pet" label="Loading pet" />
+          )
         ) : null}
         {petId && isError ? (
           <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">

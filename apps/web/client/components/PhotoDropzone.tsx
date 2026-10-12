@@ -1,16 +1,21 @@
 "use client";
 
 import { Button } from "@client/components/ui/button";
-import { MAX_PET_PHOTOS } from "@client/features/pets";
 import { isAllowedImageFile } from "@client/lib/media/isAllowedImageFile";
 import { cn } from "@client/lib/utils";
 import { ClipboardPaste, ImagePlus } from "lucide-react";
 import { DragEvent, useId, useRef, useState } from "react";
 
-type PetPhotoDropzoneProps = {
+type PhotoDropzoneProps = {
   pending: boolean;
   disabled?: boolean;
   onFiles: (files: File[]) => void | Promise<void>;
+  /** Heading above the drop area. */
+  label: string;
+  /** Idle copy inside the drop area. */
+  hint: string;
+  /** Accept several files per pick / drop; otherwise only the first is passed on. */
+  multiple?: boolean;
 };
 
 async function imageFileFromClipboard(): Promise<File | null> {
@@ -31,7 +36,14 @@ async function imageFileFromClipboard(): Promise<File | null> {
   return null;
 }
 
-export function PetPhotoDropzone({ pending, disabled = false, onFiles }: PetPhotoDropzoneProps) {
+export function PhotoDropzone({
+  pending,
+  disabled = false,
+  onFiles,
+  label,
+  hint,
+  multiple = false,
+}: PhotoDropzoneProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -46,7 +58,7 @@ export function PetPhotoDropzone({ pending, disabled = false, onFiles }: PetPhot
       setLocalError("Only JPEG, PNG, WebP, and GIF images are supported.");
     }
     if (allowed.length === 0) return;
-    await onFiles(allowed);
+    await onFiles(multiple ? allowed : allowed.slice(0, 1));
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
@@ -57,7 +69,7 @@ export function PetPhotoDropzone({ pending, disabled = false, onFiles }: PetPhot
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">Photos</p>
+      <p className="text-sm font-medium">{label}</p>
       <div
         role="group"
         aria-label="Photo drop area"
@@ -82,9 +94,7 @@ export function PetPhotoDropzone({ pending, disabled = false, onFiles }: PetPhot
       >
         <ImagePlus className="text-muted-foreground size-8" aria-hidden />
         <p className="text-muted-foreground max-w-sm text-sm">
-          {pending
-            ? "Uploading…"
-            : `Drop photos here, or click browse. Up to ${MAX_PET_PHOTOS}. You can also paste from the clipboard.`}
+          {pending ? "Uploading…" : hint}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
@@ -129,7 +139,7 @@ export function PetPhotoDropzone({ pending, disabled = false, onFiles }: PetPhot
           ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
-          multiple
+          multiple={multiple}
           className="sr-only"
           onChange={(event) => {
             void accept(Array.from(event.target.files ?? []));

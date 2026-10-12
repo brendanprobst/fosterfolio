@@ -2,7 +2,7 @@ import { cn } from "@client/lib/utils";
 
 type DataPageSkeletonProps = {
   label: string;
-  variant: "profile" | "pet" | "editor" | "list" | "analytics" | "inbox";
+  variant: "profile" | "pet" | "owner-pet" | "editor" | "list" | "analytics" | "inbox";
   /** Sit inside an existing page column instead of the full page frame. */
   embedded?: boolean;
 };
@@ -62,6 +62,53 @@ function PetShape() {
         <Bone className="h-4 w-56" />
         <Bone className="h-4 w-full max-w-lg" />
         <Bone className="h-4 w-4/5 max-w-md" />
+      </div>
+    </div>
+  );
+}
+
+/** Owner tools above the fold: header + actions, analytics card, pet inquiries. */
+function OwnerPetShape() {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-2">
+          <Bone className="h-9 w-48" />
+          <Bone className="h-4 w-56 max-w-full" />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Bone className="h-9 w-28" />
+          <Bone className="h-9 w-32" />
+          <Bone className="h-9 w-28" />
+          <Bone className="h-9 w-24" />
+        </div>
+      </div>
+      <div className="bg-card space-y-4 rounded-xl p-6 ring-1 ring-foreground/10">
+        <Bone className="h-6 w-40" />
+        <div className="grid gap-3 lg:grid-cols-3">
+          <Bone className="h-32" />
+          <Bone className="h-32" />
+          <Bone className="h-32" />
+        </div>
+        <div className="flex gap-2">
+          <Bone className="h-8 w-32" />
+          <Bone className="h-8 w-36" />
+        </div>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <Bone className="h-6 w-48" />
+          <Bone className="h-4 w-20" />
+        </div>
+        <div className="grid h-[28rem] gap-4 md:grid-cols-[22rem_1fr]">
+          <div className="space-y-2">
+            <Bone className="h-16" />
+            <Bone className="h-16" />
+            <Bone className="h-16" />
+            <Bone className="h-16" />
+          </div>
+          <Bone className="hidden h-full md:block" />
+        </div>
       </div>
     </div>
   );
@@ -137,6 +184,8 @@ export function DataPageSkeleton({ label, variant, embedded = false }: DataPageS
       <ProfileShape />
     ) : variant === "pet" ? (
       <PetShape />
+    ) : variant === "owner-pet" ? (
+      <OwnerPetShape />
     ) : variant === "editor" ? (
       <EditorShape />
     ) : variant === "analytics" ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { clearViewerHint } from "@client/lib/viewerHint";
 import type { Provider, Session } from "@supabase/supabase-js";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { AuthBootstrapShell } from "./AuthBootstrapShell";
@@ -55,6 +56,7 @@ export function E2eAuthProvider({ accessToken, children }: { accessToken: string
       },
       async signOut() {
         sessionStorage.setItem(SIGNED_OUT_KEY, "1");
+        clearViewerHint();
         setSession(null);
       },
       async getAccessToken() {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@client/auth";
+import { writeViewerHint } from "@client/lib/viewerHint";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchOwnUser, updateUser } from "./usersApi";
 import { usersKeys } from "./usersKeys";
@@ -14,7 +15,10 @@ export function useOwnUser(userId: string | null) {
     queryFn: async () => {
       const token = await getAccessToken();
       if (!token || !userId) throw new Error("Sign in to load your profile.");
-      return fetchOwnUser(token, userId);
+      const user = await fetchOwnUser(token, userId);
+      // Once per fetch (handle edits invalidate this query), not per subscriber render.
+      writeViewerHint({ id: user.id, handle: user.handle });
+      return user;
     },
     enabled: !!userId,
   });
