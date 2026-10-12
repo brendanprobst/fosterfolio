@@ -236,7 +236,9 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("button", { name: "Add image" })).toBeInTheDocument();
     expect(screen.getByLabelText("Display name")).toHaveValue("Alex Foster");
     expect(screen.getByLabelText("Handle")).toHaveValue("");
-    expect(screen.getByLabelText("Bio (markdown)")).toHaveValue("Fostering since 2019");
+    expect(await screen.findByRole("textbox", { name: "Bio" })).toHaveTextContent(
+      "Fostering since 2019",
+    );
     expect(screen.queryByLabelText("ZIP code")).not.toBeInTheDocument();
   });
 
@@ -257,7 +259,9 @@ describe("ProfilePage", () => {
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Edit profile" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Bio (markdown)")).toHaveValue(bio);
+    const bioEditor = await screen.findByRole("textbox", { name: "Bio" });
+    expect(bioEditor).toHaveTextContent("Editor line 1.");
+    expect(bioEditor).toHaveTextContent(`Editor line ${BIO_PREVIEW_MAX_LINES + 1}.`);
     expect(screen.queryByText("About this foster")).not.toBeInTheDocument();
   });
 

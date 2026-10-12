@@ -1,10 +1,10 @@
 "use client";
 
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
+import { MarkdownEditor } from "@client/components/markdown";
 import { Button } from "@client/components/ui/button";
 import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
-import { Textarea } from "@client/components/ui/textarea";
 import { useUpdateUserMutation } from "@client/features/users";
 import type { UserOwner } from "@client/features/users";
 import {
@@ -92,12 +92,12 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
         </p>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="profile-bio">Bio (markdown)</Label>
-        <Textarea
+        <Label id="profile-bio-label">Bio</Label>
+        <MarkdownEditor
           id="profile-bio"
+          aria-labelledby="profile-bio-label"
           value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          rows={5}
+          onChange={setBio}
         />
       </div>
       <Button type="submit" disabled={mutation.isPending}>

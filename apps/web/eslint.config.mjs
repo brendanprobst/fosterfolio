@@ -16,6 +16,7 @@ const eslintConfig = [
       "client/components/inbox/**/*.{ts,tsx}",
       "client/components/charts/**/*.{ts,tsx}",
       "client/components/qr/**/*.{ts,tsx}",
+      "client/components/markdown/**/*.{ts,tsx}",
     ],
     rules: {
       "no-restricted-imports": [

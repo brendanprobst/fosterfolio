@@ -2,11 +2,11 @@
 
 import { useAuth } from "@client/auth";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
+import { MarkdownEditor } from "@client/components/markdown";
 import { Button } from "@client/components/ui/button";
 import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
 import { Separator } from "@client/components/ui/separator";
-import { Textarea } from "@client/components/ui/textarea";
 import {
   MAX_PET_PHOTOS,
   PET_SPECIES,
@@ -254,12 +254,13 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
             <SexToggle value={sex} onChange={setSex} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="pet-bio">Bio (markdown)</Label>
-            <Textarea
+            <Label id="pet-bio-label">Bio</Label>
+            <MarkdownEditor
               id="pet-bio"
+              aria-labelledby="pet-bio-label"
               value={bioMarkdown}
-              onChange={(e) => setBioMarkdown(e.target.value)}
-              rows={6}
+              onChange={setBioMarkdown}
+              toolbarPosition="bottom"
             />
           </div>
         </div>
