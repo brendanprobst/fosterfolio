@@ -8,7 +8,7 @@
  *   npm run supabase:seed:down -- --yes
  *   npm run supabase:seed:tracked-links
  *
- * Feature SQL lives in `supabase/migrations/seed/features/` — deliberately outside
+ * Feature SQL lives in `supabase/seed/features/` — deliberately outside
  * `supabase/migrations/feature-migrations/`, so `supabase db push` can never ship seed
  * rows to a production project.
  *
@@ -31,7 +31,7 @@ import { fileURLToPath } from "node:url";
 import { applyEnvFile, envFileLabel, resolveEnvFile, takeEnvArg } from "./env-files.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SEED_DIR = "supabase/migrations/seed/features";
+const SEED_DIR = "supabase/seed/features";
 
 export function listSeedFeatures(repoRoot = root) {
   const dir = join(repoRoot, SEED_DIR);

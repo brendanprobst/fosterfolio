@@ -2,7 +2,7 @@
 
 Fill a Supabase project with realistic Fosterfolio content — fosters you can sign in as, pets across every species and status, and a feed long enough to page through.
 
-**Status: wired.** SQL lives in `supabase/migrations/seed/features/`. `npm run supabase:seed` applies every feature. `npm run supabase:seed:tracked-links` applies one.
+**Status: wired.** SQL lives in `supabase/seed/features/`. `npm run supabase:seed` applies every feature. `npm run supabase:seed:tracked-links` applies one.
 
 ```bash
 npm run supabase:seed              # apply
@@ -29,10 +29,12 @@ Seeds deliberately sit **outside** `supabase/migrations/feature-migrations/` so 
 
 | File | Purpose |
 |---|---|
-| `supabase/migrations/seed/features/core.sql` | Fosters, pets, posts, stars, inquiries |
-| `supabase/migrations/seed/features/core_down.sql` | Delete exactly what the core seed created |
-| `supabase/migrations/seed/features/tracked-links.sql` | 3 pet links for Mochi, plus 1 foster-me link for the same owner |
-| `supabase/migrations/seed/features/tracked-links_down.sql` | Delete those links |
+| `supabase/seed/features/core.sql` | Fosters, pets, posts, stars, inquiries |
+| `supabase/seed/features/core_down.sql` | Delete exactly what the core seed created |
+| `supabase/seed/features/tracked-links.sql` | 3 pet links for Mochi, plus 1 foster-me link for the same owner |
+| `supabase/seed/features/tracked-links_down.sql` | Delete those links |
+| `supabase/seed/features/v2-analytics.sql` | 8 more links, ~1,100 `analytics_daily` (incl. foster-me click-throughs for every Alex pet) + ~225 `analytics_owner_daily` rows, 16 sourced inquiries — analytics rendering edge cases (see the file header) |
+| `supabase/seed/features/v2-analytics_down.sql` | Delete those rows and reset `analytics_stopped_at` |
 | `scripts/supabase-master-seed.mjs` | Applies every feature up, or every down in reverse |
 
 Prerequisite: the schema migrations are already applied (`npm run supabase:push`). The core seed aborts with a clear message if `public.users` or `public.posts` is missing.
@@ -106,7 +108,7 @@ Consequences worth knowing:
 
 The runner prints the target project ref before it does anything. `--dry-run` shows the statement count and byte size without sending a request.
 
-No token, or the API is blocked? Paste `supabase/migrations/seed/features/core.sql` into the dashboard SQL editor and run it as one batch — Postgres wraps a multi-statement batch in a single implicit transaction, so a failure rolls the whole thing back.
+No token, or the API is blocked? Paste `supabase/seed/features/core.sql` into the dashboard SQL editor and run it as one batch — Postgres wraps a multi-statement batch in a single implicit transaction, so a failure rolls the whole thing back.
 
 ---
 
