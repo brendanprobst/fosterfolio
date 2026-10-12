@@ -155,11 +155,11 @@ Plan: [v2_slice5b_foster_me_links.plan.md](v2_slice5b_foster_me_links.plan.md).
 
 - [x] 5b-todo-md — wire this section
 - [x] 5b-schema — `tracked_links.target` + nullable `pet_id`; `analytics_owner_daily`; `inquiries.via_foster_me`
-- [ ] 5b-api-links — foster-me link create/list, resolve returns target, reserved `default` channel
-- [ ] 5b-events-rollup — `foster_me_viewed`, via-foster-me marker, owner rollup
-- [ ] 5b-owner-analytics-api — `GET /me/links/analytics`
-- [ ] 5b-preview-page — foster-me preview: avatars, name/weight/age, taps go to the pet bio
-- [ ] 5b-links-page — `/profile/links`: modal create, tutorial, legacy pet links read-only
+- [x] 5b-api-links — foster-me link create/list, resolve returns target, reserved `default` channel
+- [x] 5b-events-rollup — `foster_me_viewed`, via-foster-me marker, owner rollup
+- [x] 5b-owner-analytics-api — `GET /me/links/analytics`
+- [x] 5b-preview-page — foster-me preview: avatars, name/weight/age, taps go to the pet bio
+- [x] 5b-links-page — `/profile/links`: modal create, tutorial, legacy pet links read-only
 - [ ] 5b-rewire — entry points, retire `/pets/[id]/links` and the summary endpoint
 
 ---

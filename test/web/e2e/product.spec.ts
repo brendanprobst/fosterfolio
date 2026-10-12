@@ -94,11 +94,14 @@ test.describe("Fosterfolio product smoke", () => {
     test("foster-me preview opens the pet bio", async ({ page }) => {
       await page.goto(E2E_PATHS.fosterMe);
       await expect(page.getByRole("form", { name: /contact the foster/i })).toHaveCount(0);
-      await page.getByRole("link", { name: E2E_SEED.petName }).click();
-      await expect(page).toHaveURL(new RegExp(`/pet/${E2E_SEED.petId}\\?via=foster-me`));
+      const card = page.getByRole("link", { name: E2E_SEED.petName });
+      await expect(card).toHaveAttribute("href", new RegExp(`/pet/${E2E_SEED.petId}\\?via=foster-me$`));
+      await card.click();
       await expect(
         page.getByRole("heading", { level: 1, name: E2E_SEED.petName }),
       ).toBeVisible();
+      // The bio records the mark, then strips the one-shot param so it isn't shared onward.
+      await expect(page).toHaveURL(new RegExp(`/pet/${E2E_SEED.petId}$`));
     });
 
     test("public profile shows guest sidebar and pets", async ({ page }) => {
@@ -174,7 +177,10 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: E2E_SEED.userDisplayName }),
       ).toBeVisible();
-      await expect(page.getByText("Sharing your profile")).toBeVisible();
+      // The share card renders twice (desktop hero + mobile body); scope to the visible one.
+      await expect(
+        page.getByRole("region", { name: "Your tools" }).getByText("Sharing your profile"),
+      ).toBeVisible();
       await expect(page.getByText("Private editor")).toHaveCount(0);
       await expect(page.getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
         "href",
@@ -251,6 +257,46 @@ test.describe("Fosterfolio product smoke", () => {
 
       await page.getByRole("button", { name: "Archived" }).click();
       await expect(page.getByRole("button", { name: new RegExp(sender) })).toBeVisible();
+    });
+
+    test("links page: first-run tutorial, then an Instagram link", async ({ page }) => {
+      await page.goto("/profile/links");
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Links & QR codes" }),
+      ).toBeVisible();
+      await expect(page.getByRole("region", { name: "No links yet" })).toBeVisible();
+
+      await page.getByRole("button", { name: "Create link" }).click();
+      const create = page.getByRole("dialog");
+      await expect(create.getByRole("button", { name: "Instagram" })).toBeDisabled();
+      await create.getByRole("button", { name: /create first link/i }).click();
+
+      const intro = page.getByRole("dialog");
+      await expect(intro.getByText("This is your default link to the pets you foster.")).toBeVisible();
+      await intro.getByRole("button", { name: "Next" }).click();
+      await intro.getByRole("button", { name: "Got it" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+
+      const defaultRow = page.getByRole("article", {
+        name: `${E2E_SEED.userDisplayName}'s default link`,
+      });
+      await expect(defaultRow).toBeVisible();
+      await expect(defaultRow.getByText("Default", { exact: true })).toBeVisible();
+      await expect(page.getByRole("article", { name: "Untagged visits" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "No links yet" })).toHaveCount(0);
+
+      await page.getByRole("button", { name: "Create link" }).click();
+      const normal = page.getByRole("dialog");
+      await expect(normal.getByLabel("Custom channel")).toBeEnabled();
+      await normal.getByRole("button", { name: "Instagram" }).click();
+      await normal.getByLabel(/label/i).fill("Story highlight");
+      await normal.getByRole("button", { name: "Create link" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+
+      const instagram = page.getByRole("article", { name: "Story highlight" });
+      await expect(instagram).toBeVisible();
+      await expect(instagram.getByText("Instagram")).toBeVisible();
+      await expect(instagram.getByRole("img", { name: "QR code for Story highlight" })).toBeVisible();
     });
 
     test("owner foster-me shows the preview and manage links", async ({ page }) => {

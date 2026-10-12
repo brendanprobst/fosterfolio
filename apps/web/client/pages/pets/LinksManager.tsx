@@ -1,9 +1,11 @@
 "use client";
 
+import { QrThumbnail } from "@client/components/qr";
 import { ShareQrDialog } from "@client/components/ShareQrDialog";
 import { Button } from "@client/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@client/components/ui/card";
 import type { ChannelOption, TrackedLinkItem } from "@client/features/petInsights/types";
+import { absoluteUrl } from "@client/lib/absoluteUrl";
 import { petHref } from "@client/lib/petBioPath";
 import {
   Building2,
@@ -17,7 +19,7 @@ import {
   Tag,
   Users,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const CHANNEL_ICONS: Record<string, typeof Tag> = {
   lawn_sign: Signpost,
@@ -35,20 +37,7 @@ function trackedHref(ownerRef: string, petId: string, code?: string): string {
 }
 
 function QrPreview({ href, alt }: { href: string; alt: string }) {
-  const [src, setSrc] = useState<string | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    void import("qrcode").then(async (qr) => {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const url = await qr.default.toDataURL(`${origin}${href}`, { width: 128, margin: 1 });
-      if (!cancelled) setSrc(url);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [href]);
-  if (!src) return <div className="bg-muted size-16 rounded-md" aria-hidden />;
-  return <img src={src} alt={alt} className="size-16 rounded-md" />;
+  return <QrThumbnail url={absoluteUrl(href)} alt={alt} />;
 }
 
 type LinksManagerProps = {
