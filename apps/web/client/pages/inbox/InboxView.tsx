@@ -118,7 +118,8 @@ export function InboxView({
   );
 }
 
-function InquiryDetail({
+/** Inquiry viewer. Archive / mark-unread buttons render only when their handler is passed. */
+export function InquiryDetail({
   item,
   channels,
   ownerRef,
@@ -128,8 +129,8 @@ function InquiryDetail({
   item: InboxItem;
   channels: ChannelOption[];
   ownerRef: string;
-  onArchive: (item: InboxItem, archived: boolean) => void;
-  onMarkUnread: (item: InboxItem) => void;
+  onArchive?: (item: InboxItem, archived: boolean) => void;
+  onMarkUnread?: (item: InboxItem) => void;
 }) {
   const payload = item.payload;
   const email = text(payload.senderEmail);
@@ -162,15 +163,17 @@ function InquiryDetail({
                 Reply by email
               </a>
             ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onArchive(item, !archived)}
-            >
-              {archived ? "Move to inbox" : "Archive"}
-            </Button>
-            {item.readAt && !archived ? (
+            {onArchive ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onArchive(item, !archived)}
+              >
+                {archived ? "Move to inbox" : "Archive"}
+              </Button>
+            ) : null}
+            {onMarkUnread && item.readAt && !archived ? (
               <Button type="button" variant="ghost" size="sm" onClick={() => onMarkUnread(item)}>
                 Mark as unread
               </Button>

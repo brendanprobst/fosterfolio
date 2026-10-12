@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import type {
   INotificationRepository,
   NotificationCursor,
+  NotificationFilters,
   NotificationPage,
   NotificationPreferenceRecord,
   NotificationStatus,
@@ -69,10 +70,12 @@ export class InMemoryNotificationRepository implements INotificationRepository {
     recipientId: string,
     status: NotificationStatus,
     limit: number,
-    cursor: NotificationCursor | null
+    cursor: NotificationCursor | null,
+    filters: NotificationFilters = {}
   ): Promise<NotificationPage> {
     const rows = this.records
       .filter((row) => row.recipientId === recipientId && matchesStatus(row, status))
+      .filter((row) => (filters.petId ? row.payload.petId === filters.petId : true))
       .filter((row) => (cursor ? afterCursor(row, cursor) : true))
       .sort(compareDesc);
     const items = rows.slice(0, limit);

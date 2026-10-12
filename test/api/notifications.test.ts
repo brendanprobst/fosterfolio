@@ -227,4 +227,43 @@ describe('Notifications API', () => {
       unavailable: true,
     });
   });
+  it('filters inquiries to one pet with petId', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    const token = await createAuthToken(ownerId, 'foster@example.com');
+    const createPet = (name: string) =>
+      request(app)
+        .post('/pets')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name, species: 'dog' })
+        .expect(201);
+    const mochi = await createPet('Mochi');
+    const biscuit = await createPet('Biscuit');
+    for (const petId of [mochi.body.id, biscuit.body.id, mochi.body.id]) {
+      await request(app)
+        .post('/inquiries')
+        .send({
+          targetUserId: ownerId,
+          targetPetId: petId,
+          senderName: 'Jamie',
+          senderEmail: 'jamie@example.com',
+          message: 'Hello',
+        })
+        .expect(201);
+    }
+    await sendInquiry(app);
+
+    const filtered = await request(app)
+      .get(`/me/notifications?status=all&petId=${mochi.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(filtered.body.items).toHaveLength(2);
+    for (const item of filtered.body.items) expect(item.pet.id).toBe(mochi.body.id);
+
+    const unfiltered = await request(app)
+      .get('/me/notifications?status=all&petId=')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(unfiltered.body.items).toHaveLength(4);
+  });
 });

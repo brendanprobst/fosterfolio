@@ -8,6 +8,7 @@ import {
   decodeNotificationCursor,
   encodeNotificationCursor,
   parseNotificationLimit,
+  parseNotificationPetId,
   parseNotificationStatus,
 } from '@api/application/notifications/notificationQuery';
 import type { NotificationRecord } from '@lattice/notifications';
@@ -51,10 +52,12 @@ export class ListNotificationsUseCase {
     recipientId: string,
     statusRaw: string | undefined,
     limitRaw: string | undefined,
-    cursorRaw: string | undefined
+    cursorRaw: string | undefined,
+    petIdRaw?: string
   ): Promise<Result<InboxPageDto>> {
     const status = parseNotificationStatus(statusRaw);
     if (!status) return Result.failure(ErrorCatalog.NOTIFICATION_INVALID_STATUS);
+    const petId = parseNotificationPetId(petIdRaw);
     if (cursorRaw && !decodeNotificationCursor(cursorRaw)) {
       return Result.failure(ErrorCatalog.NOTIFICATION_INVALID_INPUT);
     }
@@ -63,7 +66,8 @@ export class ListNotificationsUseCase {
         recipientId,
         status,
         parseNotificationLimit(limitRaw),
-        decodeNotificationCursor(cursorRaw)
+        decodeNotificationCursor(cursorRaw),
+        petId ? { petId } : {}
       );
       const items = await Promise.all(page.items.map((row) => this.toDto(recipientId, row)));
       return Result.success({

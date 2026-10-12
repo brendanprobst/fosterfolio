@@ -11,6 +11,7 @@ import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { CopyLinkButton } from "./CopyLinkButton";
 import { OwnerAnalyticsWidget } from "./OwnerAnalyticsWidget";
+import { PetInquiries } from "./PetInquiries";
 
 export function OwnerPetHero({
   pet,
@@ -43,6 +44,7 @@ export function OwnerPetHero({
         ownerRef={ownerRef}
         adopted={pet.status === "adopted"}
       />
+      <PetInquiries petId={pet.id} petName={pet.name} ownerRef={ownerRef} />
     </div>
   );
 }

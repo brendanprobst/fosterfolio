@@ -22,6 +22,11 @@
  *         name: cursor
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: petId
+ *         description: Only inquiries about this pet
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Page of notifications

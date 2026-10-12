@@ -12,6 +12,11 @@ export type NotificationCursor = {
   id: string;
 };
 
+export type NotificationFilters = {
+  /** Matches `payload.petId` (inquiry notifications about one pet). */
+  petId?: string;
+};
+
 export type NotificationPage = {
   items: NotificationRecord[];
   nextCursor: NotificationCursor | null;
@@ -31,7 +36,8 @@ export interface INotificationRepository extends InAppChannel, NotificationPrefe
     recipientId: string,
     status: NotificationStatus,
     limit: number,
-    cursor: NotificationCursor | null
+    cursor: NotificationCursor | null,
+    filters?: NotificationFilters
   ): Promise<NotificationPage>;
   countUnread(recipientId: string): Promise<number>;
   findForRecipient(id: string, recipientId: string): Promise<NotificationRecord | null>;

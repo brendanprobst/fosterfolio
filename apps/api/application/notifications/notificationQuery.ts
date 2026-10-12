@@ -13,6 +13,12 @@ export function parseNotificationLimit(raw: string | undefined): number {
   return Math.min(parsed, 50);
 }
 
+/** Optional `petId` filter; blank means unfiltered. */
+export function parseNotificationPetId(raw: string | undefined): string | undefined {
+  const trimmed = raw?.trim();
+  return trimmed || undefined;
+}
+
 export function encodeNotificationCursor(cursor: NotificationCursor): string {
   return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
 }

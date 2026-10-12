@@ -18,7 +18,8 @@ export class NotificationController {
         actorId,
         queryValue(req.query.status),
         queryValue(req.query.limit),
-        queryValue(req.query.cursor)
+        queryValue(req.query.cursor),
+        queryValue(req.query.petId)
       );
       ResponseHandler.handleResult(result, res);
     } catch (error) {

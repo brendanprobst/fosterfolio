@@ -1,6 +1,7 @@
 import type {
   INotificationRepository,
   NotificationCursor,
+  NotificationFilters,
   NotificationPage,
   NotificationPreferenceRecord,
   NotificationStatus,
@@ -49,6 +50,10 @@ function statusFilter(status: NotificationStatus): string {
   if (status === 'unread') return '&read_at=is.null&archived_at=is.null';
   if (status === 'archived') return '&archived_at=not.is.null';
   return '&archived_at=is.null';
+}
+
+function petFilter(filters: NotificationFilters): string {
+  return filters.petId ? `&payload->>petId=eq.${encodeURIComponent(filters.petId)}` : '';
 }
 
 /**
@@ -102,13 +107,14 @@ export class NotificationRepository implements INotificationRepository {
     recipientId: string,
     status: NotificationStatus,
     limit: number,
-    cursor: NotificationCursor | null
+    cursor: NotificationCursor | null,
+    filters: NotificationFilters = {}
   ): Promise<NotificationPage> {
     const cursorFilter = cursor
       ? `&or=(created_at.lt.${encodeURIComponent(cursor.createdAt)},and(created_at.eq.${encodeURIComponent(cursor.createdAt)},id.lt.${encodeURIComponent(cursor.id)}))`
       : '';
     const rows = await this.dataAdapter.get<NotificationRow[]>(
-      `${this.table}?select=${SELECT}&recipient_id=eq.${encodeURIComponent(recipientId)}${statusFilter(status)}${cursorFilter}&order=created_at.desc,id.desc&limit=${limit + 1}`
+      `${this.table}?select=${SELECT}&recipient_id=eq.${encodeURIComponent(recipientId)}${statusFilter(status)}${petFilter(filters)}${cursorFilter}&order=created_at.desc,id.desc&limit=${limit + 1}`
     );
     const page = rows.slice(0, limit).map(toRecord);
     const last = page[page.length - 1];

@@ -3,14 +3,12 @@
 import { useAuth, useRequireAuth } from "@client/auth";
 import { AppShell, DataPageSkeleton } from "@client/components/layout";
 import { fetchChannels } from "@client/features/petInsights/petInsightsApi";
-import {
-  fetchNotifications,
-  updateNotification,
-} from "@client/features/notifications/notificationsApi";
+import { fetchNotifications } from "@client/features/notifications/notificationsApi";
 import { notificationKeys } from "@client/features/notifications/queryKeys";
-import type { InboxItem, InboxPage as InboxListPage } from "@client/features/notifications/types";
+import type { InboxItem } from "@client/features/notifications/types";
+import { useNotificationActions } from "@client/features/notifications/useNotificationActions";
 import { useUnreadNotificationCount } from "@client/features/notifications/useUnreadNotificationCount";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { InboxView, type InboxFilter } from "./InboxView";
 
@@ -19,7 +17,7 @@ export function InboxPage() {
   const { getAccessToken } = useAuth();
   const [status, setStatus] = useState<InboxFilter>("unread");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
+  const { markRead, markUnread, setArchived } = useNotificationActions();
   const unreadCount = useUnreadNotificationCount(Boolean(user));
 
   const inbox = useQuery({
@@ -37,50 +35,9 @@ export function InboxPage() {
   const items = inbox.data?.items ?? [];
   const selected = items.find((item) => item.id === selectedId) ?? null;
 
-  function patchItem(id: string, patch: Partial<InboxItem>) {
-    queryClient.setQueriesData<InboxListPage>({ queryKey: notificationKeys.lists }, (page) =>
-      page ? { ...page, items: page.items.map((item) => (item.id === id ? { ...item, ...patch } : item)) } : page,
-    );
-  }
-
-  function bumpUnread(delta: number) {
-    queryClient.setQueryData<number>(notificationKeys.unreadCount, (count) =>
-      Math.max(0, (count ?? 0) + delta),
-    );
-  }
-
-  const update = useMutation({
-    mutationFn: async (variables: { id: string; body: { read?: boolean; archived?: boolean } }) =>
-      updateNotification((await getAccessToken()) ?? "", variables.id, variables.body),
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: notificationKeys.unreadCount });
-    },
-  });
-
   function open(item: InboxItem) {
     setSelectedId(item.id);
-    if (item.readAt) return;
-    patchItem(item.id, { readAt: new Date().toISOString() });
-    bumpUnread(-1);
-    update.mutate({ id: item.id, body: { read: true } });
-  }
-
-  function markUnread(item: InboxItem) {
-    patchItem(item.id, { readAt: null });
-    bumpUnread(1);
-    update.mutate({ id: item.id, body: { read: false } });
-  }
-
-  function setArchived(item: InboxItem, archived: boolean) {
-    update.mutate(
-      { id: item.id, body: { archived } },
-      {
-        onSuccess: () => {
-          setSelectedId(null);
-          void queryClient.invalidateQueries({ queryKey: notificationKeys.lists });
-        },
-      },
-    );
+    markRead(item);
   }
 
   if (loading || (inbox.isLoading && !inbox.data)) {
@@ -111,7 +68,7 @@ export function InboxPage() {
           listDimmed={inbox.isFetching && inbox.isPlaceholderData}
           onOpen={open}
           onBack={() => setSelectedId(null)}
-          onArchive={setArchived}
+          onArchive={(item, archived) => setArchived(item, archived, () => setSelectedId(null))}
           onMarkUnread={markUnread}
         />
       </main>

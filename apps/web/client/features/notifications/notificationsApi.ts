@@ -5,9 +5,11 @@ import type { InboxPage, NotificationPreference } from "./types";
 export async function fetchNotifications(
   token: string,
   status: "unread" | "all" | "archived",
+  filters: { petId?: string } = {},
 ): Promise<InboxPage> {
+  const petFilter = filters.petId ? `&petId=${encodeURIComponent(filters.petId)}` : "";
   const response = await authenticatedApiRequest(
-    `/me/notifications?status=${status}&limit=20`,
+    `/me/notifications?status=${status}&limit=20${petFilter}`,
     { token, method: "GET" },
   );
   await throwIfNotOk(response, "Failed to load inbox.");
