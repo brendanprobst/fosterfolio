@@ -21,6 +21,7 @@
 - **Auth:** the default session is **signed in** as `E2E_SEED.userId`. Guest tests set `lattice-e2e-signed-out` via `browseAsGuest` (`test/web/e2e/support/e2eSession.ts`).
 - **Run:** `npm run test:web:e2e` (install browsers once: `npx playwright install`).
 - **Artifacts:** traces, videos, and test output go under **`test/web/test-results/`** (gitignored; **`outputDir`** in `playwright.config.ts`). **`npm run clean`** removes that folder (and caches).
+- **Build dir:** the E2E Next server sets `NEXT_DIST_DIR=.next-e2e` (read by `apps/web/next.config.ts`), so it never overwrites `apps/web/.next` under a running `npm run dev`. Run E2E alongside dev freely.
 - **Port conflicts:** Playwright uses **3100 / 3101** so a local `npm run dev` on 3000 / 3001 is never reused (that stack is not `LATTICE_E2E`). If 3100 / 3101 are already taken by a non-E2E process, stop it or set `CI=true` so Playwright does not reuse it.
 
 ## CI

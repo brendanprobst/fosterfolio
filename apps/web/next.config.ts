@@ -14,6 +14,11 @@ const isStaticExport = process.env.NODE_ENV === "production";
 
 /** Monorepo root (this file: apps/web/next.config.ts) — silences lockfile/workspace root warnings. */
 const nextConfig: NextConfig = {
+  /**
+   * Playwright runs its own `next dev` from this folder; a separate build dir keeps it from
+   * wiping `.next` under a running `npm run dev` (see `test/web/playwright.config.ts`).
+   */
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   outputFileTracingRoot: path.join(__dirname, "../.."),
   transpilePackages: ["@lattice/analytics"],
   ...(isStaticExport ? { output: "export" as const } : {}),

@@ -14,6 +14,7 @@ export const DIFF_EXCLUDE_NAMES = [
   ".git",
   ".turbo",
   ".next",
+  ".next-e2e",
   "dist",
   "dist-lambda",
   "out",

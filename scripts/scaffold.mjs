@@ -88,6 +88,7 @@ function shouldExcludeSourcePath(absPath) {
     ".turbo",
     ".terraform",
     ".next",
+    ".next-e2e",
     ".vercel",
     "dist",
     "dist-lambda",

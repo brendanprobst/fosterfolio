@@ -63,7 +63,8 @@
         "test/web/**",
         "apps/web/**",
         "!apps/web/node_modules/**",
-        "!apps/web/.next/**"
+        "!apps/web/.next/**",
+        "!apps/web/.next-e2e/**"
       ],
       "outputs": []
     }
