@@ -17,12 +17,6 @@ export type PetAnalyticsDto = {
   inquiriesByDay: Array<{ day: string; inquiries: number }>;
 };
 
-export type PetAnalyticsSummaryDto = {
-  views: number;
-  inquiries: number;
-  topChannel: { channelKey: string; views: number } | null;
-};
-
 export function parseAnalyticsRange(raw: string | undefined): AnalyticsRange | null {
   if (raw == null || raw === '') return '30d';
   if (raw === '7d' || raw === '30d' || raw === 'all') return raw;
@@ -144,19 +138,6 @@ export function buildPetAnalytics(
     inquiriesByDay: [...inquiriesByDay.entries()]
       .map(([day, count]) => ({ day, inquiries: count }))
       .sort((a, b) => a.day.localeCompare(b.day)),
-  };
-}
-
-export function buildPetAnalyticsSummary(
-  daily: AnalyticsDailyRecord[],
-  inquiries: InquirySourceRow[]
-): PetAnalyticsSummaryDto {
-  const analytics = buildPetAnalytics(daily, inquiries);
-  const top = analytics.byChannel.find((row) => row.views > 0);
-  return {
-    views: analytics.funnel.views,
-    inquiries: analytics.funnel.inquiries,
-    topChannel: top ? { channelKey: top.channelKey, views: top.views } : null,
   };
 }
 

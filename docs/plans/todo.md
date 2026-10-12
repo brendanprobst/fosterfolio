@@ -160,7 +160,7 @@ Plan: [v2_slice5b_foster_me_links.plan.md](v2_slice5b_foster_me_links.plan.md).
 - [x] 5b-owner-analytics-api — `GET /me/links/analytics`
 - [x] 5b-preview-page — foster-me preview: avatars, name/weight/age, taps go to the pet bio
 - [x] 5b-links-page — `/profile/links`: modal create, tutorial, legacy pet links read-only
-- [ ] 5b-rewire — entry points, retire `/pets/[id]/links` and the summary endpoint
+- [x] 5b-rewire — entry points, retire `/pets/[id]/links` and the summary endpoint
 
 ---
 

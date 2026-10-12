@@ -1,7 +1,6 @@
 /**
  * Test setup - Creates isolated test app instances
  */
-import { GetPetAnalyticsSummaryUseCase } from '@api/application/use-cases/GetPetAnalyticsSummaryUseCase';
 import { GetNotificationPreferencesUseCase, PutNotificationPreferenceUseCase } from '@api/application/use-cases/NotificationPreferencesUseCases';
 import { GetUnreadNotificationCountUseCase } from '@api/application/use-cases/GetUnreadNotificationCountUseCase';
 import { ListNotificationsUseCase } from '@api/application/use-cases/ListNotificationsUseCase';
@@ -285,14 +284,6 @@ export class TestContainer {
 
   getGetPetAnalyticsUseCase() {
     return new GetPetAnalyticsUseCase(
-      this.petRepository,
-      this.analyticsDailyRepository,
-      this.inquiryRepository
-    );
-  }
-
-  getGetPetAnalyticsSummaryUseCase() {
-    return new GetPetAnalyticsSummaryUseCase(
       this.petRepository,
       this.analyticsDailyRepository,
       this.inquiryRepository

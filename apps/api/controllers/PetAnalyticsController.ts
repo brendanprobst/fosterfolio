@@ -26,17 +26,4 @@ export class PetAnalyticsController {
       ResponseHandler.handleError(error, res);
     }
   }
-
-  async getSummary(req: Request, res: Response): Promise<void> {
-    try {
-      const actorId = (req as RequestWithUser).user.id;
-      const petId = String(req.params.id ?? '');
-      const result = await this.container
-        .getGetPetAnalyticsSummaryUseCase()
-        .execute(actorId, petId);
-      ResponseHandler.handleResult(result, res);
-    } catch (error) {
-      ResponseHandler.handleError(error, res);
-    }
-  }
 }

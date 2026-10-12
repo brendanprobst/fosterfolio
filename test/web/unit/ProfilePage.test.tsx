@@ -92,6 +92,10 @@ describe("ProfilePage", () => {
     const tools = screen.getByRole("region", { name: "Your tools" });
     const addPet = within(tools).getByRole("link", { name: "Add pet" });
     expect(addPet).toHaveAttribute("href", "/profile/pets/new");
+    expect(within(tools).getByRole("link", { name: "Links & QR codes" })).toHaveAttribute(
+      "href",
+      "/profile/links",
+    );
     expect(
       addPet.compareDocumentPosition(within(tools).getByText("Sharing your profile")) &
         Node.DOCUMENT_POSITION_FOLLOWING,

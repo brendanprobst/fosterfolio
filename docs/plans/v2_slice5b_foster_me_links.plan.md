@@ -26,7 +26,7 @@ todos:
     status: completed
   - id: 5b-rewire
     content: "Rewire entry points, per-pet analytics link names, retire /pets/[id]/links and the summary endpoint"
-    status: pending
+    status: completed
 ---
 
 # v2 slice 5b — foster-me tracked links + owner analytics
@@ -251,10 +251,13 @@ Keep `packages/analytics` generic: add a tiny `entityMarks` helper (`markEntity(
 **Description.** Point everything at the new model and retire what it replaces.
 
 **Acceptance criteria.**
-- Owner pet bio hero (5a) and the owner analytics widget: "Manage links" → `/profile/links`.
+- Every links entry point goes to `/profile/links`: the owner pet bio hero (5a), the owner analytics widget, **and the per-pet analytics page** (`AnalyticsView`'s "Manage links").
+- **Wording:** `/profile/links` now holds the foster-me analytics, so entry points say "Links & analytics", not "Manage links". The foster-me preview's owner button keeps "Manage links" (it is about the links themselves).
 - `/profile` hero (5a): add a "Links & QR codes" button.
+- **Header:** add "Links & QR codes" to the account menu and the mobile menu, next to Profile.
+- **Per-pet analytics → foster-me funnel:** when any of the pet's views came via foster-me links, show a one-line link to `/profile/links` ("See your full foster-me funnel") beside the "via foster-me" rows.
 - Per-pet analytics links table: name rows using `GET /me/links` (all targets), so foster-me links that sent traffic to this pet show their label with a small "via foster-me" tag. No orphan or blank rows.
-- `/pets/[id]/links` (and its handle-family route) client-redirects to `/profile/links`. Leave the CloudFront rewrite from commit `7cc7fa4` in place for one release so old bookmarks land on the redirect; add a todo.md line to remove it.
+- Remove the per-pet links route (`/@handle/pet/{id}/links`) and its CloudFront rewrite outright, with no redirect: there are no active users yet, so there are no old bookmarks to catch.
 - Remove `GET /pets/:id/analytics/summary` and `GetPetAnalyticsSummaryUseCase` (unused since 5a-owner-widget).
 - Delete the now-dead `LinksManager.tsx`, `PetLinksPage.tsx`, and `ShareLinkCard` pieces that only served the old page, after confirming no imports remain.
 - `npm run ci` green; the full Playwright suite passes.
@@ -262,7 +265,7 @@ Keep `packages/analytics` generic: add a tiny `entityMarks` helper (`markEntity(
 **Agent.** Main session (web) + code-janitor + test-expert.
 
 **Prompt.**
-> Rewire all "Manage links" entry points to `/profile/links` and add a "Links & QR codes" button to the `/profile` hero. In per-pet analytics, resolve link names from `GET /me/links` so foster-me links render with a "via foster-me" tag. Turn the old `/pets/[id]/links` route into a client redirect to `/profile/links`. Remove the pet analytics summary endpoint and use case, and delete `LinksManager`, `PetLinksPage`, and any other components only the old page used, after verifying with a repo-wide search. Add a todo.md line to drop the old CloudFront links rewrite next release. Run the full CI and Playwright suites.
+> Rewire all "Manage links" entry points (pet bio hero, owner analytics widget, per-pet `AnalyticsView`) to `/profile/links` and rename them "Links & analytics". Add a "Links & QR codes" button to the `/profile` hero and a "Links & QR codes" item to the header's account and mobile menus. In per-pet analytics, link to the foster-me funnel on `/profile/links` when any traffic came via foster-me links. In per-pet analytics, resolve link names from `GET /me/links` so foster-me links render with a "via foster-me" tag. Delete the old `/@handle/pet/{id}/links` route and its CloudFront rewrite (no redirect; no users yet). Remove the pet analytics summary endpoint and use case, and delete `LinksManager`, `PetLinksPage`, and any other components only the old page used, after verifying with a repo-wide search. Run the full CI and Playwright suites.
 
 ---
 

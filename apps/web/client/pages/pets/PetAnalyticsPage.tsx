@@ -6,12 +6,11 @@ import { Button } from "@client/components/ui/button";
 import { usePet } from "@client/features/pets";
 import {
   fetchChannels,
+  fetchOwnerLinks,
   fetchPetAnalytics,
-  fetchPetLinks,
 } from "@client/features/petInsights/petInsightsApi";
 import type { PetAnalytics } from "@client/features/petInsights/types";
-import { petHref, petIdFromPetPath } from "@client/lib/petBioPath";
-import { publicHandle } from "@client/lib/userProfilePath";
+import { petIdFromPetPath } from "@client/lib/petBioPath";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -26,10 +25,11 @@ export function PetAnalyticsPage() {
   const [range, setRange] = useState<Range>("30d");
   const isOwner = Boolean(user && pet.data && user.id === pet.data.ownerId);
 
+  // Every owner link (both targets): foster-me links send traffic to every pet.
   const links = useQuery({
-    queryKey: ["pet-links", petId],
-    enabled: Boolean(petId && isOwner),
-    queryFn: async () => fetchPetLinks((await getAccessToken()) ?? "", petId!),
+    queryKey: ["owner-links"],
+    enabled: Boolean(isOwner),
+    queryFn: async () => fetchOwnerLinks((await getAccessToken()) ?? ""),
   });
   const channels = useQuery({
     queryKey: ["me-channels"],
@@ -88,8 +88,6 @@ export function PetAnalyticsPage() {
     );
   }
 
-  const ownerRef = pet.data.owner ? publicHandle(pet.data.owner) : pet.data.ownerId;
-
   return (
     <AppShell>
       <main className="mx-auto max-w-3xl px-4 py-8">
@@ -112,7 +110,6 @@ export function PetAnalyticsPage() {
         </div>
         <AnalyticsView
           petName={pet.data.name}
-          linksHref={`${petHref(ownerRef, pet.data.id)}/links`}
           adopted={pet.data.status === "adopted"}
           links={links.data ?? []}
           channels={channels.data ?? []}

@@ -26,10 +26,10 @@ export function petIdFromPathname(
   return petIdFromPetPath(pathname, null);
 }
 
-/** Pet id from the bio path, or from `/links` or `/analytics` under it. */
+/** Pet id from the bio path, or from `/analytics` under it. */
 export function petIdFromPetPath(
   pathname: string | null | undefined,
-  section: "links" | "analytics" | null,
+  section: "analytics" | null,
 ): string | null {
   const path = normalizeAppPathname(pathname);
   const suffix = section ? `\\/${section}` : "";

@@ -38,12 +38,6 @@ export type PetAnalytics = {
   inquiriesByDay: Array<{ day: string; inquiries: number }>;
 };
 
-export type PetAnalyticsSummary = {
-  views: number;
-  inquiries: number;
-  topChannel: { channelKey: string; views: number } | null;
-};
-
 /** `GET /me/links/analytics`. A null `linkId` is untagged foster-me traffic. */
 export type OwnerLinkAnalytics = {
   funnel: {

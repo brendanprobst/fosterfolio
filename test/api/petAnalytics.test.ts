@@ -211,15 +211,11 @@ describe('pet analytics API', () => {
       .expect(200);
     expect(all.body.funnel).toMatchObject({ views: 122, inquiries: 5 });
 
-    const summary = await request(app)
+    // Retired in 5b-rewire; the owner widget reads the 7d/30d analytics instead.
+    await request(app)
       .get(`/pets/${petId}/analytics/summary`)
       .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    expect(summary.body).toEqual({
-      views: 15,
-      inquiries: 3,
-      topChannel: { channelKey: 'lawn_sign', views: 10 },
-    });
+      .expect(404);
 
     const forbidden = await request(app)
       .get(`/pets/${petId}/analytics`)
@@ -234,7 +230,6 @@ describe('pet analytics API', () => {
     expect(missing.body.error.code).toBe('PET_NOT_FOUND');
 
     await request(app).get(`/pets/${petId}/analytics`).expect(401);
-    await request(app).get(`/pets/${petId}/analytics/summary`).expect(401);
 
     const badRange = await request(app)
       .get(`/pets/${petId}/analytics?range=90d`)
@@ -263,7 +258,7 @@ describe('pet analytics API', () => {
     });
   });
 
-  it('returns a null conversion rate and a null top channel when there are no views', async () => {
+  it('returns a null conversion rate when there are no views', async () => {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'owner@example.com' });
     const { petId, token } = await createOwnedPet(app);
@@ -286,11 +281,5 @@ describe('pet analytics API', () => {
     });
     expect(res.body.byChannel).toEqual([]);
     expect(res.body.byCity).toEqual([]);
-
-    const summary = await request(app)
-      .get(`/pets/${petId}/analytics/summary`)
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    expect(summary.body).toEqual({ views: 0, inquiries: 1, topChannel: null });
   });
 });

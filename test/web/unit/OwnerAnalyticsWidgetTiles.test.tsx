@@ -91,9 +91,9 @@ describe("OwnerAnalyticsWidget tiles", () => {
       await screen.findByText(/No visits yet\. Share Mochi's link to start seeing views here/),
     ).toBeInTheDocument();
     expect(screen.queryByText("Top channel")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Manage links" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Links & analytics" })).toHaveAttribute(
       "href",
-      "/@alex/pet/pet-1/links",
+      "/profile/links",
     );
   });
 

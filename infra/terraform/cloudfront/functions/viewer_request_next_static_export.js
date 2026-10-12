@@ -49,17 +49,9 @@ function rewriteHandleFamily(uri) {
       if (
         petId.length > 0 &&
         petId.indexOf(".") === -1 &&
-        (section === "links" || section === "analytics")
+        section === "analytics"
       ) {
-        return (
-          "/" +
-          HANDLE_SENTINEL +
-          "/pet/" +
-          STATIC_EXPORT_SENTINEL_ID +
-          "/" +
-          section +
-          ".html"
-        );
+        return "/" + HANDLE_SENTINEL + "/pet/" + STATIC_EXPORT_SENTINEL_ID + "/analytics.html";
       }
     }
   }

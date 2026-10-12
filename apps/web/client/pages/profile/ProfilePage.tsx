@@ -12,7 +12,7 @@ import { petHref } from "@client/lib/petBioPath";
 import { petEditorEditHref, petEditorNewHref } from "@client/lib/petEditorPath";
 import { publicHandle } from "@client/lib/userProfilePath";
 import { cn } from "@client/lib/utils";
-import { Pencil, Plus } from "lucide-react";
+import { Link2, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ConnectedSitesCard } from "./ConnectedSitesCard";
@@ -52,6 +52,13 @@ export function ProfilePage() {
       <Link href={petEditorNewHref()} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
         <Plus aria-hidden />
         Add pet
+      </Link>
+      <Link
+        href="/profile/links"
+        className={cn(buttonVariants({ variant: "outline" }), "w-full")}
+      >
+        <Link2 aria-hidden />
+        Links &amp; QR codes
       </Link>
       <ProfileLinkCard handleOrId={shareRef} hasHandle={Boolean(profile?.handle)} />
     </div>

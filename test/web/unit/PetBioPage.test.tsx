@@ -252,9 +252,9 @@ describe("PetBioPage", () => {
       "href",
       `/@owner-1/pet/${petId}/analytics`,
     );
-    expect(screen.getByRole("link", { name: "Manage links" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Links & analytics" })).toHaveAttribute(
       "href",
-      `/@owner-1/pet/${petId}/links`,
+      "/profile/links",
     );
   });
 });

@@ -26,12 +26,12 @@ import {
 } from "@client/lib/fosterfolioFeatureFlags";
 import { useUnreadNotificationCount } from "@client/features/notifications/useUnreadNotificationCount";
 import { cn } from "@client/lib/utils";
-import { LogOut, Inbox, Menu, PawPrint, Search, UserRound } from "lucide-react";
+import { LogOut, Inbox, Link2, Menu, PawPrint, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 
 type AppHeaderProps = {
   /** Highlight the active primary nav item. */
-  active?: "home" | "profile" | "search" | "feed";
+  active?: "home" | "profile" | "links" | "search" | "feed";
 };
 
 function navLinkClass(isActive: boolean) {
@@ -137,6 +137,10 @@ export function AppHeader({ active }: AppHeaderProps) {
                     <UserRound aria-hidden />
                     Your profile
                   </DropdownMenuItem>
+                  <DropdownMenuItem nativeButton={false} render={<Link href="/profile/links" />}>
+                    <Link2 aria-hidden />
+                    Links &amp; QR codes
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => void signOut()}>
                     <LogOut aria-hidden />
                     Sign out
@@ -213,6 +217,20 @@ export function AppHeader({ active }: AppHeaderProps) {
                     }
                   >
                     Your profile
+                  </SheetClose>
+                ) : null}
+                {signedIn ? (
+                  <SheetClose
+                    nativeButton={false}
+                    render={
+                      <Link
+                        href="/profile/links"
+                        className={navLinkClass(active === "links")}
+                        aria-current={active === "links" ? "page" : undefined}
+                      />
+                    }
+                  >
+                    Links &amp; QR codes
                   </SheetClose>
                 ) : null}
               </nav>

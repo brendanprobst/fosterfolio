@@ -243,10 +243,6 @@ export class Container {
     return this.analytics.getGetPetAnalyticsUseCase();
   }
 
-  getGetPetAnalyticsSummaryUseCase() {
-    return this.analytics.getGetPetAnalyticsSummaryUseCase();
-  }
-
   getGetOwnerLinkAnalyticsUseCase() {
     return this.analytics.getGetOwnerLinkAnalyticsUseCase();
   }

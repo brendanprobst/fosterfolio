@@ -47,7 +47,6 @@ export function OwnerAnalyticsWidget({
   });
 
   const analyticsHref = `${petHref(ownerRef, petId)}/analytics`;
-  const linksHref = `${petHref(ownerRef, petId)}/links`;
   const loading = d30.isLoading || d7.isLoading;
   const views14 = lastNDays(d30.data?.viewsByDay ?? [], (point) => point.views, 14);
   const inq14 = lastNDays(d30.data?.inquiriesByDay ?? [], (point) => point.inquiries, 14);
@@ -111,8 +110,8 @@ export function OwnerAnalyticsWidget({
           <Link href={analyticsHref} className={buttonVariants({ size: "sm" })}>
             View analytics
           </Link>
-          <Link href={linksHref} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            Manage links
+          <Link href="/profile/links" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            Links &amp; analytics
           </Link>
         </div>
       </CardContent>

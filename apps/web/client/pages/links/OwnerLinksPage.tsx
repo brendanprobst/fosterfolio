@@ -111,7 +111,7 @@ export function OwnerLinksPage() {
 
   if (loading || !user || own.isLoading || links.isLoading) {
     return (
-      <AppShell active="profile">
+      <AppShell active="links">
         <main>
           <DataPageSkeleton variant="analytics" label="Loading links" />
         </main>
@@ -122,7 +122,7 @@ export function OwnerLinksPage() {
   const ownerRef = publicHandle(own.data ?? user);
 
   return (
-    <AppShell active="profile">
+    <AppShell active="links">
       <main>
         <OwnerPageLayout
           hero={

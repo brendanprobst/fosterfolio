@@ -214,9 +214,11 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(page.getByRole("form", { name: /contact the foster/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /send inquiry/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "QR code" })).toBeVisible();
-      await expect(page.getByRole("link", { name: "Manage links" })).toBeVisible();
-      await page.getByRole("link", { name: "Manage links" }).click();
-      await expect(page.getByRole("heading", { name: "Original QR" })).toBeVisible();
+      await page.getByRole("link", { name: "Links & analytics" }).click();
+      await expect(page).toHaveURL(/\/profile\/links\/?$/);
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Links & QR codes" }),
+      ).toBeVisible();
     });
 
     test("owner public profile offers edit, not inquiry", async ({ page }) => {

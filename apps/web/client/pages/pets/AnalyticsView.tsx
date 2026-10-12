@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@client/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@client/components/ui/card";
 import { bucketTrend, channelDisplayName, formatConversion } from "@client/features/petInsights/present";
 import type { ChannelOption, PetAnalytics, TrackedLinkItem } from "@client/features/petInsights/types";
@@ -9,9 +10,10 @@ import { ChannelBarChart, TrendCharts } from "./analyticsCharts";
 
 type AnalyticsRange = "7d" | "30d" | "all";
 
+const LINKS_HREF = "/profile/links";
+
 type AnalyticsViewProps = {
   petName: string;
-  linksHref: string;
   adopted: boolean;
   links: TrackedLinkItem[];
   channels: ChannelOption[];
@@ -27,7 +29,6 @@ const RANGE_CAPTION: Record<AnalyticsRange, string> = {
 
 export function AnalyticsView({
   petName,
-  linksHref,
   adopted,
   links,
   channels,
@@ -44,6 +45,18 @@ export function AnalyticsView({
     views: row.views,
     inquiries: row.inquiries,
   }));
+  const linkById = new Map(links.map((link) => [link.id, link]));
+  const linkRows = analytics.byLink.map((row) => {
+    const link = linkById.get(row.linkId);
+    return {
+      ...row,
+      name: (link ? link.label || link.channelName : nameFor(row.channelKey)) || "Tracked link",
+      viaFosterMe: link?.target === "foster_me",
+    };
+  });
+  const fosterMeTraffic = linkRows.some(
+    (row) => row.viaFosterMe && (row.views > 0 || row.inquiries > 0),
+  );
   const cityMax = Math.max(1, ...analytics.byCity.map((city) => city.views));
 
   return (
@@ -63,8 +76,8 @@ export function AnalyticsView({
       {empty ? (
         <p className="text-muted-foreground text-sm">
           Create your first tracked link to see which channels work best.{" "}
-          <Link href={linksHref} className="text-foreground underline">
-            Manage links
+          <Link href={LINKS_HREF} className="text-foreground underline">
+            Links &amp; analytics
           </Link>
         </p>
       ) : (
@@ -107,15 +120,28 @@ export function AnalyticsView({
                   </tr>
                 </thead>
                 <tbody>
-                  {analytics.byLink.map((row) => (
+                  {linkRows.map((row) => (
                     <tr key={row.linkId}>
-                      <td className="py-1">{nameFor(row.channelKey)}</td>
+                      <td className="py-1">
+                        <span className="inline-flex flex-wrap items-center gap-2">
+                          {row.name}
+                          {row.viaFosterMe ? <Badge variant="secondary">via foster-me</Badge> : null}
+                        </span>
+                      </td>
                       <td className="py-1 text-right tabular-nums">{row.views}</td>
                       <td className="py-1 text-right tabular-nums">{row.inquiries}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {fosterMeTraffic ? (
+                <p className="text-muted-foreground mt-3 text-sm">
+                  Some visits came through your foster-me page.{" "}
+                  <Link href={LINKS_HREF} className="text-foreground underline">
+                    See your full foster-me funnel
+                  </Link>
+                </p>
+              ) : null}
             </CardContent>
           </Card>
 

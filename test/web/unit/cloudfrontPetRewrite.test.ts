@@ -41,14 +41,13 @@ describe("CloudFront vanity URL rewrite", () => {
     );
   });
 
-  it("rewrites /@handle/pet/{id} and its links and analytics pages", () => {
+  it("rewrites /@handle/pet/{id} and its analytics page", () => {
     const id = "11111111-1111-1111-1111-111111111111";
     expect(rewrite(`/@brendan/pet/${id}`)).toBe(
       `/${HANDLE_SENTINEL_SEGMENT}/pet/${PET_BIO_SENTINEL_ID}.html`,
     );
-    expect(rewrite(`/@brendan/pet/${id}/links`)).toBe(
-      `/${HANDLE_SENTINEL_SEGMENT}/pet/${PET_BIO_SENTINEL_ID}/links.html`,
-    );
+    // The per-pet links page was removed in slice 5b; links live at /profile/links.
+    expect(rewrite(`/@brendan/pet/${id}/links`)).not.toContain(PET_BIO_SENTINEL_ID);
     expect(rewrite(`/@brendan/pet/${id}/analytics`)).toBe(
       `/${HANDLE_SENTINEL_SEGMENT}/pet/${PET_BIO_SENTINEL_ID}/analytics.html`,
     );

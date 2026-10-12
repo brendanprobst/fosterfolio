@@ -16,7 +16,6 @@ describe("AnalyticsView", () => {
     render(
       <AnalyticsView
         petName="Mochi"
-        linksHref="/@alex/pet/pet-1/links"
         adopted={false}
         links={[]}
         channels={[]}
@@ -27,9 +26,9 @@ describe("AnalyticsView", () => {
     expect(
       screen.getByText(/Create your first tracked link to see which channels work best/),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Manage links" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Links & analytics" })).toHaveAttribute(
       "href",
-      "/@alex/pet/pet-1/links",
+      "/profile/links",
     );
     expect(screen.queryByText(/approx/i)).not.toBeInTheDocument();
   });
@@ -38,7 +37,6 @@ describe("AnalyticsView", () => {
     render(
       <AnalyticsView
         petName="Mochi"
-        linksHref="/@alex/pet/pet-1/links"
         adopted
         channels={[{ key: "lawn_sign", name: "Lawn sign", isPreset: true }]}
         links={[
@@ -73,6 +71,96 @@ describe("AnalyticsView", () => {
     );
     expect(
       screen.queryByText(/Create your first tracked link/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("names link rows from the owner's links, tags foster-me ones, and links to the funnel", () => {
+    render(
+      <AnalyticsView
+        petName="Mochi"
+        adopted={false}
+        channels={[{ key: "lawn_sign", name: "Lawn sign", isPreset: true }]}
+        links={[
+          {
+            id: "fm",
+            target: "foster_me",
+            petId: null,
+            code: "fmcode",
+            channelKey: "instagram",
+            channelName: "Instagram",
+            label: "Story highlight",
+            archivedAt: null,
+            views: 0,
+            inquiries: 0,
+          },
+          {
+            id: "pet",
+            target: "pet",
+            petId: "pet-1",
+            code: "petcode",
+            channelKey: "lawn_sign",
+            channelName: "Lawn sign",
+            label: null,
+            archivedAt: null,
+            views: 0,
+            inquiries: 0,
+          },
+        ]}
+        analytics={{
+          ...emptyAnalytics,
+          funnel: { views: 9, formOpens: 0, inquiries: 1, conversionRate: 0.11 },
+          byLink: [
+            { linkId: "fm", channelKey: "instagram", views: 6, inquiries: 1 },
+            { linkId: "pet", channelKey: "lawn_sign", views: 2, inquiries: 0 },
+            { linkId: "gone", channelKey: "", views: 1, inquiries: 0 },
+          ],
+        }}
+        range="30d"
+      />,
+    );
+
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(rows.map((row) => row.querySelector("td")?.textContent)).toEqual([
+      "Story highlightvia foster-me",
+      "Lawn sign",
+      "Tracked link",
+    ]);
+    expect(screen.getByRole("link", { name: "See your full foster-me funnel" })).toHaveAttribute(
+      "href",
+      "/profile/links",
+    );
+  });
+
+  it("skips the funnel link when no traffic came through foster-me links", () => {
+    render(
+      <AnalyticsView
+        petName="Mochi"
+        adopted={false}
+        channels={[]}
+        links={[
+          {
+            id: "pet",
+            target: "pet",
+            petId: "pet-1",
+            code: "petcode",
+            channelKey: "lawn_sign",
+            channelName: "Lawn sign",
+            label: null,
+            archivedAt: null,
+            views: 0,
+            inquiries: 0,
+          },
+        ]}
+        analytics={{
+          ...emptyAnalytics,
+          byLink: [{ linkId: "pet", channelKey: "lawn_sign", views: 2, inquiries: 0 }],
+        }}
+        range="30d"
+      />,
+    );
+    expect(screen.queryByText("via foster-me")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "See your full foster-me funnel" }),
     ).not.toBeInTheDocument();
   });
 });

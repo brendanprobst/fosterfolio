@@ -23,13 +23,10 @@ export function createPetRouter(
   const { requireAuth } = deps;
 
   router.post('/', ...requireAuth, (req, res) => controller.createPet(req, res));
-  // Kept on purpose after 5b-api-links. New UI creates foster-me links at POST /me/links.
-  // These still create and list target = 'pet' until 5b-rewire removes the callers.
+  // Kept on purpose: no UI caller since 5b-rewire (the UI creates foster-me links at
+  // POST /me/links), but they still create and list target = 'pet' links if pet flyers return.
   router.post(`/${PET_ID}/links`, ...requireAuth, (req, res) => links.createLink(req, res));
   router.get(`/${PET_ID}/links`, ...requireAuth, (req, res) => links.listLinks(req, res));
-  router.get(`/${PET_ID}/analytics/summary`, ...requireAuth, (req, res) =>
-    analytics.getSummary(req, res)
-  );
   router.get(`/${PET_ID}/analytics`, ...requireAuth, (req, res) =>
     analytics.getAnalytics(req, res)
   );

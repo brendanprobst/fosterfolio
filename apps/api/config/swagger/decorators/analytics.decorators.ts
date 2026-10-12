@@ -27,25 +27,6 @@
  *         description: Not the pet owner
  *       404:
  *         description: Pet not found
- * /pets/{id}/analytics/summary:
- *   get:
- *     summary: Last 7 days for the owner widget
- *     tags: [Analytics]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Views, inquiries, and the channel with the most views
- *       403:
- *         description: Not the pet owner
- *       404:
- *         description: Pet not found
  */
 
 export const analyticsSwaggerDoc = '';
