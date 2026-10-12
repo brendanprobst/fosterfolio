@@ -64,7 +64,8 @@
         "apps/web/**",
         "!apps/web/node_modules/**",
         "!apps/web/.next/**",
-        "!apps/web/.next-e2e/**"
+        "!apps/web/.next-e2e/**",
+        "!apps/web/.next-dev/**"
       ],
       "outputs": []
     }

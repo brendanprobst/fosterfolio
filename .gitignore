@@ -22,6 +22,7 @@ test/coverage/
 # Next.js (apps/web) — build/cache; env templates stay tracked via !**/.env.example above
 apps/web/.next/
 apps/web/.next-e2e/
+apps/web/.next-dev/
 apps/web/out/
 apps/web/build
 apps/web/coverage

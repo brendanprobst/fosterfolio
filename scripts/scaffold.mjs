@@ -89,6 +89,7 @@ function shouldExcludeSourcePath(absPath) {
     ".terraform",
     ".next",
     ".next-e2e",
+    ".next-dev",
     ".vercel",
     "dist",
     "dist-lambda",
