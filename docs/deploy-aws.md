@@ -44,6 +44,39 @@ The script prints the Supabase host and the API host before the web build. Befor
 
 If the Infisical CLI is missing or the write fails, the deploy still finishes. Re-run `npm run infisical:sync-outputs -- --env <env>`. Keep `terraform.tfvars` on disk; Terraform still reads the service role from that file.
 
+## Inquiry secrets (Turnstile and source token)
+
+The deployed API runs with `NODE_ENV=production` and **refuses to start** without two secrets. Every API request fails until they exist. Set them up **before** you apply Terraform or deploy code that contains this check.
+
+| Secret | Where it lives | Read by |
+|--------|----------------|---------|
+| Turnstile **secret** key | SSM SecureString `/<project>-<env>/inquiries/turnstile_secret_key` | API Lambda (`TURNSTILE_SECRET_KEY`) |
+| Source token signing key | SSM SecureString `/<project>-<env>/inquiries/source_token_secret` | API Lambda (`INQUIRY_SOURCE_TOKEN_SECRET`) |
+| Turnstile **site** key (public) | `apps/web/.env.<env>` for laptop builds, Infisical `/fosterfolio/shared` for GitHub Deploy app | Web build (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`) |
+
+Terraform passes only the parameter **names** to the Lambda and grants read access. It never holds the values, so they stay out of `terraform.tfstate`. Both deploy paths stop the web build when the site key is missing.
+
+1. In Cloudflare **Turnstile**, add a widget for each environment. List the site's hostnames: the CloudFront domain, plus the custom domain if there is one. Copy the site key and the secret key.
+2. Create the SSM parameters (repeat with `fosterfolio-dev` for dev):
+
+   ```bash
+   aws ssm put-parameter --type SecureString --name /fosterfolio-prod/inquiries/turnstile_secret_key \
+     --value '<turnstile secret key>'
+   aws ssm put-parameter --type SecureString --name /fosterfolio-prod/inquiries/source_token_secret \
+     --value "$(openssl rand -base64 32)"
+   ```
+
+   The source token key must be at least 32 characters. To rotate either value, re-run with `--overwrite` and redeploy the Lambda, or wait for its next cold start. Rotating the source token key only voids the "How did you hear about…?" answers that are still open, which last 30 minutes.
+3. Add `NEXT_PUBLIC_TURNSTILE_SITE_KEY` to `apps/web/.env.<env>` and to Infisical `/fosterfolio/shared` for that environment.
+4. Deploy (`npm run deploy:aws`), then submit a test inquiry on the live site.
+
+Troubleshooting from the API Lambda's logs:
+
+- **`ParameterNotFound`:** the parameter hasn't been created yet, or is named wrong. The Lambda recovers on the next request once it exists, with no redeploy.
+- **`… required when NODE_ENV=production`:** the Lambda has no `TURNSTILE_SECRET_KEY_PARAM` / `INQUIRY_SOURCE_TOKEN_SECRET_PARAM`. That happens when code was deployed (for example with GitHub Deploy app) before `terraform apply`. Run `npm run deploy:aws`.
+
+For the **dev** stack you can use Cloudflare's [testing keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) (they always pass) instead of a real widget.
+
 ## Deploy the site and Lambda without Terraform
 
 Workflow: **`.github/workflows/deploy-app.yml`** (**Actions → Deploy app → Run workflow**). Manual only. It does not apply Terraform and does not read `terraform.tfstate`.

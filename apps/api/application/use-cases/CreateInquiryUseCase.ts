@@ -42,6 +42,7 @@ export type InquiryDto = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type TurnstileGate = {
+  /** null skips verification. Composition only allows that outside production. */
   getSecret: () => string | null;
   verify: TurnstileVerifier;
 };
@@ -53,7 +54,8 @@ export class CreateInquiryUseCase {
     private readonly petRepository: IPetRepository,
     private readonly notifications: DispatchDependencies,
     private readonly trackedLinkRepository: ITrackedLinkRepository,
-    private readonly turnstile: TurnstileGate
+    private readonly turnstile: TurnstileGate,
+    private readonly sourceTokenSecret: string
   ) {}
 
   async execute(input: CreateInquiryCommand): Promise<Result<InquiryDto>> {
@@ -156,7 +158,7 @@ export class CreateInquiryUseCase {
         senderEmail: created.senderEmail,
         message: created.message,
         createdAt: created.createdAt,
-        sourceToken: signInquirySourceToken(created.id),
+        sourceToken: signInquirySourceToken(created.id, this.sourceTokenSecret),
       });
     } catch {
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);

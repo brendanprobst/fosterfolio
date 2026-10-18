@@ -19,6 +19,13 @@ locals {
     jwt_secret       = null
   }
 
+  # Created by hand with `aws ssm put-parameter --type SecureString` (docs/deploy-aws.md), never by
+  # Terraform, so the values stay out of state. The API refuses to start in production without them.
+  inquiry_secret_parameter_names = {
+    turnstile_secret_key = "${local.ssm_path_prefix}/inquiries/turnstile_secret_key"
+    source_token_secret  = "${local.ssm_path_prefix}/inquiries/source_token_secret"
+  }
+
   budget_notification_thresholds = [50, 80, 100]
 
   # Matches apps/api/app.ts — browser Origin must be listed for credentialed requests.
@@ -79,7 +86,9 @@ resource "aws_iam_role_policy" "api_lambda_ssm_read" {
         ]
         Resource = [
           "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.supabase_parameter_names.url, "/")}",
-          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.supabase_parameter_names.service_role_key, "/")}"
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.supabase_parameter_names.service_role_key, "/")}",
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.inquiry_secret_parameter_names.turnstile_secret_key, "/")}",
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.inquiry_secret_parameter_names.source_token_secret, "/")}"
         ]
       }
     ]
@@ -101,11 +110,13 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      NODE_ENV                        = "production"
-      CORS_ORIGINS                    = local.api_cors_origins
-      SUPABASE_URL_PARAM              = local.supabase_parameter_names.url
-      SUPABASE_SERVICE_ROLE_KEY_PARAM = local.supabase_parameter_names.service_role_key
-      EMAIL_ALLOWLIST_ENABLED         = var.email_allowlist_enabled ? "true" : "false"
+      NODE_ENV                          = "production"
+      CORS_ORIGINS                      = local.api_cors_origins
+      SUPABASE_URL_PARAM                = local.supabase_parameter_names.url
+      SUPABASE_SERVICE_ROLE_KEY_PARAM   = local.supabase_parameter_names.service_role_key
+      TURNSTILE_SECRET_KEY_PARAM        = local.inquiry_secret_parameter_names.turnstile_secret_key
+      INQUIRY_SOURCE_TOKEN_SECRET_PARAM = local.inquiry_secret_parameter_names.source_token_secret
+      EMAIL_ALLOWLIST_ENABLED           = var.email_allowlist_enabled ? "true" : "false"
     }
   }
 

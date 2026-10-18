@@ -23,8 +23,8 @@
 |---|---|---|---|---|
 | L1 | Critical | Logic | Foster-me link + pet inquiry is rejected with 400 | ✅ Fixed |
 | CI | Critical | CI | Web unit + E2E jobs failing on the PR head | ✅ Fixed |
-| S1 | High | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints | Open |
-| S2 | High | Security | Source-token HMAC falls back to a hardcoded, committed secret | Open |
+| S1 | High | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints | 🟡 Partial (Turnstile fails closed; rate limits, SES and `WEB_ORIGIN` open) |
+| S2 | High | Security | Source-token HMAC falls back to a hardcoded, committed secret | ✅ Fixed (needs manual SSM setup) |
 | S3 | High | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection) | Open |
 | L2 | High | Logic | Owner self-views are captured before auth resolves | Open |
 | S4 | Medium | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state | Open |
@@ -36,6 +36,7 @@
 | S6 | Low | Infra | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour | Open |
 | S7 | Low | Infra/Hygiene | Lambda zip build artifacts committed to git | Open |
 | S8 | Low | Security | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey` | Open |
+| C1 | Medium | Compliance | No privacy policy; third-party processors (Turnstile, PostHog, Supabase, SES, Zippopotam) undisclosed | Open (blocks public launch, not merge) |
 | L7 | Low | Logic | Metric semantics: conversion can exceed 100%; "approx visitors" is meaningless and hidden; UTC days | Open |
 | L8 | Low | Perf/Data | Inbox does N+1 lookups; notification payload duplicates PII it then overwrites | Open |
 | Q1 | Medium | DRY | Two near-identical rollup repositories; the coalesced key is defined 3 times | Open |
@@ -65,6 +66,14 @@
 - **Fail closed** when `NODE_ENV=production` and the secret is missing, instead of skipping the check.
 - Add an API Gateway throttle, or a per-IP limit, on the three public routes.
 
+**Status: 🟡 Partial** (2026-10-18, not yet committed)
+- **Done: Turnstile fails closed in production.** `readInquirySecrets` (`apps/api/infrastructure/composition/inquiries.ts`) makes the API refuse to start when `NODE_ENV=production` and `TURNSTILE_SECRET_KEY` is missing. This is the same pattern as the Supabase check in `Container`. Turnstile is skipped only outside production.
+- **Done: wiring.** The Lambda loads the secret from the SSM SecureString `/<project>-<env>/inquiries/turnstile_secret_key`. `loadEnvFromSsm` in `lambdaEnv.ts` now handles any `NAME` / `NAME_PARAM` pair. Terraform passes only the parameter name and grants `ssm:GetParameter`; the value is created by hand, so it never enters tfstate. Both deploy paths (`scripts/deploy-env.mjs`, `deploy-app.yml`) stop the web build when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is missing.
+- **Docs:** setup and troubleshooting in `docs/deploy-aws.md` → "Inquiry secrets".
+- **Correction to this finding:** the API Gateway stage already has a *global* throttle (`api_gateway_throttling_rate_limit` = 10 rps, burst 20). The real gap is that the limit isn't per route or per IP, so one client can use the whole budget and lock everyone out.
+- **Still open:** per-route or per-IP limits on `POST /inquiries`, `PATCH /inquiries/:id/self-reported-source` and `GET /links/resolve/:code`; SES (`EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM) and `WEB_ORIGIN` on the Lambda; a `siteverify` timeout (L6).
+- **Note for S6:** the analytics rollup shares `aws_iam_role.api_lambda`, so it can now read these two parameters as well.
+
 ### S2 — Source-token HMAC falls back to a hardcoded secret · High
 
 **Where:** `apps/api/application/inquiries/inquirySourceToken.ts:8`
@@ -74,6 +83,12 @@
 **Why it matters:** The direct impact is small today. An attacker still needs the inquiry UUID, gets one write within 30 minutes, and can only pick from a fixed list of values. The pattern is the real problem: a security control that silently downgrades in production. It will be copied.
 
 **Fix:** Throw at startup when the secret is missing in production. Store it in SSM. Do the same for any future signing secret.
+
+**Status: ✅ Fixed** (2026-10-18, not yet committed; takes effect once the manual SSM setup in `docs/deploy-aws.md` is done)
+- The committed fallback is gone. `inquirySourceToken.ts` takes the secret as a parameter and no longer reads `process.env`. Composition injects it into `CreateInquiryUseCase` and `ReportInquirySourceUseCase`.
+- In production the API refuses to start when `INQUIRY_SOURCE_TOKEN_SECRET` is missing or shorter than 32 characters. Outside production each process gets a random key, so no signing key lives in the repo.
+- The Lambda loads the key from the SSM SecureString `/<project>-<env>/inquiries/source_token_secret`. Terraform holds only the name.
+- Tests: `test/api/inquirySecrets.test.ts` (fail-closed rules), `test/api/lambdaEnv.test.ts` (SSM loader), and a regression in `inquiries.test.ts`: a token forged with the old committed key is rejected. Setting the test key back to the old constant makes it fail.
 
 ### S3 — The rollup trusts client-writable PostHog properties · High
 
@@ -129,6 +144,21 @@
 - When no link id is sent, the client's `sourceChannelKey` is stored as-is (up to 64 characters), so arbitrary keys show up in `byChannel`.
 - The notification cursor (`decodeNotificationCursor`) only checks that the fields are strings before they go into a PostgREST `or=(…)`. `encodeURIComponent` doesn't protect PostgREST grammar, because PostgREST parses after URL-decoding. The `recipient_id` AND keeps this safe today. Validate them as ISO timestamp and UUID.
 - `GET /links/resolve/:code` returns `ownerId` and `petId`, including for soft-deleted pets. Only `linkId`, `channelKey` and `target` are needed for attribution.
+
+### C1 — No privacy policy; third-party processors undisclosed · Medium
+
+**Where:** `apps/web` has no `/privacy` route and no link to one. Added 2026-10-18 while setting up Turnstile for S1.
+
+**What:** v2 adds more third parties that receive visitor data:
+- **Cloudflare Turnstile:** IP address, TLS fingerprint and User-Agent on inquiry submit.
+- **PostHog:** cookieless events with city-level GeoIP.
+- **SES:** inquiry email, with the sender as Reply-To.
+
+These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.us`. Inquiry name, email, message and ZIP also go to the foster parent being contacted. None of this is disclosed anywhere.
+
+**Why it matters:** not a merge blocker, and fine for a private beta with known testers. It *is* expected before a public launch, especially for EU visitors (GDPR). Cloudflare publishes a [Turnstile Privacy Addendum](https://www.cloudflare.com/turnstile-privacy-policy/) to link from the policy.
+
+**Fix:** add a static `/privacy` page that names each processor, and link it under the inquiry submit button, on sign-up, and site-wide. There's no shared footer today, only one on `HomePage`. Keep Turnstile pre-clearance off: the site isn't proxied through Cloudflare, so the `cf_clearance` cookie does nothing. Have the text reviewed before opening to the EU. Tracked in [`todo.md` §3](./todo.md).
 
 ---
 
@@ -355,7 +385,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 
 1. ~~**L1**: Fix the foster-me inquiry check and add a regression test.~~ ✅ Done
 2. ~~**CI**: Fix the `usePathname` mock and the notifications package resolution (Q2).~~ ✅ Done (the Q2 restructure itself is still open)
-3. **S1 / S2**: Wire `TURNSTILE_SECRET_KEY`, `INQUIRY_SOURCE_TOKEN_SECRET`, SES and `WEB_ORIGIN` through SSM, and fail closed in production.
+3. **S1 / S2**: ~~Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, and fail closed in production~~ ✅ Done. Still open: per-route rate limits, SES and `WEB_ORIGIN`.
 4. **S3**: Validate and skip rollup rows, encode filter values, add an alarm (S6).
 5. **L2**: Gate capture on auth having resolved.
 6. **S5, L3**: Harden email validation and reserve system channel keys.

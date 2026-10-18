@@ -86,6 +86,7 @@ export class TestContainer {
   private emailAdapter: EmailAdapter = new LoggingEmailAdapter();
   private storageCapBytes = resolveStorageCapBytes();
   private turnstileSecret: string | null = null;
+  readonly sourceTokenSecret = 'test-inquiry-source-token-secret-0123456789';
   private turnstileVerify: TurnstileVerifier = verifyTurnstileToken;
 
   setGeoLookup(adapter: GeoLookupAdapter): void {
@@ -237,12 +238,13 @@ export class TestContainer {
       {
         getSecret: () => this.turnstileSecret,
         verify: this.turnstileVerify,
-      }
+      },
+      this.sourceTokenSecret
     );
   }
 
   getReportInquirySourceUseCase() {
-    return new ReportInquirySourceUseCase(this.inquiryRepository);
+    return new ReportInquirySourceUseCase(this.inquiryRepository, this.sourceTokenSecret);
   }
 
   getSignUploadUseCase() {

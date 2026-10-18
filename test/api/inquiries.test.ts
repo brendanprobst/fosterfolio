@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto';
 import request from 'supertest';
 import type { EmailAdapter, EmailMessage } from '@api/infrastructure/adapters/email/EmailAdapter';
 import { createTestAppWithContainer } from './setup';
@@ -316,6 +317,30 @@ describe('Inquiries API', () => {
       .expect(400);
     expect(res.body.error.code).toBe('INQUIRY_TURNSTILE_FAILED');
     expect(container.inquiryRepository.records).toHaveLength(0);
+  });
+
+  it('rejects a source token forged with the old committed signing key', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    const created = await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Hello',
+      })
+      .expect(201);
+    const forgedSig = createHmac('sha256', 'fosterfolio-dev-inquiry-source-token')
+      .update(created.body.id)
+      .digest('base64url');
+
+    const res = await request(app)
+      .patch(`/inquiries/${created.body.id}/self-reported-source`)
+      .send({ token: `${created.body.id}.${forgedSig}`, selfReportedSource: 'Shelter' })
+      .expect(400);
+    expect(res.body.error.code).toBe('INQUIRY_SOURCE_TOKEN_INVALID');
+    expect(inquiryById(container, created.body.id)?.selfReportedSource).toBeNull();
   });
 
   it('accepts one self-reported source within 30 minutes and rejects a second write or an expired token', async () => {

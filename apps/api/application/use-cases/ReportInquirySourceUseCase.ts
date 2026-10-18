@@ -14,7 +14,10 @@ export type ReportInquirySourceCommand = {
 };
 
 export class ReportInquirySourceUseCase {
-  constructor(private readonly inquiryRepository: IInquiryRepository) {}
+  constructor(
+    private readonly inquiryRepository: IInquiryRepository,
+    private readonly sourceTokenSecret: string
+  ) {}
 
   async execute(
     input: ReportInquirySourceCommand,
@@ -29,7 +32,7 @@ export class ReportInquirySourceUseCase {
     if (!isSelfReportedSource(source)) {
       return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
     }
-    if (!inquirySourceTokenMatches(inquiryId, token)) {
+    if (!inquirySourceTokenMatches(inquiryId, token, this.sourceTokenSecret)) {
       return Result.failure(ErrorCatalog.INQUIRY_SOURCE_TOKEN_INVALID);
     }
 

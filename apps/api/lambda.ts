@@ -1,12 +1,12 @@
 import { APIGatewayProxyEventV2, Context } from 'aws-lambda';
 import serverlessExpress from '@vendia/serverless-express';
 import { createApp } from '@api/app';
-import { loadSupabaseEnvFromSsm } from '@api/lambdaEnv';
+import { loadApiEnvFromSsm } from '@api/lambdaEnv';
 
 let cachedServer: ReturnType<typeof serverlessExpress> | null = null;
 
 async function bootstrapServer() {
-  await loadSupabaseEnvFromSsm();
+  await loadApiEnvFromSsm();
   const app = createApp();
   return serverlessExpress({ app });
 }

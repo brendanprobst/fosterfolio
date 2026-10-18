@@ -65,6 +65,16 @@ Verify afterwards in **Lambda → Configuration → Environment variables**, the
 
 ## 3. Product work (not blocking, but ahead of go-live)
 
+- **Privacy policy page.** Not started; raised 2026-10-18 while setting up Turnstile (review item C1 in [`fosterfolio-v2-review.md`](fosterfolio-v2-review.md)). There is no `/privacy` route and no link to one anywhere in `apps/web`. It isn't needed for a private beta with known testers, but it is needed before the site opens to the public. Visitors' data reaches these third parties, and the policy should name each one:
+  - **Cloudflare Turnstile.** On inquiry submit it collects IP address, TLS fingerprint, User-Agent and the page origin. Link Cloudflare's [Turnstile Privacy Addendum](https://www.cloudflare.com/turnstile-privacy-policy/).
+  - **PostHog.** Cookieless analytics (`persistence: 'memory'`), page and inquiry events, and city-level GeoIP.
+  - **Supabase.** Accounts, profiles, pets, and every inquiry.
+  - **AWS** (CloudFront, Lambda, SES). Hosting, plus inquiry emails to the foster with the sender's address as Reply-To, once SES is live.
+  - **Zippopotam.us.** The API sends a user's profile ZIP to `api.zippopotam.us` to look up the city.
+  - **The inquiry itself.** Name, email, message and ZIP go to the foster parent being contacted.
+
+  Do: add a static `/privacy` page. Link it from a short line under the inquiry submit button, from sign-up, and from somewhere every page shows. There is no shared footer: only `HomePage` has a `<footer>`, so either add one to `AppShell` or put a link in `AppHeader`. Turnstile pre-clearance stays **off**: the site isn't proxied through Cloudflare, so its cookie would do nothing and would only need disclosing. Have someone qualified review the text before opening to EU visitors.
+
 - **User handles / vanity URLs.** Implemented — see [the plan](vanity_urls.plan.md). Unique `handle` on `public.users`, API lookup by id or handle, and a root-level `/@handle` route family (profile, `/foster-me`, `/pet/{id}`) replacing `/users/{id}` and `/pets/{id}`. CloudFront now rewrites the `@` prefix family; a new `terraform apply` is still required before those URLs work on the live distribution.
 - **Warn before opening a connected-site link.** Not implemented yet — deliberately deferred. `SocialLinksDialog`'s links and the "Where you share" card on `/profile` (plus the public profile's own link list) currently open `link.url` directly via a plain `<a target="_blank">`. Since these are user-entered URLs, clicking one should first show a confirmation modal warning that the destination is unverified, with the plain URL rendered underneath the label (not just the label) so the visitor can see exactly where they're headed before continuing.
 - **Animated feedback on each step of the inquiry submit flow.** Not started. The guest submit in `apps/web/client/features/inquiries/` (`InquiryForm.tsx`, `ExpandableInquiryForm.tsx`, `InquiryCta.tsx`) works but each transition is a hard swap: the form expands, the fieldset goes disabled while pending, then it collapses into a static success alert. Every successful step should get a small animation — e.g. expand/open, a sending state on the submit button, a checkmark or confetti-style success beat, then the collapse into the confirmation. No animation library is in `apps/web/package.json` today; prefer Tailwind / `tw-animate-css` transitions first and only add `motion` if that isn't enough. Respect `prefers-reduced-motion`, and keep the existing E2E selectors on pet bio, public profile, and foster-me working.
@@ -116,7 +126,7 @@ Do these, in this order, **before** items 1–2 (allowlist + AWS). After they la
 
 ### 6.2 Inquiry form — actually submit it, then buff UX
 
-~~**Done 2026-10-01.**~~ Guest submit still uses the existing `POST /inquiries` form. Pending disables the whole fieldset; errors keep the draft; success names the foster; expand closes after send and still shows the success alert (including on small screens). E2E covers pet bio, public profile, and foster-me. Manual inbox check is still useful locally if you want to confirm the logger/SES adapter. No captcha; API Gateway throttle is enough.
+~~**Done 2026-10-01.**~~ Guest submit still uses the existing `POST /inquiries` form. Pending disables the whole fieldset; errors keep the draft; success names the foster; expand closes after send and still shows the success alert (including on small screens). E2E covers pet bio, public profile, and foster-me. Manual inbox check is still useful locally if you want to confirm the logger/SES adapter. ~~No captcha; API Gateway throttle is enough.~~ Superseded in v2: Turnstile is on the form, and as of 2026-10-18 the deployed API refuses to start without its secret (review S1). Setup: [`docs/deploy-aws.md`](../deploy-aws.md) → "Inquiry secrets".
 
 ### 6.3 Hide feed and search behind product flags (do not delete); `/` becomes the info page
 
@@ -144,7 +154,7 @@ Plan: [v2_slice5a_ux_polish.plan.md](v2_slice5a_ux_polish.plan.md). Implementati
 
 Slice 5a complete — next: [slice 5b](v2_slice5b_foster_me_links.plan.md) (implementation plans to be written).
 
-Known red, still open: the 3 `test/web/unit/SearchPage.test.tsx` tests. Their `next/navigation` mock does not provide `usePathname`, which `useUnreadNotificationCount` now calls.
+~~Known red, still open: the 3 `test/web/unit/SearchPage.test.tsx` tests.~~ **Fixed 2026-10-18** (`433134b`). The test now stubs `useUnreadNotificationCount`, which was the hook calling `usePathname` and needing a QueryClient.
 
 Deferred, not this slice: draw `apps/web/app/icon.svg` in the center of the QR preview and all three downloads. The `qrcode` package has no logo option — raise error correction to `H`, composite the mark onto the PNG canvas and into the SVG string, keep it about 15–20% of the code width on a white pad, then scan a PNG and the SVG.
 
