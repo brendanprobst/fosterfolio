@@ -4,8 +4,13 @@ import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IInquiryRepository } from '@api/domain/repositories/IInquiryRepository';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
-import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
+import type {
+  ITrackedLinkRepository,
+  TrackedLinkRecord,
+} from '@api/domain/repositories/ITrackedLinkRepository';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
+import { linkCreditsInquiry } from '@api/domain/trackedLinks/linkCreditsInquiry';
+import { isUuid } from '@api/domain/value-objects/UserHandle';
 import type { TurnstileVerifier } from '@api/infrastructure/adapters/turnstile/verifyTurnstileToken';
 import { Logger } from '@api/utils/logger';
 import { dispatch, type DispatchDependencies } from '@lattice/notifications';
@@ -100,19 +105,11 @@ export class CreateInquiryUseCase {
         petName = pet.toListDto().name;
       }
 
-      let storedChannel = sourceChannelKey;
-      let linkLabel: string | null = null;
-      if (sourceLinkId) {
-        if (!targetPetId) {
-          return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
-        }
-        const link = await this.trackedLinkRepository.findById(sourceLinkId);
-        if (!link || link.petId !== targetPetId) {
-          return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
-        }
-        storedChannel = link.channelKey;
-        linkLabel = link.label;
-      }
+      const sourceLink = sourceLinkId
+        ? await this.findCreditedLink(sourceLinkId, target.id, targetPetId)
+        : null;
+      const storedChannel = sourceLink?.channelKey ?? sourceChannelKey;
+      const linkLabel = sourceLink?.label ?? null;
 
       const created = await this.inquiryRepository.create({
         targetUserId: target.id,
@@ -121,7 +118,7 @@ export class CreateInquiryUseCase {
         senderEmail,
         message,
         zipCode,
-        sourceLinkId,
+        sourceLinkId: sourceLink?.id ?? null,
         sourceChannelKey: storedChannel,
         viaFosterMe,
       });
@@ -164,6 +161,22 @@ export class CreateInquiryUseCase {
     } catch {
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  /**
+   * Attribution must never block contact: a link that can't be credited is dropped and the
+   * inquiry is saved without it. The id comes from the visitor's browser, so it's untrusted.
+   */
+  private async findCreditedLink(
+    linkId: string,
+    ownerId: string,
+    petId: string | null
+  ): Promise<TrackedLinkRecord | null> {
+    // A malformed id would make the uuid column lookup throw, failing the whole inquiry.
+    const link = isUuid(linkId) ? await this.trackedLinkRepository.findById(linkId) : null;
+    if (link && linkCreditsInquiry(link, { ownerId, petId })) return link;
+    Logger.warning('[inquiry] source link not credited; saving the inquiry without it');
+    return null;
   }
 }
 

@@ -19,34 +19,34 @@
 
 ## Summary table
 
-| ID | Sev | Area | Item |
-|---|---|---|---|
-| L1 | Critical | Logic | Foster-me link + pet inquiry is rejected with 400 |
-| CI | Critical | CI | Web unit + E2E jobs failing on the PR head |
-| S1 | High | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints |
-| S2 | High | Security | Source-token HMAC falls back to a hardcoded, committed secret |
-| S3 | High | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection) |
-| L2 | High | Logic | Owner self-views are captured before auth resolves |
-| S4 | Medium | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state |
-| S5 | Medium | Security | `mailto:` injection through sender email |
-| L3 | Medium | Logic | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates |
-| L4 | Medium | Logic | "Adopted freeze" is client-only; the rollup keeps rewriting numbers |
-| L5 | Medium | Logic/Perf | Rollup upsert: one row per request, silent truncation, partial writes |
-| L6 | Medium | Logic/UX | Turnstile client: submit does nothing silently; token not reset for retry |
-| S6 | Low | Infra | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour |
-| S7 | Low | Infra/Hygiene | Lambda zip build artifacts committed to git |
-| S8 | Low | Security | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey` |
-| L7 | Low | Logic | Metric semantics: conversion can exceed 100%; "approx visitors" is meaningless and hidden; UTC days |
-| L8 | Low | Perf/Data | Inbox does N+1 lookups; notification payload duplicates PII it then overwrites |
-| Q1 | Medium | DRY | Two near-identical rollup repositories; the coalesced key is defined 3 times |
-| Q2 | Medium | Structure | Two workspace packages built two different ways; 4 places to keep aliases in sync |
-| Q3 | Medium | Structure | `@lattice/analytics` isn't app-agnostic (pet-shaped rows, hardcoded referrer map) |
-| Q4 | Low | DRY | Link-code generation loop duplicated; self-reported source list duplicated API↔web |
-| Q5 | Low | Dead code | Pet-target link endpoints, `approx_visitors`, `analytics_stopped_at` are unused |
-| Q6 | Low | Structure | Migration symlinks + master snapshots duplicate about 2.3k lines of SQL |
-| Q7 | Low | Perf | Owner widget makes 3 requests where one summary would do |
-| Q8 | Low | Hygiene | PR is too large to review and the description is empty |
-| SPEC | — | Spec | Conformance, deviations, misses, scope creep (section 4) |
+| ID | Sev | Area | Item | Status |
+|---|---|---|---|---|
+| L1 | Critical | Logic | Foster-me link + pet inquiry is rejected with 400 | ✅ Fixed |
+| CI | Critical | CI | Web unit + E2E jobs failing on the PR head | Open |
+| S1 | High | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints | Open |
+| S2 | High | Security | Source-token HMAC falls back to a hardcoded, committed secret | Open |
+| S3 | High | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection) | Open |
+| L2 | High | Logic | Owner self-views are captured before auth resolves | Open |
+| S4 | Medium | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state | Open |
+| S5 | Medium | Security | `mailto:` injection through sender email | Open |
+| L3 | Medium | Logic | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates | Open |
+| L4 | Medium | Logic | "Adopted freeze" is client-only; the rollup keeps rewriting numbers | Open |
+| L5 | Medium | Logic/Perf | Rollup upsert: one row per request, silent truncation, partial writes | Open |
+| L6 | Medium | Logic/UX | Turnstile client: submit does nothing silently; token not reset for retry | Open |
+| S6 | Low | Infra | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour | Open |
+| S7 | Low | Infra/Hygiene | Lambda zip build artifacts committed to git | Open |
+| S8 | Low | Security | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey` | Open |
+| L7 | Low | Logic | Metric semantics: conversion can exceed 100%; "approx visitors" is meaningless and hidden; UTC days | Open |
+| L8 | Low | Perf/Data | Inbox does N+1 lookups; notification payload duplicates PII it then overwrites | Open |
+| Q1 | Medium | DRY | Two near-identical rollup repositories; the coalesced key is defined 3 times | Open |
+| Q2 | Medium | Structure | Two workspace packages built two different ways; 4 places to keep aliases in sync | Open |
+| Q3 | Medium | Structure | `@lattice/analytics` isn't app-agnostic (pet-shaped rows, hardcoded referrer map) | Open |
+| Q4 | Low | DRY | Link-code generation loop duplicated; self-reported source list duplicated API↔web | Open |
+| Q5 | Low | Dead code | Pet-target link endpoints, `approx_visitors`, `analytics_stopped_at` are unused | Open |
+| Q6 | Low | Structure | Migration symlinks + master snapshots duplicate about 2.3k lines of SQL | Open |
+| Q7 | Low | Perf | Owner widget makes 3 requests where one summary would do | Open |
+| Q8 | Low | Hygiene | PR is too large to review and the description is empty | Open |
+| SPEC | — | Spec | Conformance, deviations, misses, scope creep (section 4) | — |
 
 ---
 
@@ -145,6 +145,13 @@
 **Why it matters:** This is the flow 5b was built around: lawn sign → `foster-me?s=code` → tap a pet → inquire. Every attributed inquiry fails, and the error message points the visitor at the wrong fields. Nothing in the suite covers this combination.
 
 **Fix:** In the use case, accept a `foster_me` link when `link.ownerId === target.id`, and keep the `petId` check for `pet` links. Add a regression test. Separately, return a distinct error code or message for an invalid source, or drop a bad `sourceLinkId` and still accept the inquiry. Attribution should never block contact.
+
+**Status: ✅ Fixed** (2026-10-18, not yet committed)
+- New domain rule `apps/api/domain/trackedLinks/linkCreditsInquiry.ts`: a link counts only if it belongs to the inquiry's owner. Foster-me links count for any inquiry to that owner, pet or profile. Pet links count only for that pet. Archived links still count.
+- `CreateInquiryUseCase` drops a link that doesn't count and saves the inquiry without it (no more 400). It checks the id is a UUID before the lookup, and only uses the link's channel and label when the link counts, so another owner's label can't reach the notification.
+- Also fixes a second broken flow: arriving on a pet link, then inquiring from the owner's profile.
+- Tests in `test/api/inquiries.test.ts`: foster-me link on a pet inquiry and on a profile inquiry (channel and label come from the link), plus four cases where the link doesn't count (another owner's link, pet link on a profile inquiry, unknown id, malformed id). Removing the ownership check makes them fail.
+- Left for S8: when a link is dropped, the browser's `sourceChannelKey` is still stored as sent, and a non-string `sourceLinkId` / `zipCode` / `sourceChannelKey` still causes a 500 (an existing bug).
 
 ### L2 — Owner self-views captured on refresh · High
 
@@ -340,7 +347,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 
 ## 6. Suggested order before merge
 
-1. **L1**: Fix the foster-me inquiry check and add a regression test.
+1. ~~**L1**: Fix the foster-me inquiry check and add a regression test.~~ ✅ Done
 2. **CI**: Fix the `usePathname` mock and the notifications package resolution (Q2).
 3. **S1 / S2**: Wire `TURNSTILE_SECRET_KEY`, `INQUIRY_SOURCE_TOKEN_SECRET`, SES and `WEB_ORIGIN` through SSM, and fail closed in production.
 4. **S3**: Validate and skip rollup rows, encode filter values, add an alarm (S6).

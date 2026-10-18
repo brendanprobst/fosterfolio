@@ -107,7 +107,7 @@ describe('Inquiries API', () => {
     expect(container.notificationRepository.records[0]?.emailedAt).toBeNull();
   });
 
-  it('stores zip and source, rejects a link for another pet, and accepts an archived link', async () => {
+  it('stores zip and source, drops a link for another pet, and accepts an archived link', async () => {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'foster@example.com' });
     const token = await createAuthToken(ownerId, 'foster@example.com');
@@ -143,9 +143,11 @@ describe('Inquiries API', () => {
         sourceLinkId: linkRes.body.id,
         sourceChannelKey: 'instagram',
       })
-      .expect(400);
-    expect(mismatch.body.error.code).toBe('INQUIRY_INVALID_INPUT');
-    expect(container.inquiryRepository.records).toHaveLength(0);
+      .expect(201);
+    expect(inquiryById(container, mismatch.body.id)).toMatchObject({
+      sourceLinkId: null,
+      sourceChannelKey: 'instagram',
+    });
 
     const sent: EmailMessage[] = [];
     container.setEmailAdapter({
@@ -168,12 +170,121 @@ describe('Inquiries API', () => {
       .expect(201);
 
     expect(res.body.sourceToken).toEqual(expect.any(String));
-    expect(container.inquiryRepository.records[0]).toMatchObject({
+    expect(inquiryById(container, res.body.id)).toMatchObject({
       zipCode: '94107',
       sourceLinkId: linkRes.body.id,
       sourceChannelKey: 'instagram',
     });
     expect(sent[0]?.text).not.toContain('94107');
+  });
+
+  it('credits a foster-me link on a pet inquiry and on a profile inquiry', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    const token = await createAuthToken(ownerId, 'foster@example.com');
+    const pet = await request(app)
+      .post('/pets')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Mochi', species: 'dog' })
+      .expect(201);
+    const link = await request(app)
+      .post('/me/links')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ channelKey: 'lawn_sign', label: 'Front yard' })
+      .expect(201);
+    container.setEmailAdapter({ send: async () => {} });
+
+    const viaPet = await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        targetPetId: pet.body.id,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Saw your lawn sign, can I meet Mochi?',
+        sourceLinkId: link.body.id,
+        sourceChannelKey: 'wrong',
+        viaFosterMe: true,
+      })
+      .expect(201);
+    expect(inquiryById(container, viaPet.body.id)).toMatchObject({
+      targetPetId: pet.body.id,
+      sourceLinkId: link.body.id,
+      sourceChannelKey: 'lawn_sign',
+      viaFosterMe: true,
+    });
+    expect(notificationFor(container, viaPet.body.id)?.payload).toMatchObject({
+      linkLabel: 'Front yard',
+      sourceChannelKey: 'lawn_sign',
+    });
+
+    const viaProfile = await request(app)
+      .post('/inquiries')
+      .send({
+        targetUserId: ownerId,
+        senderName: 'Jamie',
+        senderEmail: 'jamie@example.com',
+        message: 'Saw your lawn sign, who is available?',
+        sourceLinkId: link.body.id,
+        sourceChannelKey: 'lawn_sign',
+      })
+      .expect(201);
+    expect(inquiryById(container, viaProfile.body.id)).toMatchObject({
+      targetPetId: null,
+      sourceLinkId: link.body.id,
+      sourceChannelKey: 'lawn_sign',
+    });
+  });
+
+  it('saves the inquiry without the link when the link cannot be credited', async () => {
+    const { app, container } = createTestAppWithContainer();
+    const otherOwnerId = '22222222-2222-4222-8222-222222222222';
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    container.seedUser({ id: otherOwnerId, email: 'other@example.com' });
+    const token = await createAuthToken(ownerId, 'foster@example.com');
+    const otherToken = await createAuthToken(otherOwnerId, 'other@example.com');
+    const pet = await request(app)
+      .post('/pets')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Mochi', species: 'dog' })
+      .expect(201);
+    const petLink = await request(app)
+      .post(`/pets/${pet.body.id}/links`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ channelKey: 'flyer' })
+      .expect(201);
+    const otherOwnersLink = await request(app)
+      .post('/me/links')
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ channelKey: 'instagram' })
+      .expect(201);
+
+    const cases = [
+      { label: "another owner's link", sourceLinkId: otherOwnersLink.body.id, targetPetId: pet.body.id },
+      { label: 'a pet link on a profile inquiry', sourceLinkId: petLink.body.id, targetPetId: undefined },
+      { label: 'an unknown link', sourceLinkId: '33333333-3333-4333-8333-333333333333', targetPetId: pet.body.id },
+      { label: 'a malformed link id', sourceLinkId: 'not-a-uuid', targetPetId: pet.body.id },
+    ];
+    for (const { label, sourceLinkId, targetPetId } of cases) {
+      const res = await request(app)
+        .post('/inquiries')
+        .send({
+          targetUserId: ownerId,
+          ...(targetPetId ? { targetPetId } : {}),
+          senderName: 'Jamie',
+          senderEmail: 'jamie@example.com',
+          message: `Hello via ${label}`,
+          sourceLinkId,
+          sourceChannelKey: 'instagram',
+        });
+      expect({ label, status: res.status }).toEqual({ label, status: 201 });
+      expect(inquiryById(container, res.body.id)).toMatchObject({
+        sourceLinkId: null,
+        sourceChannelKey: 'instagram',
+      });
+      // Another owner's link label must not reach this owner's inbox.
+      expect(notificationFor(container, res.body.id)?.payload).toMatchObject({ linkLabel: null });
+    }
   });
 
   it('accepts an inquiry with no Turnstile token when the secret is unset', async () => {
@@ -255,3 +366,14 @@ describe('Inquiries API', () => {
     expect(record!.selfReportedSource).toBeNull();
   });
 });
+
+function inquiryById(container: ReturnType<typeof createTestAppWithContainer>['container'], id: string) {
+  return container.inquiryRepository.records.find((row) => row.id === id);
+}
+
+function notificationFor(
+  container: ReturnType<typeof createTestAppWithContainer>['container'],
+  inquiryId: string
+) {
+  return container.notificationRepository.records.find((row) => row.entityId === inquiryId);
+}
