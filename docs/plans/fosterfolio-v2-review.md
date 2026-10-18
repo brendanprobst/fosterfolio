@@ -347,3 +347,27 @@ None of this is necessarily bad, but it widens the review and the risk:
 5. **L2**: Gate capture on auth having resolved.
 6. **S5, L3**: Harden email validation and reserve system channel keys.
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
+
+---
+
+# Nice to have's
+
+Non-critical improvements, not blocking merge. Add to this list as they come up.
+
+### N1 — Animated feedback on each step of the inquiry submit flow
+
+**Where:** `apps/web/client/features/inquiries/` — `InquiryForm.tsx`, `ExpandableInquiryForm.tsx`, `InquiryCta.tsx`. Also tracked in [`todo.md` §3](./todo.md). Not started.
+
+**Today:** `onSubmit` already runs through distinct steps (Turnstile verify → `ensureAttribution()` → `POST /inquiries` → success → optional "How did you hear about {pet}?"), but the visitor only sees the button flip to "Sending…". Every transition is a hard swap: the expand dialog closes and the card switches to a static "Inquiry sent" alert in the same tick, and the source question vanishes silently once answered.
+
+**Plan:**
+
+1. **Explicit phase state in `InquiryForm`.** `phase: "idle" | "verifying" | "sending"`, set at each `await` and reset on error. Disable the fieldset on `phase !== "idle" || mutation.isPending` — today the form stays editable during the Turnstile wait (pairs with L6's no-feedback issue).
+2. **New `SubmitProgress.tsx`.** Inline stepper under the submit button: *Checking* (only when Turnstile is configured) → *Sending* → *Sent*. Active step shows a spinning `Loader2`; each completed step swaps to a `Check` that pops in (`animate-in zoom-in-50 fade-in`), with the connector filling via a width transition. `role="status" aria-live="polite"` so each step is announced.
+3. **Success beat.** Animated check badge on the sent alert (circle scales in, SVG check draws via a `stroke-dashoffset` keyframe in `globals.css`); alert fades and slides up, source question follows ~150 ms later. Answering or skipping shows a small "Thanks!" check instead of disappearing.
+4. **Wrapper transitions.** Delay the parent's `onSuccess` by ~600 ms (0 under reduced motion) so the *Sent* check finishes before `ExpandableInquiryForm`'s dialog closes or `InquiryCta`'s sheet swaps to success. The floating "✓ Inquiry sent" pill gets a fade/zoom-in plus one `motion-safe:animate-ping` ring, the same pattern as `LinksHero.tsx`.
+5. **Tests.** Keep the `"Inquiry sent"` and "How did you hear about …?" strings — unit and E2E specs assert on them. Add unit cases for the progress row (sending → sent, error resets and keeps the draft) and update `ExpandableInquiryForm.test.tsx` for the delayed close. Put the reduced-motion check and delay in a small `motion.ts` helper so tests can force a 0 ms delay.
+
+**Constraints:** CSS only — `tw-animate-css` is already imported in `globals.css` and drives the dialog/sheet transitions, so no new dependency. Every animation gets `motion-safe:` / `motion-reduce:` variants, matching `LinksHero` and `FosterMePreview`.
+
+**Verify:** `npm run test:web:unit`, the inquiry E2E specs, then a manual pass on pet bio (desktop card, expanded dialog, mobile sheet), public profile and foster-me, with OS reduced motion both on and off.
