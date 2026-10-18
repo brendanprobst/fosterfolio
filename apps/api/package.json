@@ -6,7 +6,9 @@
     "build": "tsc",
     "build:lambda": "esbuild lambda.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/index.js && esbuild analyticsRollup.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/rollup.js",
     "start": "node ./dist/bin/www.js",
+    "predev": "npm run build -w @lattice/notifications",
     "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only ./bin/www.ts",
+    "predev:prod": "npm run build -w @lattice/notifications",
     "dev:prod": "FOSTERFOLIO_ENV=prod ts-node-dev -r tsconfig-paths/register --respawn --transpile-only ./bin/www.ts",
     "type-check": "tsc --noEmit && tsc --noEmit -p tsconfig.rollup.json"
   },

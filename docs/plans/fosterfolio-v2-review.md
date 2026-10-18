@@ -22,7 +22,7 @@
 | ID | Sev | Area | Item | Status |
 |---|---|---|---|---|
 | L1 | Critical | Logic | Foster-me link + pet inquiry is rejected with 400 | ✅ Fixed |
-| CI | Critical | CI | Web unit + E2E jobs failing on the PR head | Open |
+| CI | Critical | CI | Web unit + E2E jobs failing on the PR head | ✅ Fixed |
 | S1 | High | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints | Open |
 | S2 | High | Security | Source-token HMAC falls back to a hardcoded, committed secret | Open |
 | S3 | High | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection) | Open |
@@ -343,12 +343,18 @@ None of this is necessarily bad, but it widens the review and the risk:
 | `web-e2e` | ❌ | `Cannot find module …/node_modules/@lattice/notifications/dist/index.js`. The API dev server can't start because the package was never built (Q2). |
 | `terraform` | skipped | — |
 
+**Status: ✅ Fixed** (2026-10-18, not yet committed; verified locally, not yet on GitHub CI)
+- **Web unit:** adding `usePathname` to the mock isn't enough. The test then fails with "No QueryClient set", because the header's inbox badge (`useUnreadNotificationCount`) uses React Query. `SearchPage.test.tsx` now stubs that hook, the same way `AppHeader.test.tsx` does. `usePathname` is only called inside that hook, so it doesn't need mocking.
+- **E2E:** `apps/api/package.json` gained `predev` and `predev:prod` hooks that build `@lattice/notifications` before `ts-node-dev` starts. npm runs these for `npm run dev -w @lattice/api` (Playwright's server command) and for `turbo run dev`, so a fresh clone works too.
+- Verified locally: with `packages/notifications/dist` deleted, the API dev server reproduces the CI error before the fix and starts after it. `npm run test:web:e2e` passes 19/19 from that clean state. `npm run ci` passes (Jest 267/267, web unit 58/58 files).
+- Still open under Q2: editing `packages/notifications/src` during `npm run dev` isn't picked up until a restart, and `deploy-aws.mjs` / `build:lambda` can still bundle a stale `dist/`. The structural fix is to pick one build model for both packages.
+
 ---
 
 ## 6. Suggested order before merge
 
 1. ~~**L1**: Fix the foster-me inquiry check and add a regression test.~~ ✅ Done
-2. **CI**: Fix the `usePathname` mock and the notifications package resolution (Q2).
+2. ~~**CI**: Fix the `usePathname` mock and the notifications package resolution (Q2).~~ ✅ Done (the Q2 restructure itself is still open)
 3. **S1 / S2**: Wire `TURNSTILE_SECRET_KEY`, `INQUIRY_SOURCE_TOKEN_SECRET`, SES and `WEB_ORIGIN` through SSM, and fail closed in production.
 4. **S3**: Validate and skip rollup rows, encode filter values, add an alarm (S6).
 5. **L2**: Gate capture on auth having resolved.
