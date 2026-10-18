@@ -1,7 +1,3 @@
----
-description: Session fix — /session-fix or @Rules to apply only the quick fixes from a session review
-alwaysApply: false
----
 # Session fix (global)
 
 Apply only the **fix now** items from a session review. This is not a feature pass and not the next-session itinerary.

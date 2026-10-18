@@ -1,11 +1,6 @@
 ---
-description: Infra expert — adapters, composition root, config, seed (auto when editing infra/config)
-globs:
-  - "apps/api/infrastructure/**"
-  - "apps/api/config/**"
-  - "apps/web/client/lib/**"
+paths:
   - "seed.json"
-alwaysApply: false
 ---
 # Infrastructure expert (this repo)
 

@@ -1,7 +1,3 @@
----
-description: Session next — /session-next or @Rules to append the session stop to docs/plans/sessions/log.md and commit it with a SESSION trailer
-alwaysApply: false
----
 # Session next (global)
 
 Write the stop record and commit it. Do not start the next session's work. Do not put code fixes in this commit.

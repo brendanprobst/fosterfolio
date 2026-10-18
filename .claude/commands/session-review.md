@@ -1,7 +1,3 @@
----
-description: Session review — /session-review or @Rules to re-read every file from a work session across chats and git history, without editing
-alwaysApply: false
----
 # Session review (global)
 
 Re-read the work from this stretch. Report only. Do not edit code, tests, or plan files. Do not commit.

@@ -1,7 +1,3 @@
----
-description: Session close-out — /session or @Rules after a stretch of agent work to re-review files touched, take a brain dump, and commit a session-log stop with a SESSION trailer
-alwaysApply: false
----
 # Session close-out (global)
 
 Use when a stretch of work is finished and the user wants a full re-pass before stopping. The stretch may be one chat, or several agents, closed chats, and a long git history.
