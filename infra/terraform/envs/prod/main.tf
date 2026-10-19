@@ -202,6 +202,17 @@ resource "aws_apigatewayv2_route" "root" {
   target    = "integrations/${aws_apigatewayv2_integration.api_lambda.id}"
 }
 
+# Unauthenticated routes get their own route (same Lambda) so they can carry tighter throttles than
+# the proxy. Each route has its own budget, so a flood on one can't use up the limit for the rest of
+# the API. HTTP APIs can't throttle per client IP, so this caps the route for everyone together.
+resource "aws_apigatewayv2_route" "public" {
+  for_each = var.api_gateway_public_route_throttles
+
+  api_id    = aws_apigatewayv2_api.api_http.id
+  route_key = each.key
+  target    = "integrations/${aws_apigatewayv2_integration.api_lambda.id}"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.api_http.id
   name        = "$default"
@@ -211,11 +222,22 @@ resource "aws_apigatewayv2_stage" "default" {
   depends_on = [
     aws_apigatewayv2_route.root,
     aws_apigatewayv2_route.proxy,
+    aws_apigatewayv2_route.public,
   ]
 
   default_route_settings {
     throttling_rate_limit  = var.api_gateway_throttling_rate_limit
     throttling_burst_limit = var.api_gateway_throttling_burst_limit
+  }
+
+  dynamic "route_settings" {
+    for_each = var.api_gateway_public_route_throttles
+
+    content {
+      route_key              = route_settings.key
+      throttling_rate_limit  = route_settings.value.rate_limit
+      throttling_burst_limit = route_settings.value.burst_limit
+    }
   }
 }
 

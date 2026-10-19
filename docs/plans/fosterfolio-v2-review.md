@@ -23,7 +23,7 @@
 | ---- | -------- | -------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------- |
 | L1   | Critical | Logic          | Foster-me link + pet inquiry is rejected with 400                                                     | ✅ Fixed                               |
 | CI   | Critical | CI             | Web unit + E2E jobs failing on the PR head                                                            | ✅ Fixed                               |
-| S1   | High     | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints                                    | ✅ Fixed                               |
+| S1   | High     | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints                                    | ✅ Fixed (route-level, not per-IP)     |
 | S2   | High     | Security       | Source-token HMAC falls back to a hardcoded, committed secret                                         | ✅ Fixed (needs manual SSM setup)      |
 | S3   | High     | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection)             | ✅ Fixed                               |
 | L2   | High     | Logic          | Owner self-views are captured before auth resolves                                                    | ✅ Fixed                               |
@@ -67,13 +67,18 @@
 - **Fail closed** when `NODE_ENV=production` and the secret is missing, instead of skipping the check.
 - Add an API Gateway throttle, or a per-IP limit, on the three public routes.
 
-**Status: 🟡 Partial** (2026-10-18, not yet committed)
+**Status: ✅ Fixed** (2026-10-18, not yet committed; Turnstile needs the manual SSM setup, throttles need `terraform apply`)
 
 - **Done: Turnstile fails closed in production.** `readInquirySecrets` (`apps/api/infrastructure/composition/inquiries.ts`) makes the API refuse to start when `NODE_ENV=production` and `TURNSTILE_SECRET_KEY` is missing. This is the same pattern as the Supabase check in `Container`. Turnstile is skipped only outside production.
 - **Done: wiring.** The Lambda loads the secret from the SSM SecureString `/<project>-<env>/inquiries/turnstile_secret_key`. `loadEnvFromSsm` in `lambdaEnv.ts` now handles any `NAME` / `NAME_PARAM` pair. Terraform passes only the parameter name and grants `ssm:GetParameter`; the value is created by hand, so it never enters tfstate. Both deploy paths (`scripts/deploy-env.mjs`, `deploy-app.yml`) stop the web build when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is missing.
 - **Docs:** setup and troubleshooting in `docs/deploy-aws.md` → "Inquiry secrets".
 - **Correction to this finding:** the API Gateway stage already has a _global_ throttle (`api_gateway_throttling_rate_limit` = 10 rps, burst 20). The real gap is that the limit isn't per route or per IP, so one client can use the whole budget and lock everyone out.
-- **Still open:** per-route or per-IP limits on `POST /inquiries`, `PATCH /inquiries/:id/self-reported-source` and `GET /links/resolve/:code`; SES (`EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM) and `WEB_ORIGIN` on the Lambda; a `siteverify` timeout (L6).
+- **Done: per-route throttles.** The three public routes are now their own API Gateway routes on the same Lambda, each throttled separately from the `ANY /{proxy+}` default. Defaults, set by the `api_gateway_public_route_throttles` variable (dev and prod): `POST /inquiries` and `PATCH /inquiries/{id}/self-reported-source` at 1 rps / burst 5, `GET /links/resolve/{code}` at 2 rps / burst 10. Every route has its own budget, so a flood on these three can't starve sign-in, the dashboard or the inbox. `terraform validate` passes in both envs. `terraform plan` on dev (`-refresh=false`) shows 3 routes to add and the stage updated in place, nothing destroyed. That plan also wanted to blank `POSTHOG_PERSONAL_API_KEY` on the rollup Lambda. That's only because it ran without Infisical, so the key fell back to its `""` default. A normal `infisical run -- npm run deploy:aws` passes the real key. Running `terraform apply` by hand without Infisical would empty the key and break the rollup (another reason to do S4).
+- **Decision: no per-IP limit.** HTTP APIs (v2) can't throttle per client and don't support WAF. Per-IP limits would mean putting CloudFront + WAF in front of the API (about $6/month or more against the $10 budget) or adding a shared counter in Supabase. Turnstile already costs something per inquiry, and the other two routes are small or token-gated. The route caps are shared by everyone, so a flood can still lock real visitors out of *those* routes for as long as it lasts. If abuse shows up, revisit with WAF.
+- **Known gaps:**
+  - `POST /inquiries/` (trailing slash) doesn't match the route key. It goes to the proxy and gets the looser stage limit. Turnstile still gates it.
+  - A throttled request gets API Gateway's 429 without Express's CORS headers, so the browser reports a network error and the form shows its generic failure message.
+- **Still open (not part of this finding):** SES (`EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM) and `WEB_ORIGIN` on the Lambda, tracked in the section 4 "Missed" table; a `siteverify` timeout (L6).
 - **Note for S6:** the analytics rollup shares `aws_iam_role.api_lambda`, so it can now read these two parameters as well.
 
 ### S2 — Source-token HMAC falls back to a hardcoded secret · High
@@ -416,7 +421,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 
 1. ~~**L1**: Fix the foster-me inquiry check and add a regression test.~~ ✅ Done
 2. ~~**CI**: Fix the `usePathname` mock and the notifications package resolution (Q2).~~ ✅ Done (the Q2 restructure itself is still open)
-3. **S1 / S2**: ~~Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, and fail closed in production~~ ✅ Done. Still open: per-route rate limits, SES and `WEB_ORIGIN`.
+3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
 6. **S5, L3**: Harden email validation and reserve system channel keys.

@@ -132,6 +132,23 @@ variable "api_gateway_throttling_burst_limit" {
   default     = 20
 }
 
+variable "api_gateway_public_route_throttles" {
+  description = <<-EOT
+    Throttles for the unauthenticated routes, keyed by HTTP API route key. Each key becomes its own
+    route on the API Lambda, with a budget separate from the default stage limit. The limit is shared
+    by every caller of that route (HTTP APIs can't throttle per client IP).
+  EOT
+  type = map(object({
+    rate_limit  = number
+    burst_limit = number
+  }))
+  default = {
+    "POST /inquiries"                            = { rate_limit = 1, burst_limit = 5 }
+    "PATCH /inquiries/{id}/self-reported-source" = { rate_limit = 1, burst_limit = 5 }
+    "GET /links/resolve/{code}"                  = { rate_limit = 2, burst_limit = 10 }
+  }
+}
+
 variable "api_cors_extra_origins" {
   description = "Optional comma-separated extra browser origins for the Express CORS middleware (e.g. https://app.example.com). The deployed CloudFront HTTPS origin and local dev (3001) origins are always included."
   type        = string

@@ -22,6 +22,13 @@ email_allowlist_enabled = true
 # api_lambda_reserved_concurrency = 5 # optional; only if account has spare regional concurrency, so copying the example does not force reservation
 api_gateway_throttling_rate_limit = 10
 api_gateway_throttling_burst_limit = 20
+# Optional: override the per-route limits on the unauthenticated routes (defaults in variables.tf).
+# Any route you leave out of the map loses its own throttle and falls back to the stage default.
+# api_gateway_public_route_throttles = {
+#   "POST /inquiries"                            = { rate_limit = 1, burst_limit = 5 }
+#   "PATCH /inquiries/{id}/self-reported-source" = { rate_limit = 1, burst_limit = 5 }
+#   "GET /links/resolve/{code}"                  = { rate_limit = 2, burst_limit = 10 }
+# }
 
 enable_budget_alerts         = true
 monthly_cost_budget_limit_usd = 10
