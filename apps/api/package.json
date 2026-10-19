@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
+    "prebuild:lambda": "npm run build -w @lattice/notifications",
     "build:lambda": "esbuild lambda.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/index.js && esbuild analyticsRollup.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/rollup.js",
     "start": "node ./dist/bin/www.js",
     "predev": "npm run build -w @lattice/notifications",
