@@ -63,7 +63,7 @@
  *           type: string
  *     responses:
  *       200:
- *         description: linkId, channelKey, target, petId, and ownerId
+ *         description: linkId, channelKey, target, and petId
  *       404:
  *         description: Unknown code
  * /me/links:

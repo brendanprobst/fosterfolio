@@ -10,6 +10,7 @@ import { Result } from '@api/domain/errors/Result';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
 import { generateTrackedLinkCode } from '@api/domain/trackedLinks/generateTrackedLinkCode';
+import { isValidTrackedLinkLabel } from '@api/domain/trackedLinks/trackedLinkLabel';
 
 export type CreateTrackedLinkCommand = {
   channelKey?: string | null;
@@ -37,7 +38,7 @@ export class CreateTrackedLinkUseCase {
     if (!channel || !petId?.trim()) {
       return Result.failure(ErrorCatalog.TRACKED_LINK_INVALID_INPUT);
     }
-    if (input.label != null && typeof input.label !== 'string') {
+    if (!isValidTrackedLinkLabel(input.label)) {
       return Result.failure(ErrorCatalog.TRACKED_LINK_INVALID_INPUT);
     }
 

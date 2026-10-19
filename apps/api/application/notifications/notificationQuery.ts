@@ -1,4 +1,5 @@
 import type { NotificationCursor, NotificationStatus } from '@api/domain/repositories/INotificationRepository';
+import { isUuid } from '@api/domain/value-objects/UserHandle';
 
 export function parseNotificationStatus(raw: string | undefined): NotificationStatus | null {
   if (raw == null || raw === '' || raw === 'unread') return 'unread';
@@ -23,6 +24,18 @@ export function encodeNotificationCursor(cursor: NotificationCursor): string {
   return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
 }
 
+/** What Postgres timestamptz (`…:56.123456+00:00`) and `toISOString()` (`…:56.123Z`) emit. */
+const CURSOR_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
+
+function isCursorTimestamp(value: string): boolean {
+  return CURSOR_TIMESTAMP_RE.test(value) && !Number.isNaN(Date.parse(value));
+}
+
+/**
+ * The cursor comes back from the client and its fields go into a PostgREST `or=(…)` filter.
+ * PostgREST parses that grammar after URL-decoding, so encoding alone doesn't stop a field from
+ * closing the group. Accept only the shapes the server hands out: an ISO timestamp and a UUID.
+ */
 export function decodeNotificationCursor(raw: string | undefined): NotificationCursor | null {
   if (!raw) return null;
   try {
@@ -31,7 +44,7 @@ export function decodeNotificationCursor(raw: string | undefined): NotificationC
       id?: unknown;
     };
     if (typeof parsed.createdAt !== 'string' || typeof parsed.id !== 'string') return null;
-    if (!parsed.createdAt || !parsed.id) return null;
+    if (!isCursorTimestamp(parsed.createdAt) || !isUuid(parsed.id)) return null;
     return { createdAt: parsed.createdAt, id: parsed.id };
   } catch {
     return null;

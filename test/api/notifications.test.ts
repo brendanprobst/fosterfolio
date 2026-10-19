@@ -109,6 +109,39 @@ describe('Notifications API', () => {
     ).toHaveLength(0);
   });
 
+  it('pages with the cursor it hands out and rejects a forged one', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    const token = await createAuthToken(ownerId, 'foster@example.com');
+    await sendInquiry(app);
+    await sendInquiry(app);
+
+    const first = await request(app)
+      .get('/me/notifications?status=all&limit=1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(first.body.items).toHaveLength(1);
+    expect(first.body.nextCursor).toEqual(expect.any(String));
+    const second = await request(app)
+      .get('/me/notifications')
+      .query({ status: 'all', limit: 1, cursor: first.body.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(second.body.items).toHaveLength(1);
+    expect(second.body.items[0].id).not.toBe(first.body.items[0].id);
+
+    const forged = Buffer.from(
+      JSON.stringify({ createdAt: '2026-10-18T00:00:00Z),id.gt.(0', id: 'x' }),
+      'utf8'
+    ).toString('base64url');
+    const rejected = await request(app)
+      .get('/me/notifications')
+      .query({ status: 'all', cursor: forged })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+    expect(rejected.body.error.code).toBe('NOTIFICATION_INVALID_INPUT');
+  });
+
   it('marks a read notification unread and keeps the first read timestamp', async () => {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'foster@example.com' });

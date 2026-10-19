@@ -58,6 +58,20 @@ export function slugifyChannelName(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+/** Longest custom channel name, in characters. The DB checks the same bound. */
+export const CHANNEL_NAME_MAX_LENGTH = 40;
+
+/**
+ * Longest stored channel_key. The DB checks the same bound, and inquiries drop longer keys.
+ * Lowercasing can lengthen a few letters, so a name within its limit can still slug past this.
+ */
+export const CHANNEL_KEY_MAX_LENGTH = 64;
+
+/** Characters (code points), matching Postgres `char_length` rather than UTF-16 units. */
+export function charLength(value: string): number {
+  return Array.from(value).length;
+}
+
 export type ResolvedChannel = {
   key: string;
   name: string;
@@ -68,8 +82,13 @@ export function resolveChannel(input: {
   channelKey?: string | null | undefined;
   channelName?: string | null | undefined;
 }): ResolvedChannel | null {
-  const key = input.channelKey?.trim() ?? '';
-  const name = input.channelName?.trim() ?? '';
+  // Controllers pass request bodies through untyped, so anything can arrive here.
+  const rawKey: unknown = input.channelKey;
+  const rawName: unknown = input.channelName;
+  if (rawKey != null && typeof rawKey !== 'string') return null;
+  if (rawName != null && typeof rawName !== 'string') return null;
+  const key = rawKey?.trim() ?? '';
+  const name = rawName?.trim() ?? '';
   const slug = slugifyChannelName(name);
 
   if (RESERVED_KEYS.has(key.toLowerCase()) || RESERVED_KEYS.has(slug)) {
@@ -83,7 +102,7 @@ export function resolveChannel(input: {
     }
   }
 
-  if (!slug) {
+  if (!slug || charLength(name) > CHANNEL_NAME_MAX_LENGTH) {
     return null;
   }
 
@@ -94,5 +113,8 @@ export function resolveChannel(input: {
     return { key: preset.key, name: preset.name, isPreset: true };
   }
 
+  if (charLength(slug) > CHANNEL_KEY_MAX_LENGTH) {
+    return null;
+  }
   return { key: slug, name, isPreset: false };
 }

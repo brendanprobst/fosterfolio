@@ -1,4 +1,4 @@
-import { CHANNEL_PRESETS } from '@api/domain/channels/channelPresets';
+import { CHANNEL_NAME_MAX_LENGTH, CHANNEL_PRESETS } from '@api/domain/channels/channelPresets';
 import { CreateOwnerLinkUseCase } from '@api/application/use-cases/CreateOwnerLinkUseCase';
 import { CreateTrackedLinkUseCase } from '@api/application/use-cases/CreateTrackedLinkUseCase';
 import { ListChannelsUseCase } from '@api/application/use-cases/ListChannelsUseCase';
@@ -7,6 +7,7 @@ import { ListTrackedLinksUseCase } from '@api/application/use-cases/ListTrackedL
 import { ResolveTrackedLinkUseCase } from '@api/application/use-cases/ResolveTrackedLinkUseCase';
 import { UpdateTrackedLinkUseCase } from '@api/application/use-cases/UpdateTrackedLinkUseCase';
 import { TrackedLink } from '@api/domain/entities/TrackedLink';
+import { TRACKED_LINK_LABEL_MAX_LENGTH } from '@api/domain/trackedLinks/trackedLinkLabel';
 import { User } from '@api/domain/entities/User';
 import { InMemoryPetRepository } from '@api/infrastructure/repositories/InMemoryPetRepository';
 import { InMemoryTrackedLinkRepository } from '@api/infrastructure/repositories/InMemoryTrackedLinkRepository';
@@ -183,7 +184,7 @@ describe('tracked link use cases', () => {
       expect(unknown.getError().code).toBe('TRACKED_LINK_NOT_FOUND');
     });
 
-    it('returns linkId, channelKey, and petId for an archived code', async () => {
+    it('returns linkId, channelKey, target and petId (never ownerId) for an archived code', async () => {
       const pet = await seedPet(pets, 'owner-1');
       const created = await createLink.execute('owner-1', pet.id, { channelKey: 'facebook' });
       expect(created.isFailure()).toBe(false);
@@ -199,7 +200,6 @@ describe('tracked link use cases', () => {
         channelKey: 'facebook',
         target: 'pet',
         petId: pet.id,
-        ownerId: 'owner-1',
       });
     });
   });
@@ -321,7 +321,6 @@ describe('tracked link use cases', () => {
         channelKey: 'instagram',
         target: 'foster_me',
         petId: null,
-        ownerId: 'owner-1',
       });
     });
 
@@ -395,6 +394,94 @@ describe('tracked link use cases', () => {
       });
       expect(patched.isFailure()).toBe(true);
       expect(patched.getError().code).toBe('TRACKED_LINK_INVALID_INPUT');
+    });
+  });
+
+  describe('input bounds', () => {
+    const longName = 'v'.repeat(CHANNEL_NAME_MAX_LENGTH + 1);
+    const label = (length: number) => 'l'.repeat(length);
+
+    function createOwnerLink() {
+      const users = new InMemoryUserRepository();
+      users.seed(ownerUser('owner-1', 'Alex Foster'));
+      return new CreateOwnerLinkUseCase(links, users);
+    }
+
+    it('caps labels at TRACKED_LINK_LABEL_MAX_LENGTH characters after trimming', async () => {
+      expect(TRACKED_LINK_LABEL_MAX_LENGTH).toBe(100);
+      const pet = await seedPet(pets, 'owner-1');
+      const createOwner = createOwnerLink();
+
+      const petAtLimit = await createLink.execute('owner-1', pet.id, {
+        channelKey: 'flyer',
+        label: `  ${label(100)}  `,
+      });
+      expect(petAtLimit.getValue().label).toBe(label(100));
+      const ownerAtLimit = await createOwner.execute('owner-1', {
+        channelKey: 'flyer',
+        label: label(100),
+      });
+      expect(ownerAtLimit.getValue().label).toBe(label(100));
+
+      const results = [
+        await createLink.execute('owner-1', pet.id, { channelKey: 'flyer', label: label(101) }),
+        await createOwner.execute('owner-1', { channelKey: 'flyer', label: label(101) }),
+        await updateLink.execute('owner-1', ownerAtLimit.getValue().id, { label: label(101) }),
+        await updateLink.execute('owner-1', ownerAtLimit.getValue().id, {
+          label: label(100_000),
+        }),
+      ];
+      for (const result of results) {
+        expect(result.isFailure()).toBe(true);
+        expect(result.getError().code).toBe('TRACKED_LINK_INVALID_INPUT');
+      }
+      expect((await links.findById(ownerAtLimit.getValue().id))?.label).toBe(label(100));
+    });
+
+    it('rejects a custom channel name over the limit on create and update', async () => {
+      const pet = await seedPet(pets, 'owner-1');
+      const createOwner = createOwnerLink();
+      const existing = await createOwner.execute('owner-1', { channelKey: 'flyer' });
+
+      const results = [
+        await createLink.execute('owner-1', pet.id, { channelName: longName }),
+        await createOwner.execute('owner-1', { channelName: longName }),
+        await updateLink.execute('owner-1', existing.getValue().id, { channelName: longName }),
+      ];
+      for (const result of results) {
+        expect(result.isFailure()).toBe(true);
+        expect(result.getError().code).toBe('TRACKED_LINK_INVALID_INPUT');
+      }
+      expect((await links.findById(existing.getValue().id))?.channelKey).toBe('flyer');
+    });
+
+    it('rejects non-string channel input with 400 instead of throwing', async () => {
+      const pet = await seedPet(pets, 'owner-1');
+      const createOwner = createOwnerLink();
+      const existing = await createOwner.execute('owner-1', { channelKey: 'flyer' });
+      const bad = { channelName: 42 as unknown as string };
+
+      const results = [
+        await createLink.execute('owner-1', pet.id, bad),
+        await createOwner.execute('owner-1', bad),
+        await updateLink.execute('owner-1', existing.getValue().id, bad),
+      ];
+      for (const result of results) {
+        expect(result.isFailure()).toBe(true);
+        expect(result.getError().code).toBe('TRACKED_LINK_INVALID_INPUT');
+      }
+    });
+
+    it('shortens a long display name so the default label still fits', async () => {
+      const users = new InMemoryUserRepository();
+      users.seed(ownerUser('owner-1', 'A'.repeat(500)));
+      const createOwner = new CreateOwnerLinkUseCase(links, users);
+
+      const created = await createOwner.execute('owner-1', { isDefault: true });
+      expect(created.isFailure()).toBe(false);
+      const stored = created.getValue().label ?? '';
+      expect(Array.from(stored).length).toBeLessThanOrEqual(TRACKED_LINK_LABEL_MAX_LENGTH);
+      expect(stored).toMatch(/^A+…'s default link$/);
     });
   });
 });

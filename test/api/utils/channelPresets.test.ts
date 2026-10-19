@@ -1,5 +1,6 @@
 import { channelKeyFromHostname } from '@lattice/analytics/server';
 import {
+  CHANNEL_NAME_MAX_LENGTH,
   CHANNEL_PRESETS,
   isSystemChannelKey,
   resolveChannel,
@@ -123,6 +124,38 @@ describe('channel presets', () => {
     expect(resolveChannel({ channelName: ' - ' })).toBeNull();
     expect(resolveChannel({ channelName: '-' })).toBeNull();
     expect(resolveChannel({ channelKey: 'not_a_preset' })).toBeNull();
+  });
+
+  it('bounds a custom channel name at CHANNEL_NAME_MAX_LENGTH characters after trimming', () => {
+    expect(CHANNEL_NAME_MAX_LENGTH).toBe(40);
+    const atLimit = 'v'.repeat(CHANNEL_NAME_MAX_LENGTH);
+    expect(resolveChannel({ channelName: `  ${atLimit}  ` })).toEqual({
+      key: atLimit,
+      name: atLimit,
+      isPreset: false,
+    });
+    expect(resolveChannel({ channelName: `${atLimit}x` })).toBeNull();
+    expect(resolveChannel({ channelName: 'x'.repeat(100_000) })).toBeNull();
+    // 'İ' lowercases to two code points, so 40 of them slug to 79 characters.
+    expect(resolveChannel({ channelName: 'İ'.repeat(CHANNEL_NAME_MAX_LENGTH) })).toBeNull();
+    // A preset key still wins, so the name it came with doesn't matter.
+    expect(resolveChannel({ channelKey: 'flyer', channelName: 'x'.repeat(100) })).toMatchObject({
+      key: 'flyer',
+    });
+  });
+
+  it('counts characters, not UTF-16 units, like Postgres char_length', () => {
+    const emoji = '🐶'.repeat(CHANNEL_NAME_MAX_LENGTH - 4);
+    expect(emoji.length).toBeGreaterThan(CHANNEL_NAME_MAX_LENGTH);
+    expect(resolveChannel({ channelName: `Dog ${emoji}` })).toMatchObject({ key: 'dog' });
+  });
+
+  it('returns null instead of throwing for a non-string key or name', () => {
+    expect(resolveChannel({ channelKey: 7 as unknown as string })).toBeNull();
+    expect(resolveChannel({ channelName: { a: 1 } as unknown as string })).toBeNull();
+    expect(
+      resolveChannel({ channelKey: ['flyer'] as unknown as string, channelName: 'Vet office' })
+    ).toBeNull();
   });
 });
 

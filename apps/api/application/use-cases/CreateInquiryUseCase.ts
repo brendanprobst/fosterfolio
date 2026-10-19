@@ -1,5 +1,11 @@
 import { signInquirySourceToken } from '@api/application/inquiries/inquirySourceToken';
 import { ensureInquiryReceivedRegistered } from '@api/application/notifications/inquiryReceived';
+import {
+  CHANNEL_KEY_MAX_LENGTH,
+  charLength,
+  isKnownChannelKey,
+  isSystemChannelKey,
+} from '@api/domain/channels/channelPresets';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IInquiryRepository } from '@api/domain/repositories/IInquiryRepository';
@@ -58,6 +64,9 @@ export class CreateInquiryUseCase {
   ) {}
 
   async execute(input: CreateInquiryCommand): Promise<Result<InquiryDto>> {
+    if (!hasOptionalStringFields(input)) {
+      return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
+    }
     const senderName = input.senderName?.trim() ?? '';
     const senderEmail = input.senderEmail?.trim() ?? '';
     const message = input.message?.trim() ?? '';
@@ -73,9 +82,6 @@ export class CreateInquiryUseCase {
       return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
     }
     const sourceChannelKey = normalizeOptional(input.sourceChannelKey);
-    if (sourceChannelKey && sourceChannelKey.length > 64) {
-      return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
-    }
     const sourceLinkId = normalizeOptional(input.sourceLinkId);
     if (input.viaFosterMe != null && typeof input.viaFosterMe !== 'boolean') {
       return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
@@ -109,7 +115,8 @@ export class CreateInquiryUseCase {
       const sourceLink = sourceLinkId
         ? await this.findCreditedLink(sourceLinkId, target.id, targetPetId)
         : null;
-      const storedChannel = sourceLink?.channelKey ?? sourceChannelKey;
+      const storedChannel =
+        sourceLink?.channelKey ?? (await this.knownChannelKey(sourceChannelKey, target.id));
       const linkLabel = sourceLink?.label ?? null;
 
       const created = await this.inquiryRepository.create({
@@ -179,6 +186,36 @@ export class CreateInquiryUseCase {
     Logger.warning('[inquiry] source link not credited; saving the inquiry without it');
     return null;
   }
+
+  /**
+   * With no credited link, the channel key is whatever the browser sent. Keep it only when it's
+   * a system key or one of this owner's channels (archived included), the same rule the rollup
+   * applies. Anything else would add a made-up row to the owner's byChannel. Like the link, an
+   * unknown key is dropped rather than failing the inquiry.
+   */
+  private async knownChannelKey(key: string | null, ownerId: string): Promise<string | null> {
+    if (!key || charLength(key) > CHANNEL_KEY_MAX_LENGTH) return null;
+    if (isSystemChannelKey(key)) return key;
+    const pairs = await this.trackedLinkRepository.listChannelPairsByOwner(ownerId);
+    const ownerKeys = new Set(pairs.map((pair) => pair.channelKey));
+    return isKnownChannelKey(key, ownerKeys) ? key : null;
+  }
+}
+
+const OPTIONAL_STRING_FIELDS = [
+  'targetPetId',
+  'zipCode',
+  'sourceLinkId',
+  'sourceChannelKey',
+  'turnstileToken',
+] as const;
+
+/** The controller passes these through from the JSON body untyped. A number or object would throw on `.trim()`. */
+function hasOptionalStringFields(input: CreateInquiryCommand): boolean {
+  return OPTIONAL_STRING_FIELDS.every((field) => {
+    const value: unknown = input[field];
+    return value == null || typeof value === 'string';
+  });
 }
 
 function normalizeOptional(value: string | null | undefined): string | null {

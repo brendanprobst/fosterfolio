@@ -210,6 +210,16 @@ describe("OwnerLinksPage", () => {
     expect(row).toHaveAttribute("data-highlighted", "true");
   });
 
+  it("caps the custom channel and label inputs at the API's limits", async () => {
+    vi.mocked(fetchOwnerLinks).mockResolvedValue([defaultLink]);
+    renderWithQueryClient(<OwnerLinksPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Create link" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByLabelText("Custom channel")).toHaveAttribute("maxLength", "40");
+    expect(within(dialog).getByLabelText(/label/i)).toHaveAttribute("maxLength", "100");
+  });
+
   it("sends a custom channel name instead of a chip when one is typed", async () => {
     vi.mocked(fetchOwnerLinks).mockResolvedValue([defaultLink]);
     vi.mocked(createOwnerLink).mockResolvedValue(link({ id: "l-vet", channelName: "Vet office" }));

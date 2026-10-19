@@ -17,12 +17,15 @@ export type TrackedLinkDto = {
   inquiries: number;
 };
 
+/**
+ * Public: anyone with a code can read it. Only what attribution needs. The browser scopes a
+ * pet link's credit to `petId`. The owner id is left out.
+ */
 export type ResolvedTrackedLinkDto = {
   linkId: string;
   channelKey: string;
   target: TrackedLinkTarget;
   petId: string | null;
-  ownerId: string;
 };
 
 export type ChannelOptionDto = {

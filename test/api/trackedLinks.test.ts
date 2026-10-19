@@ -110,7 +110,6 @@ describe('Tracked links API', () => {
       channelKey: 'instagram',
       target: 'pet',
       petId,
-      ownerId,
     });
 
     await request(app)
@@ -127,7 +126,6 @@ describe('Tracked links API', () => {
       channelKey: 'instagram',
       target: 'pet',
       petId,
-      ownerId,
     });
 
     const listed = await request(app)
@@ -362,7 +360,6 @@ describe('Tracked links API', () => {
       channelKey: 'nextdoor',
       target: 'foster_me',
       petId: null,
-      ownerId,
     });
   });
 });

@@ -14,6 +14,10 @@ import { Result } from '@api/domain/errors/Result';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
 import { generateTrackedLinkCode } from '@api/domain/trackedLinks/generateTrackedLinkCode';
+import {
+  defaultLinkLabel,
+  isValidTrackedLinkLabel,
+} from '@api/domain/trackedLinks/trackedLinkLabel';
 
 export type CreateOwnerLinkCommand = {
   channelKey?: string | null;
@@ -34,7 +38,7 @@ export class CreateOwnerLinkUseCase {
     if (!actorId?.trim()) {
       return Result.failure(ErrorCatalog.TRACKED_LINK_INVALID_INPUT);
     }
-    if (input.label != null && typeof input.label !== 'string') {
+    if (!isValidTrackedLinkLabel(input.label)) {
       return Result.failure(ErrorCatalog.TRACKED_LINK_INVALID_INPUT);
     }
     if (input.isDefault != null && typeof input.isDefault !== 'boolean') {
@@ -60,7 +64,7 @@ export class CreateOwnerLinkUseCase {
         const displayName = user?.toPublicDto().displayName?.trim() || 'Foster';
         channelKey = RESERVED_CHANNEL_KEY;
         channelName = RESERVED_CHANNEL_NAME;
-        label = `${displayName}'s default link`;
+        label = defaultLinkLabel(displayName);
       } else {
         const channel = resolveChannel({
           channelKey: input.channelKey,

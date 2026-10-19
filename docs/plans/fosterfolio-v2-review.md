@@ -35,7 +35,7 @@
 | L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | Open                                   |
 | S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | Open                                   |
 | S7   | Low      | Infra/Hygiene  | Lambda zip build artifacts committed to git                                                           | Open                                   |
-| S8   | Low      | Security       | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey`             | Open                                   |
+| S8   | Low      | Security       | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey`             | ✅ Fixed (dev migrated; prod at launch) |
 | C1   | Medium   | Compliance     | No privacy policy; third-party processors (Turnstile, PostHog, Supabase, SES, Zippopotam) undisclosed | Open (blocks public launch, not merge) |
 | L7   | Low      | Logic          | Metric semantics: conversion can exceed 100%; "approx visitors" is meaningless and hidden; UTC days   | Open                                   |
 | L8   | Low      | Perf/Data      | Inbox does N+1 lookups; notification payload duplicates PII it then overwrites                        | Open                                   |
@@ -176,6 +176,27 @@
 - When no link id is sent, the client's `sourceChannelKey` is stored as-is (up to 64 characters), so arbitrary keys show up in `byChannel`.
 - The notification cursor (`decodeNotificationCursor`) only checks that the fields are strings before they go into a PostgREST `or=(…)`. `encodeURIComponent` doesn't protect PostgREST grammar, because PostgREST parses after URL-decoding. The `recipient_id` AND keeps this safe today. Validate them as ISO timestamp and UUID.
 - `GET /links/resolve/:code` returns `ownerId` and `petId`, including for soft-deleted pets. Only `linkId`, `channelKey` and `target` are needed for attribution.
+
+**Status: ✅ Fixed** (2026-10-18, not yet committed; the new migration must be pushed wherever the branch is deployed)
+
+- **Bounds:** custom channel names are capped at 40 characters, stored channel keys at 64 and labels at 100, all counted after trimming. `resolveChannel` (`apps/api/domain/channels/channelPresets.ts`) enforces the name and key bounds for all three link use cases. The new `apps/api/domain/trackedLinks/trackedLinkLabel.ts` (`isValidTrackedLinkLabel`) enforces the label bound in `CreateTrackedLinkUseCase`, `UpdateTrackedLinkUseCase` and `CreateOwnerLinkUseCase`. Anything over returns `400 TRACKED_LINK_INVALID_INPUT`, so a 100 KB name never reaches the picker. Lengths are counted in code points (`charLength`), the same as Postgres `char_length`, so the API and the DB agree on emoji. The key has its own bound because lowercasing can lengthen a few letters: 40 × "İ" slugs to 79 characters.
+- **Default link label:** `"<display name>'s default link"` used to be unbounded, because display names have no limit. `defaultLinkLabel` now shortens the name with an ellipsis so the label fits in 100 characters.
+- **DB:** new feature migration `supabase/migrations/feature-migrations/20261018120000_app_v2_link_input_bounds.sql` (plus its CLI symlink) adds `tracked_links_channel_name_length` (≤ 40), `tracked_links_channel_key_length` (≤ 64) and `tracked_links_label_length` (≤ 100). The master is rebuilt as `LATEST_20261018.sql`, and `LATEST_20261010.sql` moved to `archive/`.
+- **Decision: a new migration, not an edit to the branch's tracked-links migration.** Prod has no `tracked_links` rows, so either works there. But dev has already applied `20261008133000_app_v2_tracked_links.sql`, and the CLI won't re-run an edited file, so dev would never get the checks. The new file applies cleanly on both. Both seeds fit: the longest label is the Ferry Building one at 86 characters, and every channel name is under 15.
+- **Client `sourceChannelKey`:** with no credited link, `CreateInquiryUseCase` now keeps the browser's key only when it's a system key (`isSystemChannelKey`) or a key on one of the target owner's links, archived included (`isKnownChannelKey` over `listChannelPairsByOwner`). That's the same rule the S3 rollup applies. Anything else, including another owner's custom key carried over from a dropped link, is stored as `null`, and the inquiry still goes through. The owner's links are only read when the key isn't a system key.
+- **Decision: drop an unknown or over-long key instead of rejecting the inquiry.** A key over 64 characters used to return 400. It's now just an unknown key and gets dropped, following L1's rule that attribution never blocks contact.
+- **Non-string fields (the L1 leftover):** `targetPetId`, `zipCode`, `sourceLinkId`, `sourceChannelKey` and `turnstileToken` must be a string or null. A number, array or object now returns `400 INQUIRY_INVALID_INPUT` instead of throwing on `.trim()` (500). `resolveChannel` does the same check for `channelKey` / `channelName`, which had the same 500 on the link routes. The required inquiry fields were already safe, because the controller wraps them in `String()`.
+- **Notification cursor:** `decodeNotificationCursor` now accepts only an ISO timestamp, in the shapes Postgres (`…56.123456+00:00`) and `toISOString()` (`…56.123Z`) emit, and a UUID id. A forged cursor gets `400 NOTIFICATION_INVALID_INPUT` before it reaches the PostgREST `or=(…)`.
+- **Resolve:** `GET /links/resolve/:code` no longer returns `ownerId`. The web client never read it. **Correction to this finding:** `petId` stays. `parseTrackedLinkResolve` (`apps/web/client/lib/analytics/initFosterfolioAnalytics.ts`) maps it to `targetId`, and `capturePetEvent` uses that so a pet link isn't credited on a different pet. A soft-deleted pet's id exposes nothing except an id for a page that no longer loads. Swagger is updated.
+- **Web:** the create-link dialog's custom-channel and label inputs now have `maxLength` 40 and 100, so owners can't type past the limit and hit the generic error. The browser counts UTF-16 units, which is stricter than the API for emoji, never looser.
+- **Tests:** `test/api/utils/channelPresets.test.ts` covers the name bound at and over the limit, a 100 KB name, the "İ" key overflow, code-point counting, and non-string input. `trackedLinkUseCases.test.ts` gained an "input bounds" block: label limits on all three use cases (the stored label is unchanged after a rejected update), the name limit on all three, non-string channel input, and the shortened default label. The resolve expectations there and in `trackedLinks.test.ts` no longer include `ownerId`. `inquiries.test.ts` gained the channel-key keep/drop table (system, preset, the owner's archived custom key, another owner's key with and without its link, a made-up key, a 5,000-character key) and the non-string table. The new `test/api/utils/notificationQuery.test.ts` covers four real timestamp shapes and ten forged cursors. `notifications.test.ts` pages with a real cursor and rejects a forged one. `OwnerLinksPage.test.tsx` checks the two `maxLength`s. Against the old implementations, 2 cursor tests, 2 inquiry tests, 6 link use-case/integration tests, 4 `resolveChannel` tests and the web test all fail.
+- **Verified:** `npm run ci` passes (Jest 43 suites / 354 tests, web unit 59 files / 249 tests, lint, type-check, build). The migration was **not** applied to a real database: Docker isn't running here, and plain Postgres can't load the Supabase `auth` schema. The checks are plain `char_length` constraints, but run the push on dev before prod.
+- **Manual step: push the migration.** ✅ **Dev done** (2026-10-18): `npm run supabase:push` applied `20261018120000_app_v2_link_input_bounds.sql` cleanly, and `supabase:list` shows it on the remote. No existing dev row broke a bound. The dev arming flag (`supabase/.env.local`) had been left at `1`; it's back at `0`. **Prod is deliberately not pushed yet.** It only has the v1 schema, so it will take all three v2 migrations at launch. See "Prod schema at launch" under the suggested order.
+- **Still open:**
+  - The create-link dialog still shows the generic "Please provide a valid channel and link details." for reserved names ("Direct", "Search"). That's L3's leftover. Labels and channel names over the limit can't be typed any more.
+  - The inquiry form still doesn't pre-check S5's stricter email rule.
+  - A cursor with an impossible calendar date (e.g. Feb 30) passes the shape check and fails in Postgres as a 500. It can't change the filter.
+  - `inquiries.source_channel_key` has no DB length check. The API now only writes system keys and the owner's own keys (≤ 64).
 
 ### C1 — No privacy policy; third-party processors undisclosed · Medium
 
@@ -445,8 +466,16 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
-6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done.
+6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch).
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
+
+**Prod schema at launch.** Prod's database is still on the v1 schema. On 2026-10-18 `npm run supabase:list -- --env prod` showed only `20261003120000` applied. When the branch ships, push the v2 schema *before* the API deploy, because the v2 API reads tables v1 doesn't have:
+
+1. `npm run supabase:push:dry -- --env prod` should list exactly `20261008133000_app_v2_tracked_links.sql`, `20261010010000_app_v2_foster_me_links.sql` and `20261018120000_app_v2_link_input_bounds.sql`, plus any migration added after this note.
+2. Set `SUPABASE_PUSH_ENABLED=1` in `supabase/.env.prod`, run `npm run supabase:push -- --env prod`, then set it back to `0`.
+3. `npm run supabase:list -- --env prod` should show every local migration with a remote match.
+
+All three are additive (new tables, nullable or defaulted columns, `if not exists`), and prod has no `tracked_links` rows, so nothing needs a backfill. Don't run `LATEST_*.sql` on prod. It's for empty databases only.
 
 ---
 

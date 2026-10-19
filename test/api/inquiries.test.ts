@@ -288,6 +288,89 @@ describe('Inquiries API', () => {
     }
   });
 
+  it('keeps a browser-sent channel key only when it is a system key or one of the owner\'s', async () => {
+    const { app, container } = createTestAppWithContainer();
+    const otherOwnerId = '22222222-2222-4222-8222-222222222222';
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    container.seedUser({ id: otherOwnerId, email: 'other@example.com' });
+    const token = await createAuthToken(ownerId, 'foster@example.com');
+    const otherToken = await createAuthToken(otherOwnerId, 'other@example.com');
+    const ownLink = await request(app)
+      .post('/me/links')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ channelName: 'Vet office' })
+      .expect(201);
+    await request(app)
+      .patch(`/links/${ownLink.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ archived: true })
+      .expect(200);
+    const otherOwnersLink = await request(app)
+      .post('/me/links')
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ channelName: 'Nextdoor' })
+      .expect(201);
+    container.setEmailAdapter({ send: async () => {} });
+
+    const cases = [
+      { sent: 'search', stored: 'search' },
+      { sent: 'lawn_sign', stored: 'lawn_sign' },
+      { sent: 'vet-office', stored: 'vet-office' },
+      { sent: 'nextdoor', stored: null },
+      { sent: 'made-up', stored: null },
+      { sent: 'x'.repeat(5000), stored: null },
+      { sent: 'nextdoor', sourceLinkId: otherOwnersLink.body.id, stored: null },
+    ];
+    for (const { sent, stored, sourceLinkId } of cases) {
+      const res = await request(app)
+        .post('/inquiries')
+        .send({
+          targetUserId: ownerId,
+          senderName: 'Jamie',
+          senderEmail: 'jamie@example.com',
+          message: 'Hello',
+          sourceChannelKey: sent,
+          ...(sourceLinkId ? { sourceLinkId } : {}),
+        });
+      const label = sent.slice(0, 20);
+      expect({ label, status: res.status }).toEqual({ label, status: 201 });
+      expect({ label, stored: inquiryById(container, res.body.id)?.sourceChannelKey }).toEqual({
+        label,
+        stored,
+      });
+      expect(notificationFor(container, res.body.id)?.payload).toMatchObject({
+        sourceChannelKey: stored,
+      });
+    }
+  });
+
+  it('rejects non-string optional fields with 400 instead of a 500', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    const valid = {
+      targetUserId: ownerId,
+      senderName: 'Jamie',
+      senderEmail: 'jamie@example.com',
+      message: 'Hello',
+    };
+
+    for (const extra of [
+      { targetPetId: 5 },
+      { zipCode: { code: '94107' } },
+      { sourceLinkId: 123 },
+      { sourceChannelKey: ['direct'] },
+      { turnstileToken: 7 },
+    ]) {
+      const res = await request(app)
+        .post('/inquiries')
+        .send({ ...valid, ...extra });
+      const field = Object.keys(extra)[0];
+      expect({ field, status: res.status }).toEqual({ field, status: 400 });
+      expect(res.body.error.code).toBe('INQUIRY_INVALID_INPUT');
+    }
+    expect(container.inquiryRepository.records).toHaveLength(0);
+  });
+
   it('rejects a sender email that would inject mailto: headers', async () => {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'foster@example.com' });

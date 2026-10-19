@@ -7,6 +7,7 @@ import {
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
+import { isValidTrackedLinkLabel } from '@api/domain/trackedLinks/trackedLinkLabel';
 
 export type UpdateTrackedLinkCommand = {
   channelKey?: string | null;
@@ -37,7 +38,7 @@ export class UpdateTrackedLinkUseCase {
     if (hasArchived && typeof input.archived !== 'boolean') {
       return Result.failure(ErrorCatalog.TRACKED_LINK_INVALID_INPUT);
     }
-    if (hasLabel && input.label !== null && typeof input.label !== 'string') {
+    if (hasLabel && !isValidTrackedLinkLabel(input.label)) {
       return Result.failure(ErrorCatalog.TRACKED_LINK_INVALID_INPUT);
     }
 

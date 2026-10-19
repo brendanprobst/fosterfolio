@@ -34,6 +34,10 @@ const CHANNEL_ICONS: Record<string, typeof Tag> = {
   shelter_listing: Building2,
 };
 
+/** Same bounds as the API (`CHANNEL_NAME_MAX_LENGTH`, `TRACKED_LINK_LABEL_MAX_LENGTH`). */
+const CHANNEL_NAME_MAX_LENGTH = 40;
+const LABEL_MAX_LENGTH = 100;
+
 export type CreateLinkInput = { channelKey?: string; channelName?: string; label?: string | null };
 
 type CreateLinkDialogProps = {
@@ -170,6 +174,7 @@ export function CreateLinkDialog({
                 id="link-custom-channel"
                 value={customName}
                 onChange={(event) => setCustomName(event.target.value)}
+                maxLength={CHANNEL_NAME_MAX_LENGTH}
                 aria-describedby="link-custom-channel-hint"
               />
               <p id="link-custom-channel-hint" className="text-muted-foreground text-xs">
@@ -184,6 +189,7 @@ export function CreateLinkDialog({
                 id="link-label"
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
+                maxLength={LABEL_MAX_LENGTH}
                 placeholder="Front yard"
               />
             </div>
