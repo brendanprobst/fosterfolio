@@ -61,3 +61,8 @@ api_schedule_timezone         = "UTC"
 # ses_from_email         = "auth@example.com"
 # ses_from_name          = "Example Team"
 # supabase_access_token  = "sbp_..." # https://supabase.com/dashboard/account/tokens
+
+# --- Optional: notification email (inquiries) via SES ---
+# The address's domain must be verified in SES in aws_region (see enable_ses_smtp above).
+# notification_email_from      = "notifications@example.com"
+# notification_email_from_name = "Example"

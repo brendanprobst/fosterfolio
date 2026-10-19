@@ -33,13 +33,14 @@
 | L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | ✅ Fixed (dev migrated; prod at launch) |
 | L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | ✅ Fixed (dev migrated; prod at launch) |
 | L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | ✅ Fixed                               |
-| S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | Open                                   |
+| S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | Partly fixed (own role, via E1)        |
 | S7   | Low      | Infra/Hygiene  | Lambda zip build artifacts committed to git                                                           | Open                                   |
 | S8   | Low      | Security       | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey`             | ✅ Fixed (dev migrated; prod at launch) |
 | C1   | Medium   | Compliance     | No privacy policy; third-party processors (Turnstile, PostHog, Supabase, SES, Zippopotam) undisclosed | Open (blocks public launch, not merge) |
 | L7   | Low      | Logic          | Metric semantics: conversion can exceed 100%; "approx visitors" is meaningless and hidden; UTC days   | Open                                   |
 | L8   | Low      | Perf/Data      | Inbox does N+1 lookups; notification payload duplicates PII it then overwrites                        | Open                                   |
 | L9   | Medium   | Logic/Perf     | Analytics and inquiry list reads silently stop at PostgREST's 1,000-row cap                           | Open                                   |
+| E1   | High     | Infra          | Inquiry email isn't live: no SES env vars, IAM or `WEB_ORIGIN` on the Lambda; failed sends unlogged   | ✅ Fixed (needs `deploy:aws`)          |
 | Q1   | Medium   | DRY            | Two near-identical rollup repositories; the coalesced key is defined 3 times                          | Open                                   |
 | Q2   | Medium   | Structure      | Two workspace packages built two different ways; 4 places to keep aliases in sync                     | Open                                   |
 | Q3   | Medium   | Structure      | `@lattice/analytics` isn't app-agnostic (pet-shaped rows, hardcoded referrer map)                     | Open                                   |
@@ -79,7 +80,7 @@
 - **Known gaps:**
   - `POST /inquiries/` (trailing slash) doesn't match the route key. It goes to the proxy and gets the looser stage limit. Turnstile still gates it.
   - A throttled request gets API Gateway's 429 without Express's CORS headers, so the browser reports a network error and the form shows its generic failure message.
-- **Still open (not part of this finding):** SES (`EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM) and `WEB_ORIGIN` on the Lambda, tracked in the section 4 "Missed" table; a `siteverify` timeout (L6, since fixed).
+- **Still open (not part of this finding):** SES (`EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM) and `WEB_ORIGIN` on the Lambda (E1, since fixed); a `siteverify` timeout (L6, since fixed).
 - **Note for S6:** the analytics rollup shares `aws_iam_role.api_lambda`, so it can now read these two parameters as well.
 
 ### S2 — Source-token HMAC falls back to a hardcoded secret · High
@@ -159,7 +160,7 @@
 
 **Where:** `infra/terraform/envs/*/main.tf:123–167`
 
-- The rollup reuses `aws_iam_role.api_lambda`. Today that role can only read SSM. When SES permissions are added for S1/email, the rollup will get them too. Give it its own role.
+- ~~The rollup reuses `aws_iam_role.api_lambda`. Today that role can only read SSM. When SES permissions are added for S1/email, the rollup will get them too. Give it its own role.~~ ✅ Done with E1: `analytics_rollup_lambda` reads only the two Supabase parameters.
 - There's no CloudWatch alarm on `Errors` and no DLQ. Combined with S3, the job can fail silently for weeks.
 - `deploy-aws.mjs` warns when the PostHog creds are missing, then deploys anyway. The Lambda then throws `Missing required environment variable` 24 times a day. Use `count = var.posthog_project_id == "" ? 0 : 1` instead.
 
@@ -426,6 +427,34 @@ Found while fixing L5.
 
 **Fix:** Add a paging helper that reads `limit=1000&offset=n` until a short page, with a stable order on the key columns, and use it for all five reads. No schema change. Longer term, sum the dashboard numbers in SQL instead of shipping raw rows.
 
+### E1 — Inquiry email isn't live · High
+
+Added 2026-10-19. Before this, it was only a row in the section 4 "Missed" table.
+
+**What:** the SES adapter and the `inquiry_received` email template were done, but the Lambda never got `EMAIL_PROVIDER`, `EMAIL_FROM` or `WEB_ORIGIN`, and its role couldn't call SES. Every deployed inquiry fell back to `LoggingEmailAdapter`, so owners got in-app notifications only. The settings link in the email was a bare `/settings/notifications`. And `dispatch` in `@lattice/notifications` swallows send errors without logging, so a broken SES setup would have failed silently.
+
+**Status: ✅ Fixed** (2026-10-19, not yet committed; needs `infisical run -- npm run deploy:aws` for dev, and for prod at launch)
+
+- **Already in place (checked with the AWS CLI on 2026-10-19):** `fosterfolio.com` is verified in SES in us-east-1 (where both Lambdas run), with DKIM and the custom MAIL FROM (`mail.fosterfolio.com`) passing. The account has SES production access (50,000/day, 14/s), so there's no sandbox request. Bounce and complaint suppression is on account-wide. `@aws-sdk/client-ses` is already in the Lambda bundle.
+- **Terraform (dev and prod):**
+  - New variables `notification_email_from` (bare address, validated, default null) and `notification_email_from_name` (default "Fosterfolio"). Both local `terraform.tfvars` now set `notification_email_from = "notifications@fosterfolio.com"`. The `.example` files document them.
+  - The API Lambda gets `EMAIL_PROVIDER=ses` (`log` when the variable is null), `EMAIL_FROM="Fosterfolio <notifications@fosterfolio.com>"` and `WEB_ORIGIN` (the custom domain, or the CloudFront domain when there isn't one).
+  - New `api_lambda_ses_send` policy: `ses:SendEmail` on `identity/fosterfolio.com` only, so the API can't send as any other identity in the account.
+  - **The rollup has its own role now** (`analytics_rollup_lambda`): basic execution plus `ssm:GetParameter` on the two Supabase parameters. It no longer inherits the inquiry secrets or SES. That's the IAM half of S6.
+- **DMARC:** `modules/ses_smtp` adds `_dmarc.fosterfolio.com` TXT `v=DMARC1; p=none`. It applies with the prod stack, since that's the env with `enable_ses_smtp`. **Decision: report-only, no `rua`.** Reports addressed to Gmail would mostly be dropped (see N2).
+- **Logging:** `EmailChannelAdapter` logs `[email] send failed: <error name> (<message>)` and rethrows, so `dispatch` still records `emailed: false`. Addresses in the error message are replaced with `[email]`, because SES quotes them ("…failed the check in region US-EAST-1: a@b.com").
+- **Plans:** `terraform validate` passes in both envs.
+  - Dev `terraform plan`: 4 to add (rollup role, its attachment and SSM policy, the SES policy), 2 changed in place (both Lambdas), 0 destroyed.
+  - Prod `terraform plan`: 8 to add, 3 to change, 0 to destroy. Besides the same items, that's the DMARC record plus S1's 3 throttled routes and stage, which prod hasn't had applied yet.
+  - Both plans ran without Infisical, so they also showed `POSTHOG_PERSONAL_API_KEY` changing. `deploy:aws` passes the real key.
+- **Tests:** the new `test/api/adapters/emailChannelAdapter.test.ts` checks the pass-through, and that a rejected send is logged with the error name and message, without either address, and rethrown. The logging test fails before the change.
+- **Verified:** `npm run ci` passes (Jest 48 suites / 378 tests, web unit 60 files / 254 tests, lint, type-check, build). No real email has been sent yet.
+- **Manual steps:**
+  1. Deploy dev: `infisical run -- npm run deploy:aws` (dev).
+  2. On `dev.fosterfolio.com`, send an inquiry to a pet whose owner's email you can read. Check that the email arrives (not in spam), that Reply goes to the sender, and that the settings link opens `https://dev.fosterfolio.com/settings/notifications`. The notification's `emailed_at` should be set. If it isn't, CloudWatch for the API Lambda has the `[email] send failed` line.
+  3. Prod: comes with the launch deploy. The DMARC record goes out then too, unless you apply it earlier on its own.
+- **Local dev:** `apps/api/.env.dev` (untracked) has `EMAIL_PROVIDER=ses` with `AWS_REGION=us-west-2`. That region is in the SES sandbox and has no verified identity, so local sends fail, and with this change you'll see the warning. Use `us-east-1` and `EMAIL_FROM=notifications@fosterfolio.com` to send for real locally, or `EMAIL_PROVIDER=log` to only log.
+
 ### Also worth a look
 
 - The server doesn't check that `self_reported_source` is only set for inquiries whose source was `direct`. The client decides.
@@ -523,7 +552,7 @@ These look like the right product call. Update the spec so it is the source of t
 | Spec item                                                                          | Status                                                                                                                                                                                              |
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Presets: Lawn sign, Instagram, Facebook, TikTok, Flyer, **Shelter listing, Other** | The last two were removed in `1f373e1`. Self-report still offers "Other" and "Shelter".                                                                                                             |
-| "Email for every inquiry notification via SES"                                     | Code is done. **Not live:** `EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM and `WEB_ORIGIN` are not wired in Terraform. The footer link is relative (`/settings/notifications`) in production. |
+| "Email for every inquiry notification via SES"                                     | Fixed (E1). Needs the deploy.                                                                                                                                                                       |
 | Turnstile spam protection                                                          | Code is done. **Not live** (S1).                                                                                                                                                                    |
 | "Rollup job keeps the final numbers" on adoption                                   | Fixed (L4)                                                                                                                                                                                          |
 | "approx. visitors" label                                                           | Not shown anywhere (L7)                                                                                                                                                                             |
@@ -570,7 +599,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
-6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch). ~~**L4**: Freeze adopted pets in the rollup.~~ ✅ Done (dev migrated; prod at launch). ~~**L6**: Turnstile client error states, reset, and a `siteverify` timeout.~~ ✅ Done.
+6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch). ~~**L4**: Freeze adopted pets in the rollup.~~ ✅ Done (dev migrated; prod at launch). ~~**L6**: Turnstile client error states, reset, and a `siteverify` timeout.~~ ✅ Done. ~~**E1**: Wire inquiry email (SES) into Terraform, log failed sends, add DMARC.~~ ✅ Done (needs the deploy).
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
 
 **Prod schema at launch.** Prod's database is still on the v1 schema. On 2026-10-18 `npm run supabase:list -- --env prod` showed only `20261003120000` applied. When the branch ships, push the v2 schema *before* the API deploy, because the v2 API reads tables v1 doesn't have:
@@ -604,3 +633,14 @@ Non-critical improvements, not blocking merge. Add to this list as they come up.
 **Constraints:** CSS only — `tw-animate-css` is already imported in `globals.css` and drives the dialog/sheet transitions, so no new dependency. Every animation gets `motion-safe:` / `motion-reduce:` variants, matching `LinksHero` and `FosterMePreview`.
 
 **Verify:** `npm run test:web:unit`, the inquiry E2E specs, then a manual pass on pet bio (desktop card, expanded dialog, mobile sheet), public profile and foster-me, with OS reduced motion both on and off.
+
+### N2 — DMARC reports (`rua`)
+
+**Where:** `infra/terraform/modules/ses_smtp/main.tf` (`aws_route53_record.dmarc`). Added 2026-10-19 with E1.
+
+**Today:** `_dmarc.fosterfolio.com` is `v=DMARC1; p=none` with no `rua`, so nobody receives reports on who sends mail as the domain or whether it passes.
+
+**Why not Gmail:** a report address on another domain only works if that domain publishes `fosterfolio.com._report._dmarc.<their domain>`. Gmail doesn't (checked 2026-10-19), so Google and Microsoft would mostly drop reports sent to a Gmail `rua`. `fosterfolio.com` has no MX, so there's no inbox on the domain either.
+
+**Plan:** sign up for a free report service (for example Postmark's weekly DMARC digest, which emails a readable summary). Add its address as `rua=mailto:…` in the record. After a few weeks of clean reports covering SES notifications and Supabase Auth mail, move `p=none` to `p=quarantine`, then `p=reject`.
+

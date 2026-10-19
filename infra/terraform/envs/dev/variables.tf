@@ -155,6 +155,24 @@ variable "api_cors_extra_origins" {
   default     = ""
 }
 
+variable "notification_email_from" {
+  description = "From address for notification emails (inquiries), on a domain verified in SES in aws_region. Null keeps EMAIL_PROVIDER=log, so the API only logs emails."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.notification_email_from == null || can(regex("^[^@\\s<>]+@[^@\\s<>]+\\.[^@\\s<>]+$", trimspace(var.notification_email_from)))
+    error_message = "notification_email_from must be a bare address like notifications@example.com, without a display name."
+  }
+}
+
+variable "notification_email_from_name" {
+  description = "Display name on notification emails."
+  type        = string
+  default     = "Fosterfolio"
+}
+
 variable "email_allowlist_enabled" {
   description = <<-EOT
     When true, sets EMAIL_ALLOWLIST_ENABLED on the API Lambda so requireAllowedEmail

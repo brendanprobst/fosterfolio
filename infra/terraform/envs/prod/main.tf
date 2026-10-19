@@ -28,6 +28,15 @@ locals {
 
   budget_notification_thresholds = [50, 80, 100]
 
+  # Notification email (SES). The identity is the From address's domain, verified in SES
+  # (modules/ses_smtp, enabled in prod; the identity is account-wide in aws_region).
+  notification_email_from    = trimspace(coalesce(var.notification_email_from, ""))
+  notification_email_enabled = local.notification_email_from != ""
+  notification_email_domain  = local.notification_email_enabled ? split("@", local.notification_email_from)[1] : ""
+
+  # Links in notification emails (e.g. /settings/notifications) need an absolute origin.
+  web_origin = local.web_use_custom_domain ? "https://${trimspace(var.web_custom_domain)}" : "https://${aws_cloudfront_distribution.web.domain_name}"
+
   # Matches apps/api/app.ts — browser Origin must be listed for credentialed requests.
   api_cors_origins = join(",", compact(concat(
     [
@@ -95,6 +104,68 @@ resource "aws_iam_role_policy" "api_lambda_ssm_read" {
   })
 }
 
+resource "aws_iam_role_policy" "api_lambda_ses_send" {
+  count = local.notification_email_enabled ? 1 : 0
+  name  = "${local.name_prefix}-api-ses-send"
+  role  = aws_iam_role.api_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ses:SendEmail"]
+        Resource = ["arn:aws:ses:${var.aws_region}:${data.aws_caller_identity.current.account_id}:identity/${local.notification_email_domain}"]
+      }
+    ]
+  })
+}
+
+# The rollup gets its own role: it needs only the two Supabase parameters, not the inquiry
+# secrets or SES.
+resource "aws_iam_role" "analytics_rollup_lambda" {
+  name = "${local.name_prefix}-analytics-rollup-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "analytics_rollup_lambda_basic_execution" {
+  role       = aws_iam_role.analytics_rollup_lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "analytics_rollup_lambda_ssm_read" {
+  name = "${local.name_prefix}-analytics-rollup-ssm-read"
+  role = aws_iam_role.analytics_rollup_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter"
+        ]
+        Resource = [
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.supabase_parameter_names.url, "/")}",
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.supabase_parameter_names.service_role_key, "/")}"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_lambda_function" "api" {
   function_name = "${local.name_prefix}-api"
   role          = aws_iam_role.api_lambda.arn
@@ -117,6 +188,9 @@ resource "aws_lambda_function" "api" {
       TURNSTILE_SECRET_KEY_PARAM        = local.inquiry_secret_parameter_names.turnstile_secret_key
       INQUIRY_SOURCE_TOKEN_SECRET_PARAM = local.inquiry_secret_parameter_names.source_token_secret
       EMAIL_ALLOWLIST_ENABLED           = var.email_allowlist_enabled ? "true" : "false"
+      EMAIL_PROVIDER                    = local.notification_email_enabled ? "ses" : "log"
+      EMAIL_FROM                        = local.notification_email_enabled ? "${trimspace(var.notification_email_from_name)} <${local.notification_email_from}>" : ""
+      WEB_ORIGIN                        = local.web_origin
     }
   }
 
@@ -133,7 +207,7 @@ data "archive_file" "analytics_rollup_lambda_zip" {
 
 resource "aws_lambda_function" "analytics_rollup" {
   function_name = "${local.name_prefix}-analytics-rollup"
-  role          = aws_iam_role.api_lambda.arn
+  role          = aws_iam_role.analytics_rollup_lambda.arn
   runtime       = var.api_lambda_runtime
   handler       = "rollup.handler"
   memory_size   = var.api_lambda_memory_mb
@@ -154,7 +228,7 @@ resource "aws_lambda_function" "analytics_rollup" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.api_lambda_basic_execution
+    aws_iam_role_policy_attachment.analytics_rollup_lambda_basic_execution
   ]
 }
 
