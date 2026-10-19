@@ -1,11 +1,19 @@
 import type { ChannelOption } from "./types";
 
+/** Keys the API reserves (referrer map + default link). No custom channel can take them. */
+const SYSTEM_CHANNEL_NAMES = new Map([
+  ["direct", "Direct / original QR"],
+  ["search", "Search"],
+  ["default", "Default link"],
+]);
+
 export function channelDisplayName(
   channelKey: string,
   channels: ChannelOption[],
   links: Array<{ channelKey: string; channelName: string }> = [],
 ): string {
-  if (channelKey === "direct") return "Direct / original QR";
+  const systemName = SYSTEM_CHANNEL_NAMES.get(channelKey);
+  if (systemName) return systemName;
   return (
     links.find((link) => link.channelKey === channelKey)?.channelName ??
     channels.find((channel) => channel.key === channelKey)?.name ??

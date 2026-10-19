@@ -185,7 +185,6 @@ describe('Tracked links API', () => {
       PRESET_KEYS
     );
     expect(channels.body.slice(PRESET_KEYS.length)).toEqual([
-      { key: 'vet-office', name: 'Vet Office', isPreset: false },
       { key: 'vet-office', name: 'vet office', isPreset: false },
     ]);
 

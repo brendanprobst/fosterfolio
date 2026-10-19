@@ -1,4 +1,4 @@
-import { CHANNEL_PRESETS, RESERVED_CHANNEL_KEY } from '@api/domain/channels/channelPresets';
+import { CHANNEL_PRESETS, isSystemChannelKey } from '@api/domain/channels/channelPresets';
 import type { ChannelOptionDto } from '@api/application/dtos/trackedLink';
 import { Result } from '@api/domain/errors/Result';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
@@ -16,25 +16,17 @@ export class ListChannelsUseCase {
       const pairs = ownerId?.trim()
         ? await this.trackedLinkRepository.listChannelPairsByOwner(ownerId)
         : [];
-      const seen = new Set<string>();
-      const custom: ChannelOptionDto[] = [];
+      // Pairs arrive oldest first: the first link fixes the position, the newest name wins.
+      const custom = new Map<string, ChannelOptionDto>();
       for (const pair of pairs) {
-        if (
-          pair.channelKey === RESERVED_CHANNEL_KEY ||
-          CHANNEL_PRESETS.some((preset) => preset.key === pair.channelKey)
-        ) {
-          continue;
-        }
-        const id = `${pair.channelKey}\0${pair.channelName}`;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        custom.push({
+        if (isSystemChannelKey(pair.channelKey)) continue;
+        custom.set(pair.channelKey, {
           key: pair.channelKey,
           name: pair.channelName,
           isPreset: false,
         });
       }
-      return Result.success([...presets, ...custom]);
+      return Result.success([...presets, ...custom.values()]);
     } catch {
       return Result.success(presets);
     }

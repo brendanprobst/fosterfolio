@@ -245,6 +245,37 @@ describe('tracked link use cases', () => {
       expect(channels.some((channel) => channel.key === 'secret-group')).toBe(false);
     });
 
+    it('lists one entry per key and keeps the most recent display name', async () => {
+      const pet = await seedPet(pets, 'owner-1');
+      for (const channelName of ['Vet Office', 'vet office', 'Vet Office!']) {
+        const created = await createLink.execute('owner-1', pet.id, { channelName });
+        expect(created.isFailure()).toBe(false);
+        expect(created.getValue().channelKey).toBe('vet-office');
+      }
+
+      const result = await listChannels.execute('owner-1');
+      expect(result.getValue().slice(CHANNEL_PRESETS.length)).toEqual([
+        { key: 'vet-office', name: 'Vet Office!', isPreset: false },
+      ]);
+    });
+
+    it('leaves stored system keys out of the picker', async () => {
+      for (const channelKey of ['direct', 'search']) {
+        await links.create({
+          target: 'pet',
+          petId: 'pet-1',
+          ownerId: 'owner-1',
+          code: `LEGACY${channelKey.slice(0, 2).toUpperCase()}`,
+          channelKey,
+          channelName: channelKey,
+          label: null,
+        });
+      }
+
+      const result = await listChannels.execute('owner-1');
+      expect(result.getValue().slice(CHANNEL_PRESETS.length)).toEqual([]);
+    });
+
     it('leaves the reserved default channel out of the picker', async () => {
       const users = new InMemoryUserRepository();
       users.seed(ownerUser('owner-1', 'Alex Foster'));

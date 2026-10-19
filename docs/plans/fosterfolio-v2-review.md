@@ -29,7 +29,7 @@
 | L2   | High     | Logic          | Owner self-views are captured before auth resolves                                                    | ✅ Fixed                               |
 | S4   | Medium   | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state                                   | Open                                   |
 | S5   | Medium   | Security       | `mailto:` injection through sender email                                                              | ✅ Fixed                               |
-| L3   | Medium   | Logic          | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates           | Open                                   |
+| L3   | Medium   | Logic          | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates           | ✅ Fixed                               |
 | L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | Open                                   |
 | L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | Open                                   |
 | L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | Open                                   |
@@ -243,6 +243,18 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 - `ListChannels` dedupes on `key + name`. "Vet Office" and "vet office" share a key, so they show up as **two** picker entries with the same key, which can also collide as React keys. Dedupe on key and keep the most recent name.
 - `search` and `default` have no display name, so the UI shows the raw key.
 
+**Status: ✅ Fixed** (2026-10-18, not yet committed; no manual steps)
+
+- **Reserved keys:** `resolveChannel` now rejects every key the referrer map can produce that isn't a preset (`direct`, `search`), plus `default`. It checks both a passed `channelKey` and the slug of `channelName`, so "Direct", " SEARCH ", "Direct!" and "-search-" all return `400 TRACKED_LINK_INVALID_INPUT` on create and update. "Direct mail" (`direct-mail`) is still allowed. The referrer map (`packages/analytics/src/referrer.ts`) only emits `direct`, `search`, `instagram`, `facebook` and `tiktok`; the last three are presets and already map onto them.
+- **Slugify:** lowercases, turns every run of non-letter/non-digit characters into one hyphen, and trims hyphens from both ends. "Vet Office!", "vet office", "vet office " and "--Vet -- Office__" all become `vet-office`. Unicode letters stay (`café-crème`). A name made only of punctuation or emoji now slugifies to an empty string and is rejected (it used to be stored as-is). Presets now match on the slug of their name too, so "Lawn Sign!" and "lawn_sign" resolve to the `lawn_sign` preset instead of a lookalike custom `lawn-sign`.
+- **ListChannels:** dedupes on key only. The first link with a key fixes its position, and the newest link's name wins (repo pairs come back `created_at` ascending). It also skips every system key (`isSystemChannelKey`: presets, `direct`, `search`, `default`) instead of only presets and `default`, so a hand-written row can't add a second `direct` to the picker.
+- **Display names (web):** `channelDisplayName` names `search` "Search" and `default` "Default link", alongside the existing "Direct / original QR". These system names come before link and picker names. The lookup uses a `Map`, so a custom key like `constructor` doesn't resolve to an `Object.prototype` member.
+- **Decision: no migration.** `tracked_links` is new on this branch and isn't on `main`, so prod has no stored keys. Both seeds (`tracked-links.sql`, `v2-analytics.sql`) already use keys the new slugify produces (`vet-office`, `farmers-market`, presets, `default`), and none uses `direct` or `search`. If you have a dev or staging DB with links created through the UI from punctuated names (e.g. key `vet-office!`), those keep their old key. New links with the same name get the clean key, so their analytics split until you re-create the link.
+- **Drift guard:** `@lattice/analytics/server` now also exports `channelKeyFromHostname`. `test/api/utils/channelPresets.test.ts` runs it over sample hosts and asserts every result is a system key, so a new referrer channel that isn't reserved fails CI.
+- **Tests:** `channelPresets.test.ts` covers slug normalization, preset matching by slug, 9 reserved names, 4 reserved keys, the `direct-mail` allow case, `isSystemChannelKey` and the referrer drift. `trackedLinkUseCases.test.ts` gained "one entry per key, newest name" and "stored system keys stay out of the picker". `test/web/unit/channelDisplayName.test.ts` is new. Against the old implementations, 12 domain tests, 2 use-case tests and 1 web test fail. `test/api/trackedLinks.test.ts` asserted the old duplicate picker entries (`Vet Office` and `vet office` both under `vet-office`), so it now expects one entry with the newest name.
+- **Verified:** `npm run ci` passes (Jest 42 suites / 341 tests, web unit 59 files / 248 tests, lint, type-check, build).
+- **Still open:** the create-link dialog doesn't explain the reserved names. "Direct" or "Search" gets the generic "Please provide a valid channel and link details." The channel-name length bound stays with S8.
+
 ### L4 — "Adopted freeze" is client-only · Medium
 
 **Where:** `apps/api/application/analytics/fosterfolioDailyQuery.ts:8`, `apps/api/domain/entities/Pet.ts:183–188`
@@ -433,7 +445,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
-6. ~~**S5**: Harden email validation.~~ ✅ Done. **L3**: Reserve system channel keys.
+6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done.
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
 
 ---

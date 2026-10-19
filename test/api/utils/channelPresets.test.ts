@@ -1,5 +1,7 @@
+import { channelKeyFromHostname } from '@lattice/analytics/server';
 import {
   CHANNEL_PRESETS,
+  isSystemChannelKey,
   resolveChannel,
   slugifyChannelName,
 } from '@api/domain/channels/channelPresets';
@@ -46,6 +48,65 @@ describe('channel presets', () => {
     });
   });
 
+  it('strips punctuation and collapses hyphens so near-identical names share a key', () => {
+    expect(slugifyChannelName('Vet Office!')).toBe('vet-office');
+    expect(slugifyChannelName('vet office')).toBe('vet-office');
+    expect(slugifyChannelName('vet office ')).toBe('vet-office');
+    expect(slugifyChannelName('  --Vet -- Office__ ')).toBe('vet-office');
+    expect(slugifyChannelName("Mom's group (FB)")).toBe('mom-s-group-fb');
+    expect(slugifyChannelName('Café Crème')).toBe('café-crème');
+    expect(slugifyChannelName('!!!')).toBe('');
+  });
+
+  it('maps a punctuated preset name onto the preset', () => {
+    expect(resolveChannel({ channelName: 'Lawn Sign!' })).toEqual({
+      key: 'lawn_sign',
+      name: 'Lawn sign',
+      isPreset: true,
+    });
+    expect(resolveChannel({ channelName: 'lawn_sign' })).toEqual({
+      key: 'lawn_sign',
+      name: 'Lawn sign',
+      isPreset: true,
+    });
+  });
+
+  it.each([
+    'default',
+    'Default',
+    'direct',
+    'Direct',
+    ' DIRECT ',
+    'Direct!',
+    'search',
+    'Search',
+    '-search-',
+  ])('reserves the system channel name %p', (channelName) => {
+    expect(resolveChannel({ channelName })).toBeNull();
+  });
+
+  it.each(['default', 'direct', 'search', 'Search'])(
+    'reserves the system channel key %p',
+    (channelKey) => {
+      expect(resolveChannel({ channelKey, channelName: 'Nextdoor' })).toBeNull();
+    }
+  );
+
+  it('still allows names that only start with a system key', () => {
+    expect(resolveChannel({ channelName: 'Direct mail' })).toEqual({
+      key: 'direct-mail',
+      name: 'Direct mail',
+      isPreset: false,
+    });
+  });
+
+  it('flags preset, referrer and default keys as system keys', () => {
+    for (const key of ['default', 'direct', 'search', 'instagram', 'lawn_sign']) {
+      expect(isSystemChannelKey(key)).toBe(true);
+    }
+    expect(isSystemChannelKey('vet-office')).toBe(false);
+  });
+
   it('keeps two display names when they slugify to the same key', () => {
     const lower = resolveChannel({ channelName: 'Nextdoor' });
     const upper = resolveChannel({ channelName: 'NEXTDOOR' });
@@ -62,5 +123,24 @@ describe('channel presets', () => {
     expect(resolveChannel({ channelName: ' - ' })).toBeNull();
     expect(resolveChannel({ channelName: '-' })).toBeNull();
     expect(resolveChannel({ channelKey: 'not_a_preset' })).toBeNull();
+  });
+});
+
+describe('referrer map drift', () => {
+  it('reserves or presets every channel key the referrer map can produce', () => {
+    const hosts = [
+      '',
+      'example.com',
+      'www.instagram.com',
+      'l.facebook.com',
+      'm.facebook.com',
+      'www.tiktok.com',
+      'www.google.com',
+      'google.co.uk',
+      'bing.com',
+    ];
+    for (const host of hosts) {
+      expect(isSystemChannelKey(channelKeyFromHostname(host))).toBe(true);
+    }
   });
 });

@@ -7,4 +7,5 @@ export {
   type AnalyticsProvider,
 } from "./aggregates";
 export { PostHogProvider, type PostHogQueryConfig } from "./posthogProvider";
+export { channelKeyFromHostname } from "./referrer";
 export { runRollup, type RollupUpsert } from "./rollup";

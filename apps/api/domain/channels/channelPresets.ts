@@ -28,7 +28,15 @@ export function isPresetChannelKey(key: string): boolean {
  */
 export const REFERRER_CHANNEL_KEYS = ['direct', 'search'] as const;
 
-const SYSTEM_KEYS = new Set<string>([...PRESET_KEYS, ...REFERRER_CHANNEL_KEYS, RESERVED_CHANNEL_KEY]);
+/** Keys a custom channel can never take: they already carry referrer or default-link traffic. */
+const RESERVED_KEYS = new Set<string>([...REFERRER_CHANNEL_KEYS, RESERVED_CHANNEL_KEY]);
+
+const SYSTEM_KEYS = new Set<string>([...PRESET_KEYS, ...RESERVED_KEYS]);
+
+/** A preset, referrer or default-link key. None of these is ever an owner's custom channel. */
+export function isSystemChannelKey(key: string): boolean {
+  return SYSTEM_KEYS.has(key);
+}
 
 /**
  * Whether an analytics row may carry this channel key: a preset, a referrer key,
@@ -36,12 +44,18 @@ const SYSTEM_KEYS = new Set<string>([...PRESET_KEYS, ...REFERRER_CHANNEL_KEYS, R
  * Event properties are client-writable, so anything else is forged or stale.
  */
 export function isKnownChannelKey(key: string, ownerChannelKeys: ReadonlySet<string>): boolean {
-  return SYSTEM_KEYS.has(key) || ownerChannelKeys.has(key);
+  return isSystemChannelKey(key) || ownerChannelKeys.has(key);
 }
 
-/** Lowercased, trimmed, whitespace runs become a single hyphen. */
+/**
+ * Lowercased; every run of characters that isn't a letter or digit becomes one hyphen, and
+ * leading/trailing hyphens are dropped. "Vet Office!", "vet office" and "vet  office " match.
+ */
 export function slugifyChannelName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, '-');
+  return name
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 export type ResolvedChannel = {
@@ -56,12 +70,9 @@ export function resolveChannel(input: {
 }): ResolvedChannel | null {
   const key = input.channelKey?.trim() ?? '';
   const name = input.channelName?.trim() ?? '';
+  const slug = slugifyChannelName(name);
 
-  if (
-    key.toLowerCase() === RESERVED_CHANNEL_KEY ||
-    name.toLowerCase() === RESERVED_CHANNEL_NAME.toLowerCase() ||
-    (name && slugifyChannelName(name) === RESERVED_CHANNEL_KEY)
-  ) {
+  if (RESERVED_KEYS.has(key.toLowerCase()) || RESERVED_KEYS.has(slug)) {
     return null;
   }
 
@@ -72,25 +83,15 @@ export function resolveChannel(input: {
     }
   }
 
-  if (!name) {
+  if (!slug) {
     return null;
   }
 
-  const presetByName = CHANNEL_PRESETS.find(
-    (item) => item.name.toLowerCase() === name.toLowerCase()
+  const preset = CHANNEL_PRESETS.find(
+    (item) => item.key === slug || slugifyChannelName(item.name) === slug
   );
-  if (presetByName) {
-    return { key: presetByName.key, name: presetByName.name, isPreset: true };
-  }
-
-  const slug = slugifyChannelName(name);
-  if (!slug || slug === '-') {
-    return null;
-  }
-
-  const presetBySlug = CHANNEL_PRESETS.find((item) => item.key === slug);
-  if (presetBySlug) {
-    return { key: presetBySlug.key, name: presetBySlug.name, isPreset: true };
+  if (preset) {
+    return { key: preset.key, name: preset.name, isPreset: true };
   }
 
   return { key: slug, name, isPreset: false };
