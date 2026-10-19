@@ -27,7 +27,7 @@
 | S2   | High     | Security       | Source-token HMAC falls back to a hardcoded, committed secret                                         | ✅ Fixed (needs manual SSM setup)      |
 | S3   | High     | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection)             | ✅ Fixed                               |
 | L2   | High     | Logic          | Owner self-views are captured before auth resolves                                                    | ✅ Fixed                               |
-| S4   | Medium   | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state                                   | Open                                   |
+| S4   | Medium   | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state                                   | Partly fixed (scoped key; SSM deferred) |
 | S5   | Medium   | Security       | `mailto:` injection through sender email                                                              | ✅ Fixed                               |
 | L3   | Medium   | Logic          | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates           | ✅ Fixed                               |
 | L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | ✅ Fixed (dev migrated; prod at launch) |
@@ -138,6 +138,15 @@
 **What:** The key is passed straight in as a Lambda environment variable. That makes it visible to anyone with `lambda:GetFunctionConfiguration`, and it is also stored in Terraform state. PostHog personal keys belong to a _user_, so the key may reach every project and org that user can see.
 
 **Fix:** Store it as an SSM SecureString and load it with `loadSupabaseEnvFromSsm` (generalize that helper). Create a **project-scoped key with `query:read` only**.
+
+**Status: partly fixed** (2026-10-19; dev rotated, prod gets its scoped key at launch)
+
+- **Rotated (dev):** the old key had 93 scopes, so it could change settings and delete data in every org and project the PostHog user belongs to. It's replaced with a key that has only `query:read`, restricted to the Fosterfolio project. That's enough: the rollup's only PostHog call is `POST /api/projects/<id>/query/` (`packages/analytics/src/posthogProvider.ts:61`), and nothing else uses the key. The new key is in dev Infisical `/fosterfolio/sensitive`, and dev is redeployed.
+  - **Verified:** a manually invoked dev rollup returned `{"rows":19}` with no errors. A SHA-256 comparison (no values printed) confirmed the Lambda's key matches Infisical and differs from the old key.
+  - **Manual step:** delete the old key in PostHog if it isn't already gone. Its copy in dev's local `terraform.tfstate.backup` is harmless once it's revoked.
+- **Decision: keep the key as a Lambda env var for now. The SSM move is deferred.** With the scope cut, a leak only exposes reads of one project's events. The remaining exposure is anyone with `lambda:GetFunctionConfiguration` on the account, plus the local state file. That's acceptable for a private beta. Revisit with SSM (the S2 pattern) before a public launch, or if more people get AWS access.
+- **Prod:** create a separate key with the same scope, restricted to the prod PostHog project if it's a separate project. Put it in prod `/fosterfolio/sensitive` before the launch deploy.
+- **Docs:** `docs/playbooks/infisical-github-deploys.md` now lists `POSTHOG_PROJECT_ID` (and `NEXT_PUBLIC_POSTHOG_TOKEN`) under `/fosterfolio/shared`, and the key's required scope under `/fosterfolio/sensitive`.
 
 ### S5 — `mailto:` injection through sender email · Medium
 
@@ -627,7 +636,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
-6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch). ~~**L4**: Freeze adopted pets in the rollup.~~ ✅ Done (dev migrated; prod at launch). ~~**L6**: Turnstile client error states, reset, and a `siteverify` timeout.~~ ✅ Done. ~~**E1**: Wire inquiry email (SES) into Terraform, log failed sends, add DMARC.~~ ✅ Done (needs the deploy). ~~**S6**: Rollup role, error alarms, schedule off without PostHog creds.~~ ✅ Done (needs the deploy).
+6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch). ~~**L4**: Freeze adopted pets in the rollup.~~ ✅ Done (dev migrated; prod at launch). ~~**L6**: Turnstile client error states, reset, and a `siteverify` timeout.~~ ✅ Done. ~~**E1**: Wire inquiry email (SES) into Terraform, log failed sends, add DMARC.~~ ✅ Done (needs the deploy). ~~**S6**: Rollup role, error alarms, schedule off without PostHog creds.~~ ✅ Done (dev deployed). ~~**S4**: Rotate to a `query:read` key scoped to the project.~~ ✅ Done on dev (SSM move deferred).
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
 
 **Prod schema at launch.** Prod's database is still on the v1 schema. On 2026-10-18 `npm run supabase:list -- --env prod` showed only `20261003120000` applied. When the branch ships, push the v2 schema *before* the API deploy, because the v2 API reads tables v1 doesn't have:

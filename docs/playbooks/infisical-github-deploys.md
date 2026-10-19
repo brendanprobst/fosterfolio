@@ -53,9 +53,9 @@ Progress: done
 
 1. In the `lattice` project, keep environments `dev` and `prod`. Ignore or delete `staging`.
 2. In `dev`, create `/fosterfolio/shared`, `/fosterfolio/flags`, and `/fosterfolio/sensitive`.
-   - `/fosterfolio/shared`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `/fosterfolio/shared`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_POSTHOG_TOKEN`, and `POSTHOG_PROJECT_ID` for the analytics rollup. Optional `POSTHOG_HOST` when the project is not on US Cloud (`https://us.posthog.com`).
    - `/fosterfolio/flags`: `NEXT_PUBLIC_GOOGLE_SSO`, `NEXT_PUBLIC_FOSTERFOLIO_FEED`, `NEXT_PUBLIC_FOSTERFOLIO_SEARCH` (set each to the value you want in that environment)
-   - `/fosterfolio/sensitive`: `SUPABASE_DB_URL` only (session pooler, port 5432), plus `POSTHOG_PROJECT_ID` and `POSTHOG_PERSONAL_API_KEY` for the analytics rollup. Optional `POSTHOG_HOST` when the project is not on US Cloud (`https://us.posthog.com`).
+   - `/fosterfolio/sensitive`: `SUPABASE_DB_URL` (session pooler, port 5432) and `POSTHOG_PERSONAL_API_KEY` for the analytics rollup. Create that key in PostHog with only the `query:read` scope, restricted to this environment's project. The rollup's one call is the query API. `deploy-aws.mjs` never reads the key from `/shared`.
 3. In `prod`, create the same folders with the prod values. Use `--path` on every `infisical secrets set`.
 4. Check the prod URL contains `xjafaxktmpjycuakyouv` and the dev URL contains `qrttmonymvsibqyryqpt`.
 5. Leave the four Terraform outputs for step 7.
