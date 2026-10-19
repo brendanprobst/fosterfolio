@@ -107,6 +107,15 @@ type TurnstileHandle = {
   execute: () => Promise<string>;
 };
 
+const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+/** An invisible challenge normally takes a second or two. Past this, ask the visitor to retry. */
+const TURNSTILE_EXECUTE_TIMEOUT_MS = 20000;
+
+export const TURNSTILE_UNAVAILABLE_MESSAGE =
+  "The spam check didn't load. If you use an ad or privacy blocker, allow challenges.cloudflare.com, then try again.";
+export const TURNSTILE_FAILED_MESSAGE =
+  "We couldn't confirm you're a person. Please try again.";
+
 declare global {
   interface Window {
     turnstile?: {
@@ -121,6 +130,7 @@ declare global {
         },
       ) => string;
       execute: (widgetId: string) => void;
+      reset: (widgetId: string) => void;
     };
   }
 }
@@ -154,16 +164,24 @@ function InvisibleTurnstile({
         execute: () =>
           new Promise((resolve, reject) => {
             if (!widgetId || !window.turnstile) {
-              reject(new Error("Could not verify that this inquiry came from a person."));
+              reject(new Error(TURNSTILE_UNAVAILABLE_MESSAGE));
               return;
             }
+            const timer = setTimeout(
+              () => resolver.current?.(""),
+              TURNSTILE_EXECUTE_TIMEOUT_MS,
+            );
             resolver.current = (token) => {
+              clearTimeout(timer);
+              resolver.current = null;
               if (!token) {
-                reject(new Error("Could not verify that this inquiry came from a person."));
+                reject(new Error(TURNSTILE_FAILED_MESSAGE));
                 return;
               }
               resolve(token);
             };
+            // Tokens are single-use, and a solved widget won't run again until it is reset.
+            window.turnstile.reset(widgetId);
             window.turnstile.execute(widgetId);
           }),
       });
@@ -173,10 +191,10 @@ function InvisibleTurnstile({
       mount();
     } else {
       const existing = document.querySelector<HTMLScriptElement>(
-        'script[src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"]',
+        `script[src="${TURNSTILE_SCRIPT_SRC}"]`,
       );
       const script = existing ?? document.createElement("script");
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.src = TURNSTILE_SCRIPT_SRC;
       script.async = true;
       script.addEventListener("load", mount);
       if (!existing) document.head.appendChild(script);
@@ -219,6 +237,8 @@ export function InquiryForm({
   const [localDraft, setLocalDraft] = useState(emptyDraft);
   const [localInquiry, setLocalInquiry] = useState<Inquiry | null>(null);
   const turnstileRef = useRef<TurnstileHandle | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
   const value = draft ?? localDraft;
 
   function updateDraft(patch: Partial<InquiryDraft>) {
@@ -234,13 +254,23 @@ export function InquiryForm({
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (verifying || mutation.isPending) return;
+    setVerifyError(null);
     let turnstileToken: string | undefined;
     if (TURNSTILE_SITE_KEY) {
-      if (!turnstileRef.current) return;
+      // Not ready: the script is still loading, or a blocker stopped it.
+      if (!turnstileRef.current) {
+        setVerifyError(TURNSTILE_UNAVAILABLE_MESSAGE);
+        return;
+      }
+      setVerifying(true);
       try {
         turnstileToken = await turnstileRef.current.execute();
-      } catch {
+      } catch (err) {
+        setVerifyError(err instanceof Error ? err.message : TURNSTILE_FAILED_MESSAGE);
         return;
+      } finally {
+        setVerifying(false);
       }
     }
     try {
@@ -279,6 +309,8 @@ export function InquiryForm({
     );
   }
 
+  const busy = verifying || mutation.isPending;
+
   if (mutation.isSuccess && !onSuccess) {
     return (
       <InquirySuccess fosterName={fosterName} petName={petName} inquiry={localInquiry} />
@@ -288,7 +320,12 @@ export function InquiryForm({
   return (
     <form onSubmit={(event) => void onSubmit(event)} className="relative space-y-4" aria-label={heading}>
       {showHeading ? <h2 className="text-lg font-medium">{heading}</h2> : null}
-      {mutation.isError ? (
+      {verifyError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Could not send</AlertTitle>
+          <AlertDescription>{verifyError}</AlertDescription>
+        </Alert>
+      ) : mutation.isError ? (
         <Alert variant="destructive">
           <AlertTitle>Could not send</AlertTitle>
           <AlertDescription>
@@ -298,7 +335,7 @@ export function InquiryForm({
           </AlertDescription>
         </Alert>
       ) : null}
-      <fieldset disabled={mutation.isPending} className="min-w-0 space-y-4 border-0 p-0">
+      <fieldset disabled={busy} className="min-w-0 space-y-4 border-0 p-0">
         <legend className="sr-only">{heading}</legend>
         <div className="space-y-1.5">
           <Label htmlFor="inquiry-name">Your name</Label>
@@ -308,7 +345,7 @@ export function InquiryForm({
             value={senderName}
             onChange={(e) => updateDraft({ senderName: e.target.value })}
             required
-            disabled={mutation.isPending}
+            disabled={busy}
             autoComplete="name"
           />
         </div>
@@ -321,7 +358,7 @@ export function InquiryForm({
             value={senderEmail}
             onChange={(e) => updateDraft({ senderEmail: e.target.value })}
             required
-            disabled={mutation.isPending}
+            disabled={busy}
             autoComplete="email"
           />
         </div>
@@ -332,7 +369,7 @@ export function InquiryForm({
             name="zipCode"
             value={zipCode}
             onChange={(e) => updateDraft({ zipCode: e.target.value })}
-            disabled={mutation.isPending}
+            disabled={busy}
             autoComplete="postal-code"
             inputMode="numeric"
           />
@@ -345,7 +382,7 @@ export function InquiryForm({
             value={message}
             onChange={(e) => updateDraft({ message: e.target.value })}
             required
-            disabled={mutation.isPending}
+            disabled={busy}
             rows={5}
           />
         </div>
@@ -357,8 +394,8 @@ export function InquiryForm({
             }}
           />
         ) : null}
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Sending…" : "Send inquiry"}
+        <Button type="submit" disabled={busy}>
+          {busy ? "Sending…" : "Send inquiry"}
         </Button>
       </fieldset>
     </form>

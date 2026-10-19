@@ -32,7 +32,7 @@
 | L3   | Medium   | Logic          | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates           | ✅ Fixed                               |
 | L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | ✅ Fixed (dev migrated; prod at launch) |
 | L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | ✅ Fixed (dev migrated; prod at launch) |
-| L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | Open                                   |
+| L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | ✅ Fixed                               |
 | S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | Open                                   |
 | S7   | Low      | Infra/Hygiene  | Lambda zip build artifacts committed to git                                                           | Open                                   |
 | S8   | Low      | Security       | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey`             | ✅ Fixed (dev migrated; prod at launch) |
@@ -79,7 +79,7 @@
 - **Known gaps:**
   - `POST /inquiries/` (trailing slash) doesn't match the route key. It goes to the proxy and gets the looser stage limit. Turnstile still gates it.
   - A throttled request gets API Gateway's 429 without Express's CORS headers, so the browser reports a network error and the form shows its generic failure message.
-- **Still open (not part of this finding):** SES (`EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM) and `WEB_ORIGIN` on the Lambda, tracked in the section 4 "Missed" table; a `siteverify` timeout (L6).
+- **Still open (not part of this finding):** SES (`EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM) and `WEB_ORIGIN` on the Lambda, tracked in the section 4 "Missed" table; a `siteverify` timeout (L6, since fixed).
 - **Note for S6:** the analytics rollup shares `aws_iam_role.api_lambda`, so it can now read these two parameters as well.
 
 ### S2 — Source-token HMAC falls back to a hardcoded secret · High
@@ -380,6 +380,19 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 
 **Fix:** Show an error state when the widget isn't ready, call `reset` before every `execute`, and add an `AbortController` timeout on the server fetch.
 
+**Status: ✅ Fixed** (2026-10-18, not yet committed; the API Lambda needs a redeploy for the timeout)
+
+- **Not ready:** when the site key is set but the widget hasn't mounted (the script is still loading, or a blocker stopped it), Submit now shows "The spam check didn't load. If you use an ad or privacy blocker, allow challenges.cloudflare.com, then try again." The draft stays, and Submit works again once the script loads. One message covers both cases, since the form can't tell a slow script from a blocked one.
+- **Challenge failure:** an `error-callback` used to be swallowed (`catch { return; }`). It now shows "We couldn't confirm you're a person. Please try again."
+- **Reset:** `execute()` calls `turnstile.reset(widgetId)` before every `turnstile.execute(widgetId)`, so a retry after a challenge error or a server error gets a fresh single-use token. `reset` is added to the `window.turnstile` type.
+- **Client timeout:** if no callback arrives within 20 s, the attempt fails with the challenge-failure message instead of hanging.
+- **Feedback while verifying:** a `verifying` state disables the fieldset and shows "Sending…" during the challenge, the same as during the request. A second click while busy is ignored. (This covers the first item of the submit-progress nice-to-have below, without the stepper.)
+- **Server:** `verifyTurnstileToken` passes `AbortSignal.timeout(5000)` to `siteverify` and treats a timeout or network error as a failed check. The visitor gets `400 INQUIRY_TURNSTILE_FAILED` and can retry, instead of a 500 or a request held until the 15 s Lambda timeout.
+- **Decision: fail closed on timeout.** Letting an inquiry through when Cloudflare is slow would make the spam check easy to bypass. A slow `siteverify` is rare, and the visitor can resend.
+- **Tests:** the new `test/web/unit/InquiryFormTurnstile.test.tsx` loads the form with a site key and a fake `window.turnstile`. It covers a blocked script, a script that's still loading, a challenge error followed by a successful retry (reset before each execute), a fresh token after a server 500, and a disabled form during the challenge. All 5 fail before the change. The new `test/api/adapters/verifyTurnstileToken.test.ts` covers success/failure/non-200, a hung `siteverify` aborted at the timeout, and a network error. The timeout test didn't compile before the change, and the network-error case threw.
+- **Verified:** `npm run ci` passes (Jest 47 suites / 376 tests, web unit 60 files / 254 tests, lint, type-check, build).
+- **Not verified in a real browser** against Cloudflare. Test site keys (`1x00000000000000000000AA` always passes, `2x00000000000000000000AB` always fails) can check it by hand.
+
 ### L7 — Metric semantics · Low
 
 - **Conversion can exceed 100%.** Inquiries come from Supabase (complete). Views come from PostHog, which ad blockers undercount. With small numbers, 2 inquiries ÷ 1 view = 200%. Cap it, or mark it "≈".
@@ -557,7 +570,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
-6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch). ~~**L4**: Freeze adopted pets in the rollup.~~ ✅ Done (dev migrated; prod at launch).
+6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch). ~~**L4**: Freeze adopted pets in the rollup.~~ ✅ Done (dev migrated; prod at launch). ~~**L6**: Turnstile client error states, reset, and a `siteverify` timeout.~~ ✅ Done.
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
 
 **Prod schema at launch.** Prod's database is still on the v1 schema. On 2026-10-18 `npm run supabase:list -- --env prod` showed only `20261003120000` applied. When the branch ships, push the v2 schema *before* the API deploy, because the v2 API reads tables v1 doesn't have:
