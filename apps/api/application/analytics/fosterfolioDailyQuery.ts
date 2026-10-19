@@ -12,7 +12,7 @@ export const ROLLUP_ROW_LIMIT = 50000;
  * views and approx_visitors count pet_viewed only. form_opens counts
  * inquiry_form_opened. inquiry_submitted is not a column: inquiry totals are
  * read from Supabase later. City is PostHog's $geoip_city_name and may be null.
- * Adopted pets are not filtered; analytics_stopped_at is a capture cutoff only.
+ * Adopted pets are not filtered here. RollupRowVerifier drops rows after analytics_stopped_at.
  */
 export const FOSTERFOLIO_DAILY_AGGREGATE_HOGQL = `
 SELECT

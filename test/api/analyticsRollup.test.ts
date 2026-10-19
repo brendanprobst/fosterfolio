@@ -46,6 +46,7 @@ class FakeBackend {
     [PET, OWNER],
     [OTHER_PET, OTHER_OWNER],
   ]);
+  stoppedAt = new Map<string, string>();
   activeUsers = new Set([OWNER, OTHER_OWNER]);
   links = [
     { id: LINK, owner_id: OWNER, channel_key: 'instagram' },
@@ -80,7 +81,13 @@ class FakeBackend {
     const ids = inListIds(path);
     if (path.startsWith('pets?')) {
       return json(
-        ids.filter((id) => this.pets.has(id)).map((id) => ({ id, owner_id: this.pets.get(id) }))
+        ids
+          .filter((id) => this.pets.has(id))
+          .map((id) => ({
+            id,
+            owner_id: this.pets.get(id),
+            analytics_stopped_at: this.stoppedAt.get(id) ?? null,
+          }))
       );
     }
     if (path.startsWith('users?')) {
@@ -237,6 +244,28 @@ describe('analytics rollup handler', () => {
     });
     expect(warnings[0]).not.toContain('made-up');
     expect(warnings[0]).not.toContain('not-a-uuid');
+  });
+
+  it('keeps an adopted pet frozen: rows after analytics_stopped_at are not written', async () => {
+    backend.stoppedAt.set(PET, '2026-10-08T15:30:00+00:00');
+    backend.petResults = [
+      petRow({ day: '2026-10-09' }),
+      petRow({ day: '2026-10-08' }),
+      petRow({ day: '2026-10-07' }),
+    ];
+    backend.ownerResults = [ownerRow({ day: '2026-10-09' })];
+
+    const result = await handler();
+
+    expect(result).toEqual({ rows: 3 });
+    expect(backend.upsertFor('analytics_daily')?.body.map((row) => row.day)).toEqual([
+      '2026-10-08',
+      '2026-10-07',
+    ]);
+    // The foster-me page is the owner's, not the pet's, so owner rows are not frozen.
+    expect(backend.upsertFor('analytics_owner_daily')?.body).toHaveLength(1);
+    // Expected behavior, not forgery: no "untrusted rows" warning.
+    expect(warnings).toEqual([]);
   });
 
   it('sums rows that normalize to the same key instead of failing the batch', async () => {

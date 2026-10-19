@@ -169,6 +169,27 @@ describe('RollupRowVerifier', () => {
     });
   });
 
+  it('freezes an adopted pet: drops rows dated after analytics_stopped_at', async () => {
+    const adopted = (await pets.findById(petId))!;
+    jest.useFakeTimers({ now: new Date('2026-10-08T15:30:00Z') });
+    adopted.applyUpdate({ status: 'adopted' });
+    jest.useRealTimers();
+    await pets.save(adopted);
+    const before = petRow({ petId, day: '2026-10-07' });
+    const sameDay = petRow({ petId, day: '2026-10-08' });
+    const sibling = petRow({ petId: siblingPetId, day: '2026-10-12' });
+
+    const verified = await verifier.verify({
+      petRows: [before, sameDay, petRow({ petId, day: '2026-10-09' }), sibling],
+      ownerRows: [ownerRow({ ownerId, day: '2026-10-12' })],
+    });
+
+    expect(verified.petRows).toEqual([before, sameDay, sibling]);
+    expect(verified.ownerRows).toHaveLength(1);
+    expect(verified.frozen).toBe(1);
+    expect(verified.skipped).toEqual({});
+  });
+
   it('drops forged owner rows', async () => {
     const deletedOwnerId = randomUUID();
     users.seed(user(deletedOwnerId, new Date()));

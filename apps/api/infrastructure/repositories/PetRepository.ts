@@ -9,6 +9,7 @@ import {
 import type {
   CreatePetInput,
   IPetRepository,
+  RollupPet,
 } from '@api/domain/repositories/IPetRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
 import { chunk, inList } from '@api/infrastructure/adapters/dataAdapter/postgrestFilters';
@@ -99,15 +100,22 @@ export class PetRepository implements IPetRepository {
     return rows.map(toPet);
   }
 
-  async listOwnerIdsByIds(ids: string[]): Promise<Map<string, string>> {
-    const owners = new Map<string, string>();
+  async listRollupPetsByIds(ids: string[]): Promise<Map<string, RollupPet>> {
+    const pets = new Map<string, RollupPet>();
     for (const batch of chunk([...new Set(ids)])) {
-      const rows = await this.dataAdapter.get<Array<{ id: string; owner_id: string }>>(
-        `${this.table}?select=id,owner_id&id=in.${inList(batch)}&deleted_at=is.null`
+      const rows = await this.dataAdapter.get<
+        Array<{ id: string; owner_id: string; analytics_stopped_at: string | null }>
+      >(
+        `${this.table}?select=id,owner_id,analytics_stopped_at&id=in.${inList(batch)}&deleted_at=is.null`
       );
-      for (const row of rows) owners.set(row.id, row.owner_id);
+      for (const row of rows) {
+        pets.set(row.id, {
+          ownerId: row.owner_id,
+          analyticsStoppedAt: row.analytics_stopped_at ? new Date(row.analytics_stopped_at) : null,
+        });
+      }
     }
-    return owners;
+    return pets;
   }
 
   async create(input: CreatePetInput): Promise<Pet> {

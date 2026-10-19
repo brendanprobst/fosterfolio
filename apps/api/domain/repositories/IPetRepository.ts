@@ -20,11 +20,16 @@ export type CreatePetInput = {
   importantLinks?: { label: string; url: string }[] | null;
 };
 
+export type RollupPet = { ownerId: string; analyticsStoppedAt: Date | null };
+
 export interface IPetRepository {
   findById(id: string): Promise<Pet | null>;
   listByOwnerId(ownerId: string): Promise<Pet[]>;
-  /** Owner id for each active pet among `ids`. Missing and soft-deleted pets are omitted. */
-  listOwnerIdsByIds(ids: string[]): Promise<Map<string, string>>;
+  /**
+   * Owner id and analytics stop time for each active pet among `ids`, for the rollup.
+   * Missing and soft-deleted pets are omitted.
+   */
+  listRollupPetsByIds(ids: string[]): Promise<Map<string, RollupPet>>;
   create(input: CreatePetInput): Promise<Pet>;
   save(pet: Pet): Promise<void>;
   listPetUpdates(petId: string): Promise<PetUpdateSummaryDto[]>;

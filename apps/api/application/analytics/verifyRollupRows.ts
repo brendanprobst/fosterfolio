@@ -19,6 +19,8 @@ export type VerifiedRollupRows = {
   petRows: AnalyticsDailyWrite[];
   ownerRows: AnalyticsOwnerDailyWrite[];
   skipped: RollupSkipCounts;
+  /** Pet rows dated after the pet's adoption (analytics_stopped_at), left out on purpose. */
+  frozen: number;
 };
 
 /**
@@ -27,6 +29,11 @@ export type VerifiedRollupRows = {
  * (or owner) is active, its link belongs to that owner, and its channel is one the owner
  * could have produced. A link from another of the owner's pets is kept: first-touch
  * attribution follows the visitor across that owner's pages.
+ *
+ * An adopted pet's numbers are final: pet rows dated after the UTC day of
+ * analytics_stopped_at are left out, so stored rows up to that day stop changing. The
+ * adoption day itself is still refreshed. Owner rows are not frozen, since the foster-me
+ * page belongs to the owner.
  */
 export class RollupRowVerifier {
   constructor(
@@ -52,12 +59,14 @@ export class RollupRowVerifier {
     const petRows = input.petRows.filter((row) => wellFormed(row, row.petId));
     const ownerRows = input.ownerRows.filter((row) => wellFormed(row, row.ownerId));
 
-    const petOwners = await this.petRepository.listOwnerIdsByIds(petRows.map((row) => row.petId));
+    const rollupPets = await this.petRepository.listRollupPetsByIds(
+      petRows.map((row) => row.petId)
+    );
     const activeOwners = await this.userRepository.listActiveIds(
       ownerRows.map((row) => row.ownerId)
     );
     const links = await this.trackedLinkRepository.listByOwnerIds([
-      ...new Set([...petOwners.values(), ...activeOwners]),
+      ...new Set([...[...rollupPets.values()].map((pet) => pet.ownerId), ...activeOwners]),
     ]);
     const linkOwners = new Map(links.map((link) => [link.id, link.ownerId]));
     const channelKeys = new Map<string, Set<string>>();
@@ -82,14 +91,20 @@ export class RollupRowVerifier {
       return true;
     };
 
+    let frozen = 0;
     return {
       petRows: petRows.filter((row) => {
-        const ownerId = petOwners.get(row.petId);
-        if (!ownerId) {
+        const pet = rollupPets.get(row.petId);
+        if (!pet) {
           skip('unknown_pet');
           return false;
         }
-        return trusted(row, ownerId);
+        if (!trusted(row, pet.ownerId)) return false;
+        if (pet.analyticsStoppedAt && row.day.slice(0, 10) > utcDay(pet.analyticsStoppedAt)) {
+          frozen += 1;
+          return false;
+        }
+        return true;
       }),
       ownerRows: ownerRows.filter((row) => {
         if (!activeOwners.has(row.ownerId)) {
@@ -99,6 +114,12 @@ export class RollupRowVerifier {
         return trusted(row, row.ownerId);
       }),
       skipped,
+      // After petRows, so the count is final.
+      frozen,
     };
   }
+}
+
+function utcDay(at: Date): string {
+  return at.toISOString().slice(0, 10);
 }

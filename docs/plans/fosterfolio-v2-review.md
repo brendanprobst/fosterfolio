@@ -30,7 +30,7 @@
 | S4   | Medium   | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state                                   | Open                                   |
 | S5   | Medium   | Security       | `mailto:` injection through sender email                                                              | ✅ Fixed                               |
 | L3   | Medium   | Logic          | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates           | ✅ Fixed                               |
-| L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | Open                                   |
+| L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | ✅ Fixed (dev migrated; prod at launch) |
 | L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | ✅ Fixed (dev migrated; prod at launch) |
 | L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | Open                                   |
 | S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | Open                                   |
@@ -285,6 +285,22 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 
 **Fix:** Filter rollup rows where `day > analytics_stopped_at` with a join or lookup. Backfill `analytics_stopped_at = updated_at` for pets already marked adopted.
 
+**Status: ✅ Fixed** (2026-10-18, not yet committed; dev is migrated, and the rollup Lambda needs a redeploy)
+
+- **Rollup:** `IPetRepository.listOwnerIdsByIds` is now `listRollupPetsByIds`, which returns `{ ownerId, analyticsStoppedAt }` per active pet from the same chunked `pets` read (`select=id,owner_id,analytics_stopped_at`). `RollupRowVerifier` drops a pet row when its `day` is after the UTC day of `analytics_stopped_at`. The rows are counted in a new `frozen` field, not in `skipped`, so they don't trigger the "untrusted rows" warning.
+- **Decision: the adoption day itself is still refreshed.** `day` is a UTC date, and the stop is a timestamp. Keeping that day means views from the morning of adoption still count, and views from later that day count too. Dropping it would lose real pre-adoption traffic.
+- **Decision: owner rows are not frozen.** `analytics_owner_daily` belongs to the owner's foster-me page, which stays live. Its `pet_taps` can still include taps on an adopted pet. That's a small leak and stays open.
+- **Ownership checks run first.** A forged row for an adopted pet still counts as `foreign_link` / `unknown_channel`, not `frozen`.
+- **DB:** new feature migration `supabase/migrations/feature-migrations/20261018230000_app_v2_adopted_freeze.sql` (plus its CLI symlink):
+  - Backfills `analytics_stopped_at = updated_at` for `status = 'adopted'` pets where it is null. This applies to prod's v1 pets. `updated_at` is bumped by every edit, so a pet edited after adoption freezes a little later than its real adoption date.
+  - **Decision: delete stored rows dated after the stop.** They came from views after adoption, the rollup no longer rewrites them, and `analytics_link_view_totals` would count them forever. The delete uses the same UTC-day rule as the verifier. On prod, `analytics_daily` is created empty in the same push, so it deletes nothing.
+  - The master is rebuilt as `LATEST_20261018.sql`. The L5 master moved to `archive/LATEST_20261018_rollup_bulk_upsert.sql`, because `archive/LATEST_20261018.sql` already holds the earlier same-day master.
+- **Seed:** no change. `v2-analytics.sql` already stops Biscuit's rows at his `analytics_stopped_at` (`until_days`), so the delete removes nothing seeded.
+- **Un-adopting:** `Pet.applyUpdate` clears `analytics_stopped_at` when a pet leaves `adopted`, and the next run rewrites the last 14 days. Deleted rows older than 14 days don't come back.
+- **Tests:** `test/api/rollupRowVerifier.test.ts` gains "freezes an adopted pet" (rows before and on the stop day kept, the day after dropped, a sibling pet and owner rows untouched, `frozen: 1`). `test/api/analyticsRollup.test.ts` gains an end-to-end case: the fake `pets` lookup returns `analytics_stopped_at`, only the two rows up to the stop day are upserted, owner rows are written, and nothing is logged. Both fail before the change.
+- **Verified:** `npm run ci` passes (Jest 46 suites / 373 tests, all 11 turbo tasks).
+- **Not tested:** no automated test runs the migration SQL. It applied cleanly on dev (`supabase:list` shows `20261018230000` on both sides).
+
 ### L5 — Rollup upsert scalability and atomicity · Medium
 
 **Where:** `AnalyticsDailyRepository.upsert` (`:72`), `AnalyticsOwnerDailyRepository.upsert` (`:119`)
@@ -441,7 +457,7 @@ The spec says the package "knows nothing about pets." Instead:
 
 - `POST/GET /pets/:id/links` are kept on purpose with no UI caller, and they still need tests and Swagger. Fine if pet flyers are really expected. Otherwise remove them, since the backend still supports both targets.
 - `approx_visitors` is written but never displayed (see L7).
-- `analytics_stopped_at` is written but never read (see L4).
+- ~~`analytics_stopped_at` is written but never read (see L4).~~ The rollup reads it now (L4).
 
 ### Q6 — Migration layout · Low
 
@@ -496,7 +512,7 @@ These look like the right product call. Update the spec so it is the source of t
 | Presets: Lawn sign, Instagram, Facebook, TikTok, Flyer, **Shelter listing, Other** | The last two were removed in `1f373e1`. Self-report still offers "Other" and "Shelter".                                                                                                             |
 | "Email for every inquiry notification via SES"                                     | Code is done. **Not live:** `EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM and `WEB_ORIGIN` are not wired in Terraform. The footer link is relative (`/settings/notifications`) in production. |
 | Turnstile spam protection                                                          | Code is done. **Not live** (S1).                                                                                                                                                                    |
-| "Rollup job keeps the final numbers" on adoption                                   | Not implemented (L4)                                                                                                                                                                                |
+| "Rollup job keeps the final numbers" on adoption                                   | Fixed (L4)                                                                                                                                                                                          |
 | "approx. visitors" label                                                           | Not shown anywhere (L7)                                                                                                                                                                             |
 | "Original QR" row explaining Direct traffic                                        | Gone. v1 signs that point at pet URLs now appear only as "Direct / original QR" in charts, and nothing on the links page explains them.                                                             |
 | `packages/analytics` knows nothing about pets; configurable referrer map           | Not met (Q3)                                                                                                                                                                                        |
@@ -541,16 +557,16 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
-6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch).
+6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch). ~~**L4**: Freeze adopted pets in the rollup.~~ ✅ Done (dev migrated; prod at launch).
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
 
 **Prod schema at launch.** Prod's database is still on the v1 schema. On 2026-10-18 `npm run supabase:list -- --env prod` showed only `20261003120000` applied. When the branch ships, push the v2 schema *before* the API deploy, because the v2 API reads tables v1 doesn't have:
 
-1. `npm run supabase:push:dry -- --env prod` should list exactly `20261008133000_app_v2_tracked_links.sql`, `20261010010000_app_v2_foster_me_links.sql`, `20261018120000_app_v2_link_input_bounds.sql` and `20261018200000_app_v2_rollup_bulk_upsert.sql`, plus any migration added after this note.
+1. `npm run supabase:push:dry -- --env prod` should list exactly `20261008133000_app_v2_tracked_links.sql`, `20261010010000_app_v2_foster_me_links.sql`, `20261018120000_app_v2_link_input_bounds.sql`, `20261018200000_app_v2_rollup_bulk_upsert.sql` and `20261018230000_app_v2_adopted_freeze.sql`, plus any migration added after this note.
 2. Set `SUPABASE_PUSH_ENABLED=1` in `supabase/.env.prod`, run `npm run supabase:push -- --env prod`, then set it back to `0`.
 3. `npm run supabase:list -- --env prod` should show every local migration with a remote match.
 
-The first three are additive (new tables, nullable or defaulted columns, `if not exists`), and prod has no `tracked_links` rows, so nothing needs a backfill. The L5 migration drops and rebuilds the two analytics unique indexes, but on prod those tables are created empty in the same push. Don't run `LATEST_*.sql` on prod. It's for empty databases only.
+The first three are additive (new tables, nullable or defaulted columns, `if not exists`), and prod has no `tracked_links` rows, so nothing needs a backfill. The L5 migration drops and rebuilds the two analytics unique indexes, but on prod those tables are created empty in the same push. The L4 migration is the one with real work on prod: it backfills `analytics_stopped_at` for v1 pets already marked adopted. Don't run `LATEST_*.sql` on prod. It's for empty databases only.
 
 ---
 
