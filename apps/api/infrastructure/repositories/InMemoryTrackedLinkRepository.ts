@@ -43,6 +43,11 @@ export class InMemoryTrackedLinkRepository implements ITrackedLinkRepository {
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
+  async listByOwnerIds(ownerIds: string[]): Promise<TrackedLinkRecord[]> {
+    const owners = new Set(ownerIds);
+    return this.records.filter((row) => owners.has(row.ownerId));
+  }
+
   async findActiveDefaultByOwner(ownerId: string): Promise<TrackedLinkRecord | null> {
     return (
       this.records.find(

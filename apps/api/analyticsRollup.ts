@@ -1,9 +1,14 @@
 import { FOSTERFOLIO_DAILY_AGGREGATE_HOGQL } from '@api/application/analytics/fosterfolioDailyQuery';
 import { FOSTERFOLIO_OWNER_DAILY_HOGQL, mapOwnerDailyRow } from '@api/application/analytics/ownerDailyQuery';
+import { RollupRowVerifier, type RollupSkipCounts } from '@api/application/analytics/verifyRollupRows';
 import { SupabaseAdapter } from '@api/infrastructure/adapters/supabase/SupabaseAdapter';
 import { AnalyticsDailyRepository } from '@api/infrastructure/repositories/AnalyticsDailyRepository';
 import { AnalyticsOwnerDailyRepository } from '@api/infrastructure/repositories/AnalyticsOwnerDailyRepository';
+import { PetRepository } from '@api/infrastructure/repositories/PetRepository';
+import { TrackedLinkRepository } from '@api/infrastructure/repositories/TrackedLinkRepository';
+import { UserRepository } from '@api/infrastructure/repositories/UserRepository';
 import { loadSupabaseEnvFromSsm } from '@api/lambdaEnv';
+import { Logger } from '@api/utils/logger';
 import { PostHogProvider, runRollup } from '@lattice/analytics/server';
 
 function requireEnv(name: string): string {
@@ -25,12 +30,24 @@ export const handler = async (): Promise<{ rows: number }> => {
   const adapter = new SupabaseAdapter();
   const repository = new AnalyticsDailyRepository(adapter);
   const ownerRepository = new AnalyticsOwnerDailyRepository(adapter);
+  const verifier = new RollupRowVerifier(
+    new PetRepository(adapter),
+    new UserRepository(adapter),
+    new TrackedLinkRepository(adapter)
+  );
+
+  const ownerRecords = await provider.queryRecords({ hogql: FOSTERFOLIO_OWNER_DAILY_HOGQL });
+  const ownerRows = ownerRecords
+    .map((row) => mapOwnerDailyRow(row))
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+  let written = 0;
+  let skipped: RollupSkipCounts = {};
   const petRollup = await runRollup({
     provider,
     query: { hogql: FOSTERFOLIO_DAILY_AGGREGATE_HOGQL },
     upsert: async (rows) => {
-      await repository.upsert(
-        rows.map((row) => ({
+      const verified = await verifier.verify({
+        petRows: rows.map((row) => ({
           petId: row.pet_id,
           linkId: row.link_id,
           channelKey: row.channel_key,
@@ -39,13 +56,21 @@ export const handler = async (): Promise<{ rows: number }> => {
           views: row.views,
           approxVisitors: row.approx_visitors,
           formOpens: row.form_opens,
-        }))
-      );
+        })),
+        ownerRows,
+      });
+      await repository.upsert(verified.petRows);
+      await ownerRepository.upsert(verified.ownerRows);
+      written = verified.petRows.length + verified.ownerRows.length;
+      skipped = verified.skipped;
     },
   });
-  const ownerRows = (await provider.queryRecords({ hogql: FOSTERFOLIO_OWNER_DAILY_HOGQL }))
-    .map((row) => mapOwnerDailyRow(row))
-    .filter((row): row is NonNullable<typeof row> => row !== null);
-  await ownerRepository.upsert(ownerRows);
-  return { rows: petRollup.rows + ownerRows.length };
+
+  const malformed = petRollup.skipped + ownerRecords.length - ownerRows.length;
+  if (malformed > 0) skipped.malformed = (skipped.malformed ?? 0) + malformed;
+  if (Object.keys(skipped).length > 0) {
+    // Counts only: the skipped values are attacker-controlled.
+    Logger.warning(`[analytics-rollup] skipped untrusted rows ${JSON.stringify(skipped)}`);
+  }
+  return { rows: written };
 };

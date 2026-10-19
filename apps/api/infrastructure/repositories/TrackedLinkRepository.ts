@@ -8,6 +8,7 @@ import type {
   UpdateTrackedLinkInput,
 } from '@api/domain/repositories/ITrackedLinkRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
+import { chunk, inList } from '@api/infrastructure/adapters/dataAdapter/postgrestFilters';
 
 type TrackedLinkRow = {
   id: string;
@@ -78,6 +79,17 @@ export class TrackedLinkRepository implements ITrackedLinkRepository {
       `${this.table}?select=${SELECT}&owner_id=eq.${encodeURIComponent(ownerId)}&order=created_at.asc`
     );
     return rows.map(toRecord);
+  }
+
+  async listByOwnerIds(ownerIds: string[]): Promise<TrackedLinkRecord[]> {
+    const links: TrackedLinkRecord[] = [];
+    for (const batch of chunk([...new Set(ownerIds)])) {
+      const rows = await this.dataAdapter.get<TrackedLinkRow[]>(
+        `${this.table}?select=${SELECT}&owner_id=in.${inList(batch)}`
+      );
+      links.push(...rows.map(toRecord));
+    }
+    return links;
   }
 
   async findActiveDefaultByOwner(ownerId: string): Promise<TrackedLinkRecord | null> {

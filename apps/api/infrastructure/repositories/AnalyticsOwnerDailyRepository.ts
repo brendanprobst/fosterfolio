@@ -4,6 +4,7 @@ import type {
   IAnalyticsOwnerDailyRepository,
 } from '@api/domain/repositories/IAnalyticsOwnerDailyRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
+import { eqValue, inList } from '@api/infrastructure/adapters/dataAdapter/postgrestFilters';
 import { analyticsOwnerDailyKey } from '@api/infrastructure/analytics/analyticsOwnerDailyKey';
 
 type AnalyticsOwnerDailyRow = {
@@ -30,13 +31,6 @@ function toRecord(row: AnalyticsOwnerDailyRow): AnalyticsOwnerDailyRecord {
     approxVisitors: row.approx_visitors,
     petTaps: row.pet_taps,
   };
-}
-
-function postgrestEq(value: string): string {
-  if (/[^A-Za-z0-9_-]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -72,7 +66,7 @@ export class AnalyticsOwnerDailyRepository implements IAnalyticsOwnerDailyReposi
     if (!start || !end) return;
 
     const existing = await this.dataAdapter.get<AnalyticsOwnerDailyRow[]>(
-      `${this.table}?select=${SELECT}&owner_id=in.(${ownerIds.join(',')})&day=gte.${start}&day=lte.${end}&limit=10000`
+      `${this.table}?select=${SELECT}&owner_id=in.${inList(ownerIds)}&day=gte.${eqValue(start)}&day=lte.${eqValue(end)}&limit=10000`
     );
     const keys = new Set(existing.map((row) => analyticsOwnerDailyKey(toRecord(row))));
 
@@ -110,10 +104,10 @@ export class AnalyticsOwnerDailyRepository implements IAnalyticsOwnerDailyReposi
   }
 
   private async patch(row: AnalyticsOwnerDailyWrite): Promise<void> {
-    const linkFilter = row.linkId ? `link_id=eq.${row.linkId}` : 'link_id=is.null';
-    const cityFilter = row.city ? `city=eq.${postgrestEq(row.city)}` : 'city=is.null';
+    const linkFilter = row.linkId ? `link_id=eq.${eqValue(row.linkId)}` : 'link_id=is.null';
+    const cityFilter = row.city ? `city=eq.${eqValue(row.city)}` : 'city=is.null';
     await this.dataAdapter.update(
-      `${this.table}?owner_id=eq.${row.ownerId}&${linkFilter}&channel_key=eq.${postgrestEq(row.channelKey)}&${cityFilter}&day=eq.${row.day}`,
+      `${this.table}?owner_id=eq.${eqValue(row.ownerId)}&${linkFilter}&channel_key=eq.${eqValue(row.channelKey)}&${cityFilter}&day=eq.${eqValue(row.day)}`,
       {
         views: row.views,
         approx_visitors: row.approxVisitors,

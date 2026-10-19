@@ -15,8 +15,10 @@ type Stored = {
 
 class MemoryAdapter implements DataAdapter {
   rows: Stored[] = [];
+  paths: string[] = [];
 
   async get<T>(path: string): Promise<T> {
+    this.paths.push(path);
     if (path.includes('day=gte.')) {
       const start = /day=gte\.(\d{4}-\d{2}-\d{2})/.exec(path)?.[1];
       const end = /day=lte\.(\d{4}-\d{2}-\d{2})/.exec(path)?.[1];
@@ -34,6 +36,7 @@ class MemoryAdapter implements DataAdapter {
   }
 
   async update<T>(path: string, body?: unknown): Promise<T> {
+    this.paths.push(path);
     const day = /day=eq\.(\d{4}-\d{2}-\d{2})/.exec(path)?.[1];
     const row = this.rows.find((item) => item.day === day);
     if (row && body && typeof body === 'object') {
@@ -96,5 +99,29 @@ describe('AnalyticsDailyRepository upsert', () => {
       approx_visitors: 4,
       form_opens: 3,
     });
+  });
+
+  it('encodes every filter value it sends to PostgREST', async () => {
+    const adapter = new MemoryAdapter();
+    const repo = new AnalyticsDailyRepository(adapter);
+    const write = {
+      petId: '6a1f0d7e-1c1b-4c8e-9d0f-2a3b4c5d6e7f',
+      linkId: '7b2e1e8f-2d2c-4d9f-8e1a-3b4c5d6e7f80',
+      channelKey: 'vet-office',
+      city: 'St. Paul & Co',
+      day: '2026-10-08',
+      views: 1,
+      approxVisitors: 1,
+      formOpens: 0,
+    };
+    await repo.upsert([write]);
+    await repo.upsert([{ ...write, views: 2 }]);
+
+    const patch = adapter.paths[adapter.paths.length - 1] ?? '';
+    expect(patch).toContain(`city=eq.${encodeURIComponent('"St. Paul & Co"')}`);
+    expect(patch).not.toContain('& Co');
+    expect(patch).toContain(`pet_id=eq.${write.petId}`);
+    expect(patch).toContain(`link_id=eq.${write.linkId}`);
+    expect(adapter.rows[0]?.views).toBe(2);
   });
 });

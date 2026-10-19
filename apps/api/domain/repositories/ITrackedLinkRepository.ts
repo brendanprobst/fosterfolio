@@ -40,6 +40,8 @@ export interface ITrackedLinkRepository {
   listByPetId(petId: string): Promise<TrackedLinkRecord[]>;
   /** Every link this owner has, both targets, archived included. */
   listByOwnerId(ownerId: string): Promise<TrackedLinkRecord[]>;
+  /** Every link for any of these owners, both targets, archived included. */
+  listByOwnerIds(ownerIds: string[]): Promise<TrackedLinkRecord[]>;
   /** Active foster-me link whose channel is the reserved default, if any. */
   findActiveDefaultByOwner(ownerId: string): Promise<TrackedLinkRecord | null>;
   findById(id: string): Promise<TrackedLinkRecord | null>;

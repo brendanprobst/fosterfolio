@@ -4,6 +4,7 @@ import type {
   IAnalyticsDailyRepository,
 } from '@api/domain/repositories/IAnalyticsDailyRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
+import { eqValue, inList } from '@api/infrastructure/adapters/dataAdapter/postgrestFilters';
 import { analyticsDailyKey } from '@api/infrastructure/analytics/analyticsDailyKey';
 
 type AnalyticsDailyRow = {
@@ -37,13 +38,6 @@ function rowKey(row: AnalyticsDailyRecord): string {
   return analyticsDailyKey(row);
 }
 
-function postgrestEq(value: string): string {
-  if (/[^A-Za-z0-9_-]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
-
 function isUniqueViolation(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return message.includes('23505') || message.includes('duplicate') || message.includes('(409)');
@@ -65,7 +59,7 @@ export class AnalyticsDailyRepository implements IAnalyticsDailyRepository {
     if (!start || !end) return;
 
     const existing = await this.dataAdapter.get<AnalyticsDailyRow[]>(
-      `${this.table}?select=${SELECT}&pet_id=in.(${petIds.join(',')})&day=gte.${start}&day=lte.${end}&limit=10000`
+      `${this.table}?select=${SELECT}&pet_id=in.${inList(petIds)}&day=gte.${eqValue(start)}&day=lte.${eqValue(end)}&limit=10000`
     );
     const keys = new Set(existing.map((row) => rowKey(toRecord(row))));
 
@@ -114,7 +108,7 @@ export class AnalyticsDailyRepository implements IAnalyticsDailyRepository {
     const totals = new Map<string, number>();
     if (linkIds.length === 0) return totals;
     const rows = await this.dataAdapter.get<Array<{ link_id: string | null; views: number }>>(
-      `${this.table}?select=link_id,views&link_id=in.(${linkIds.join(',')})&limit=10000`
+      `${this.table}?select=link_id,views&link_id=in.${inList(linkIds)}&limit=10000`
     );
     for (const row of rows) {
       if (!row.link_id) continue;
@@ -124,10 +118,10 @@ export class AnalyticsDailyRepository implements IAnalyticsDailyRepository {
   }
 
   private async patch(row: AnalyticsDailyWrite): Promise<void> {
-    const linkFilter = row.linkId ? `link_id=eq.${row.linkId}` : 'link_id=is.null';
-    const cityFilter = row.city ? `city=eq.${postgrestEq(row.city)}` : 'city=is.null';
+    const linkFilter = row.linkId ? `link_id=eq.${eqValue(row.linkId)}` : 'link_id=is.null';
+    const cityFilter = row.city ? `city=eq.${eqValue(row.city)}` : 'city=is.null';
     await this.dataAdapter.update(
-      `${this.table}?pet_id=eq.${row.petId}&${linkFilter}&channel_key=eq.${postgrestEq(row.channelKey)}&${cityFilter}&day=eq.${row.day}`,
+      `${this.table}?pet_id=eq.${eqValue(row.petId)}&${linkFilter}&channel_key=eq.${eqValue(row.channelKey)}&${cityFilter}&day=eq.${eqValue(row.day)}`,
       {
         views: row.views,
         approx_visitors: row.approxVisitors,

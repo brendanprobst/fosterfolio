@@ -41,7 +41,7 @@ describe("rollup runner", () => {
       query: { hogql: "select 1" },
       upsert: memoryUpsert(store),
     });
-    expect(first.rows).toBe(1);
+    expect(first).toEqual({ rows: 1, skipped: 0 });
     expect(store.get(aggregateKey(row()))?.views).toBe(2);
     expect(store.get(aggregateKey(older))?.views).toBe(9);
 
@@ -59,6 +59,30 @@ describe("rollup runner", () => {
       row({ views: 5, approx_visitors: 3, form_opens: 2 }),
     );
     expect(store.get(aggregateKey(older))?.views).toBe(9);
+  });
+
+  it("skips malformed rows instead of aborting the run", async () => {
+    const store = new Map<string, AggregateRow>();
+    const provider: AnalyticsProvider = {
+      queryAggregates: async () => [
+        row({ pet_id: "" }),
+        row({ pet_id: "pet-2", channel_key: "  " }),
+        row({ pet_id: "pet-3", day: "yesterday" }),
+        row({ pet_id: "pet-4", views: Number.NaN }),
+        row({ pet_id: "pet-5", form_opens: -1 }),
+        row({ pet_id: 42 as unknown as string }),
+        row(),
+      ],
+    };
+
+    const result = await runRollup({
+      provider,
+      query: { hogql: "select 1" },
+      upsert: memoryUpsert(store),
+    });
+
+    expect(result).toEqual({ rows: 1, skipped: 6 });
+    expect([...store.values()]).toEqual([row()]);
   });
 
   it("does not store inquiry_submitted", async () => {

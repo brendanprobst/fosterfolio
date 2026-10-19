@@ -19,35 +19,35 @@
 
 ## Summary table
 
-| ID | Sev | Area | Item | Status |
-|---|---|---|---|---|
-| L1 | Critical | Logic | Foster-me link + pet inquiry is rejected with 400 | ✅ Fixed |
-| CI | Critical | CI | Web unit + E2E jobs failing on the PR head | ✅ Fixed |
-| S1 | High | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints | 🟡 Partial (Turnstile fails closed; rate limits, SES and `WEB_ORIGIN` open) |
-| S2 | High | Security | Source-token HMAC falls back to a hardcoded, committed secret | ✅ Fixed (needs manual SSM setup) |
-| S3 | High | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection) | Open |
-| L2 | High | Logic | Owner self-views are captured before auth resolves | Open |
-| S4 | Medium | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state | Open |
-| S5 | Medium | Security | `mailto:` injection through sender email | Open |
-| L3 | Medium | Logic | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates | Open |
-| L4 | Medium | Logic | "Adopted freeze" is client-only; the rollup keeps rewriting numbers | Open |
-| L5 | Medium | Logic/Perf | Rollup upsert: one row per request, silent truncation, partial writes | Open |
-| L6 | Medium | Logic/UX | Turnstile client: submit does nothing silently; token not reset for retry | Open |
-| S6 | Low | Infra | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour | Open |
-| S7 | Low | Infra/Hygiene | Lambda zip build artifacts committed to git | Open |
-| S8 | Low | Security | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey` | Open |
-| C1 | Medium | Compliance | No privacy policy; third-party processors (Turnstile, PostHog, Supabase, SES, Zippopotam) undisclosed | Open (blocks public launch, not merge) |
-| L7 | Low | Logic | Metric semantics: conversion can exceed 100%; "approx visitors" is meaningless and hidden; UTC days | Open |
-| L8 | Low | Perf/Data | Inbox does N+1 lookups; notification payload duplicates PII it then overwrites | Open |
-| Q1 | Medium | DRY | Two near-identical rollup repositories; the coalesced key is defined 3 times | Open |
-| Q2 | Medium | Structure | Two workspace packages built two different ways; 4 places to keep aliases in sync | Open |
-| Q3 | Medium | Structure | `@lattice/analytics` isn't app-agnostic (pet-shaped rows, hardcoded referrer map) | Open |
-| Q4 | Low | DRY | Link-code generation loop duplicated; self-reported source list duplicated API↔web | Open |
-| Q5 | Low | Dead code | Pet-target link endpoints, `approx_visitors`, `analytics_stopped_at` are unused | Open |
-| Q6 | Low | Structure | Migration symlinks + master snapshots duplicate about 2.3k lines of SQL | Open |
-| Q7 | Low | Perf | Owner widget makes 3 requests where one summary would do | Open |
-| Q8 | Low | Hygiene | PR is too large to review and the description is empty | Open |
-| SPEC | — | Spec | Conformance, deviations, misses, scope creep (section 4) | — |
+| ID   | Sev      | Area           | Item                                                                                                  | Status                                 |
+| ---- | -------- | -------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| L1   | Critical | Logic          | Foster-me link + pet inquiry is rejected with 400                                                     | ✅ Fixed                               |
+| CI   | Critical | CI             | Web unit + E2E jobs failing on the PR head                                                            | ✅ Fixed                               |
+| S1   | High     | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints                                    | ✅ Fixed                               |
+| S2   | High     | Security       | Source-token HMAC falls back to a hardcoded, committed secret                                         | ✅ Fixed (needs manual SSM setup)      |
+| S3   | High     | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection)             | ✅ Fixed                               |
+| L2   | High     | Logic          | Owner self-views are captured before auth resolves                                                    | Open                                   |
+| S4   | Medium   | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state                                   | Open                                   |
+| S5   | Medium   | Security       | `mailto:` injection through sender email                                                              | Open                                   |
+| L3   | Medium   | Logic          | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates           | Open                                   |
+| L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | Open                                   |
+| L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | Open                                   |
+| L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | Open                                   |
+| S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | Open                                   |
+| S7   | Low      | Infra/Hygiene  | Lambda zip build artifacts committed to git                                                           | Open                                   |
+| S8   | Low      | Security       | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey`             | Open                                   |
+| C1   | Medium   | Compliance     | No privacy policy; third-party processors (Turnstile, PostHog, Supabase, SES, Zippopotam) undisclosed | Open (blocks public launch, not merge) |
+| L7   | Low      | Logic          | Metric semantics: conversion can exceed 100%; "approx visitors" is meaningless and hidden; UTC days   | Open                                   |
+| L8   | Low      | Perf/Data      | Inbox does N+1 lookups; notification payload duplicates PII it then overwrites                        | Open                                   |
+| Q1   | Medium   | DRY            | Two near-identical rollup repositories; the coalesced key is defined 3 times                          | Open                                   |
+| Q2   | Medium   | Structure      | Two workspace packages built two different ways; 4 places to keep aliases in sync                     | Open                                   |
+| Q3   | Medium   | Structure      | `@lattice/analytics` isn't app-agnostic (pet-shaped rows, hardcoded referrer map)                     | Open                                   |
+| Q4   | Low      | DRY            | Link-code generation loop duplicated; self-reported source list duplicated API↔web                    | Open                                   |
+| Q5   | Low      | Dead code      | Pet-target link endpoints, `approx_visitors`, `analytics_stopped_at` are unused                       | Open                                   |
+| Q6   | Low      | Structure      | Migration symlinks + master snapshots duplicate about 2.3k lines of SQL                               | Open                                   |
+| Q7   | Low      | Perf           | Owner widget makes 3 requests where one summary would do                                              | Open                                   |
+| Q8   | Low      | Hygiene        | PR is too large to review and the description is empty                                                | Open                                   |
+| SPEC | —        | Spec           | Conformance, deviations, misses, scope creep (section 4)                                              | —                                      |
 
 ---
 
@@ -62,15 +62,17 @@
 **Why it matters:** The spec relies on Turnstile as the inbox/email spam control ("Inquiry spam: blocked by Turnstile"). Without it, anyone can script floods into an owner's inbox. Once SES is turned on, that becomes an email relay to every registered foster parent, with attacker-controlled body and Reply-To.
 
 **Fix:**
+
 - Store `TURNSTILE_SECRET_KEY` in SSM, the same way the Supabase keys are stored, and pass the site key into the web build.
 - **Fail closed** when `NODE_ENV=production` and the secret is missing, instead of skipping the check.
 - Add an API Gateway throttle, or a per-IP limit, on the three public routes.
 
 **Status: 🟡 Partial** (2026-10-18, not yet committed)
+
 - **Done: Turnstile fails closed in production.** `readInquirySecrets` (`apps/api/infrastructure/composition/inquiries.ts`) makes the API refuse to start when `NODE_ENV=production` and `TURNSTILE_SECRET_KEY` is missing. This is the same pattern as the Supabase check in `Container`. Turnstile is skipped only outside production.
 - **Done: wiring.** The Lambda loads the secret from the SSM SecureString `/<project>-<env>/inquiries/turnstile_secret_key`. `loadEnvFromSsm` in `lambdaEnv.ts` now handles any `NAME` / `NAME_PARAM` pair. Terraform passes only the parameter name and grants `ssm:GetParameter`; the value is created by hand, so it never enters tfstate. Both deploy paths (`scripts/deploy-env.mjs`, `deploy-app.yml`) stop the web build when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is missing.
 - **Docs:** setup and troubleshooting in `docs/deploy-aws.md` → "Inquiry secrets".
-- **Correction to this finding:** the API Gateway stage already has a *global* throttle (`api_gateway_throttling_rate_limit` = 10 rps, burst 20). The real gap is that the limit isn't per route or per IP, so one client can use the whole budget and lock everyone out.
+- **Correction to this finding:** the API Gateway stage already has a _global_ throttle (`api_gateway_throttling_rate_limit` = 10 rps, burst 20). The real gap is that the limit isn't per route or per IP, so one client can use the whole budget and lock everyone out.
 - **Still open:** per-route or per-IP limits on `POST /inquiries`, `PATCH /inquiries/:id/self-reported-source` and `GET /links/resolve/:code`; SES (`EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM) and `WEB_ORIGIN` on the Lambda; a `siteverify` timeout (L6).
 - **Note for S6:** the analytics rollup shares `aws_iam_role.api_lambda`, so it can now read these two parameters as well.
 
@@ -85,6 +87,7 @@
 **Fix:** Throw at startup when the secret is missing in production. Store it in SSM. Do the same for any future signing secret.
 
 **Status: ✅ Fixed** (2026-10-18, not yet committed; takes effect once the manual SSM setup in `docs/deploy-aws.md` is done)
+
 - The committed fallback is gone. `inquirySourceToken.ts` takes the secret as a parameter and no longer reads `process.env`. Composition injects it into `CreateInquiryUseCase` and `ReportInquirySourceUseCase`.
 - In production the API refuses to start when `INQUIRY_SOURCE_TOKEN_SECRET` is missing or shorter than 32 characters. Outside production each process gets a random key, so no signing key lives in the repo.
 - The Lambda loads the key from the SSM SecureString `/<project>-<env>/inquiries/source_token_secret`. Terraform holds only the name.
@@ -96,21 +99,36 @@
 
 **What:** The PostHog project token is public, because it ships in the browser bundle. Anyone can send `pet_viewed` or `foster_me_viewed` events with any `pet_id`, `owner_id`, `link_id` or `channel_key`. The rollup writes those values straight into Supabase with the service role:
 
-- **Poison pill:** `normalizeAggregateRow` *throws* on any row missing `pet_id` or `channel_key`. A non-UUID `pet_id` also fails the insert, and `isUniqueViolation` doesn't treat that as recoverable. One bad event aborts the whole run. The query covers a 14-day window, so the job stays broken for 14 days. Rows already written before the failure stay written.
+- **Poison pill:** `normalizeAggregateRow` _throws_ on any row missing `pet_id` or `channel_key`. A non-UUID `pet_id` also fails the insert, and `isUniqueViolation` doesn't treat that as recoverable. One bad event aborts the whole run. The query covers a 14-day window, so the job stays broken for 14 days. Rows already written before the failure stay written.
 - **Forgery:** Fake views, cities, channels and link ids can be written to any pet or owner. `byLink` will show link ids that belong to nobody, or to another owner.
 - **Filter injection:** `pet_id=in.(${petIds.join(',')})`, `pet_id=eq.${row.petId}` and `link_id=eq.${row.linkId}` are interpolated without encoding into PostgREST URLs that run as the service role. The extra filters are AND-ed, so I couldn't find a way to widen a write. It's still untrusted input feeding a privileged query builder.
 
 **Fix:**
+
 - Validate UUIDs, then drop any row whose `pet_id` doesn't exist, or whose `link_id` doesn't belong to that pet's owner. Do this with a single lookup per run.
 - Skip and log bad rows instead of throwing.
 - `encodeURIComponent` every filter value.
 - Limit `channel_key` to presets, the owner's custom keys, and the referrer keys (`direct`, `search`, …).
 
+**Status: ✅ Fixed** (2026-10-18, not yet committed; no manual steps)
+
+- **Poison pill:** `normalizeAggregateRow` returns `null` for a malformed row instead of throwing. `runRollup` skips those rows and returns `{ rows, skipped }`. `PostHogProvider.queryAggregates` no longer normalizes (it used to throw from inside the provider too).
+- **Forgery:** new `RollupRowVerifier` (`apps/api/application/analytics/verifyRollupRows.ts`) runs before either upsert. A row is kept only when its ids are UUIDs, its pet (or owner) is active, its link belongs to that same owner, and its channel passes the new domain rule `isKnownChannelKey` (`channelPresets.ts`): a preset, `direct`, `search`, `default`, or a key on one of the owner's links, archived included. Three batched lookups per run (pets → owners, active users, links by owner), chunked at 100 ids per request. New repository methods: `IPetRepository.listOwnerIdsByIds`, `IUserRepository.listActiveIds`, `ITrackedLinkRepository.listByOwnerIds`.
+- **Logging:** the handler logs one warning with skip counts per reason (`malformed`, `unknown_pet`, `unknown_owner`, `foreign_link`, `unknown_channel`), never the values, since those are attacker-controlled.
+- **Filter injection:** new `postgrestFilters.ts` (`eqValue`, `inList`, `chunk`). Values are quoted for PostgREST grammar and then URL-encoded, since PostgREST decodes before parsing. Both rollup repositories use it for every filter, which also fixes the old `postgrestEq` (it escaped `"` as `""`, but PostgREST expects `\"`, and it never URL-encoded, so a city with `&` broke the patch).
+- **Tests:** `test/api/rollupRowVerifier.test.ts` (valid rows kept; each forgery dropped and counted), `packages/analytics/src/rollup.test.ts` (six malformed rows skipped, the valid one still written), `test/api/repositories/postgrestFilters.test.ts`, and an encoding case in `analyticsDailyRepository.test.ts`. Removing the link-ownership check or the city encoding makes them fail. `npm run ci` passes (Jest 286/286, web unit 58/58).
+- **Decision:** a pet row may carry a link from another of the same owner's pets. First-touch attribution follows the visitor across the owner's pages, so that's real traffic.
+- **Limits, still open:**
+  - Anyone can still inflate a _real_ pet's numbers with its real ids, which are public in URLs and in `GET /links/resolve`. Client-side analytics can't prevent that; the verifier only stops cross-owner and nonsense writes.
+  - Rows written before this fix are not cleaned up. If you suspect forged rows, check `analytics_daily` / `analytics_owner_daily` for channel keys outside the allowed set.
+  - If an owner renames a custom channel on a link, events within the 14-day window that still carry the old custom key are dropped as `unknown_channel`. Rows already stored under the old key stay.
+  - Alarm on rollup errors is S6. The existing-rows read and `sumViewsByLinkIds` are still unchunked with `limit=10000` (L5).
+
 ### S4 — PostHog personal API key stored in a plaintext env var · Medium
 
 **Where:** `infra/terraform/envs/{dev,prod}/main.tf:141`, `variables.tf` (`posthog_personal_api_key`)
 
-**What:** The key is passed straight in as a Lambda environment variable. That makes it visible to anyone with `lambda:GetFunctionConfiguration`, and it is also stored in Terraform state. PostHog personal keys belong to a *user*, so the key may reach every project and org that user can see.
+**What:** The key is passed straight in as a Lambda environment variable. That makes it visible to anyone with `lambda:GetFunctionConfiguration`, and it is also stored in Terraform state. PostHog personal keys belong to a _user_, so the key may reach every project and org that user can see.
 
 **Fix:** Store it as an SSM SecureString and load it with `loadSupabaseEnvFromSsm` (generalize that helper). Create a **project-scoped key with `query:read` only**.
 
@@ -150,13 +168,14 @@
 **Where:** `apps/web` has no `/privacy` route and no link to one. Added 2026-10-18 while setting up Turnstile for S1.
 
 **What:** v2 adds more third parties that receive visitor data:
+
 - **Cloudflare Turnstile:** IP address, TLS fingerprint and User-Agent on inquiry submit.
 - **PostHog:** cookieless events with city-level GeoIP.
 - **SES:** inquiry email, with the sender as Reply-To.
 
 These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.us`. Inquiry name, email, message and ZIP also go to the foster parent being contacted. None of this is disclosed anywhere.
 
-**Why it matters:** not a merge blocker, and fine for a private beta with known testers. It *is* expected before a public launch, especially for EU visitors (GDPR). Cloudflare publishes a [Turnstile Privacy Addendum](https://www.cloudflare.com/turnstile-privacy-policy/) to link from the policy.
+**Why it matters:** not a merge blocker, and fine for a private beta with known testers. It _is_ expected before a public launch, especially for EU visitors (GDPR). Cloudflare publishes a [Turnstile Privacy Addendum](https://www.cloudflare.com/turnstile-privacy-policy/) to link from the policy.
 
 **Fix:** add a static `/privacy` page that names each processor, and link it under the inquiry submit button, on sign-up, and site-wide. There's no shared footer today, only one on `HomePage`. Keep Turnstile pre-clearance off: the site isn't proxied through Cloudflare, so the `cf_clearance` cookie does nothing. Have the text reviewed before opening to the EU. Tracked in [`todo.md` §3](./todo.md).
 
@@ -177,6 +196,7 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 **Fix:** In the use case, accept a `foster_me` link when `link.ownerId === target.id`, and keep the `petId` check for `pet` links. Add a regression test. Separately, return a distinct error code or message for an invalid source, or drop a bad `sourceLinkId` and still accept the inquiry. Attribution should never block contact.
 
 **Status: ✅ Fixed** (2026-10-18, not yet committed)
+
 - New domain rule `apps/api/domain/trackedLinks/linkCreditsInquiry.ts`: a link counts only if it belongs to the inquiry's owner. Foster-me links count for any inquiry to that owner, pet or profile. Pet links count only for that pet. Archived links still count.
 - `CreateInquiryUseCase` drops a link that doesn't count and saves the inquiry without it (no more 400). It checks the id is a UUID before the lookup, and only uses the link's channel and label when the link counts, so another owner's label can't reach the notification.
 - Also fixes a second broken flow: arriving on a pet link, then inquiring from the owner's profile.
@@ -198,7 +218,7 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 **Where:** `apps/api/domain/channels/channelPresets.ts:26`, `apps/api/application/use-cases/ListChannelsUseCase.ts:28`
 
 - A custom channel named **"Direct"** gets the slug `direct` and merges with untagged and v1-QR traffic, which the UI labels "Direct / original QR". A channel named **"Search"** merges with Google referrals. Only `default` is reserved. Reserve every system key the referrer map can produce.
-- `slugify` only lowercases and turns spaces into hyphens. "Vet Office!", "vet office" and "vet  office " don't all group together. Strip punctuation and collapse repeated hyphens.
+- `slugify` only lowercases and turns spaces into hyphens. "Vet Office!", "vet office" and "vet office " don't all group together. Strip punctuation and collapse repeated hyphens.
 - `ListChannels` dedupes on `key + name`. "Vet Office" and "vet office" share a key, so they show up as **two** picker entries with the same key, which can also collide as React keys. Dedupe on key and keep the most recent name.
 - `search` and `default` have no display name, so the UI shows the raw key.
 
@@ -215,6 +235,7 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 **Where:** `AnalyticsDailyRepository.upsert` (`:72`), `AnalyticsOwnerDailyRepository.upsert` (`:119`)
 
 **What:**
+
 - Every row costs one HTTP insert or patch, and the timeout is 60 s.
 - `pet_id=in.(…)` grows with the number of active pets until it hits URL-length limits.
 - `limit=10000` on the "existing" read and in `sumViewsByLinkIds` silently truncates. Unique-violation fallback hides it for writes, but link **totals** come back wrong.
@@ -235,7 +256,7 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 ### L7 — Metric semantics · Low
 
 - **Conversion can exceed 100%.** Inquiries come from Supabase (complete). Views come from PostHog, which ad blockers undercount. With small numbers, 2 inquiries ÷ 1 view = 200%. Cap it, or mark it "≈".
-- **`approx_visitors` is effectively equal to `views`.** With `persistence: 'memory'`, every full page load gets a new `person_id`. The rollup then *sums* `uniq` across city/link/day rows, which overcounts further. The UI never shows it, so the spec's "approx. visitors" label is missing. Either drop the column or define it honestly.
+- **`approx_visitors` is effectively equal to `views`.** With `persistence: 'memory'`, every full page load gets a new `person_id`. The rollup then _sums_ `uniq` across city/link/day rows, which overcounts further. The UI never shows it, so the spec's "approx. visitors" label is missing. Either drop the column or define it honestly.
 - Inquiries with a null `source_channel_key` (v1 rows, failed attribution) count toward the funnel total but not `byChannel`, so the channel bars don't add up to the stat card.
 - All day buckets are UTC. A US-Pacific owner's "today" changes over at 5 pm.
 
@@ -273,6 +294,7 @@ To make that work, consumers need aliases in four places: the root `tsconfig.jso
 ### Q3 — `@lattice/analytics` isn't app-agnostic · Medium
 
 The spec says the package "knows nothing about pets." Instead:
+
 - `AggregateRow` has `pet_id` and `form_opens`, and `PostHogProvider` has a hardcoded `COLUMNS` list.
 - The referrer→channel map is hardcoded in `referrer.ts`. The spec says it's configurable.
 - The owner rollup goes around `runRollup` through `queryRecords` plus a hand-written `mapOwnerDailyRow`, which duplicates `normalizeAggregateRow`'s `text`/`count` helpers.
@@ -330,6 +352,7 @@ Consider whether the snapshot is worth the cost, compared with `supabase db dump
 ### Deliberate deviations (5b pivot) — update the spec ⚠️
 
 These are documented in `v2_slice5b_foster_me_links.plan.md` but **not reflected in the spec**, which still says "Open Questions: None":
+
 - Links are now **owner-level foster-me links** (`tracked_links.target`, nullable `pet_id`). The page is `/profile/links`, not `/pets/[id]/links`.
 - New `analytics_owner_daily` table, `foster_me_viewed` event, `via_foster_me` marker on events and inquiries, and `GET/POST /me/links` plus `GET /me/links/analytics`.
 - `GET /pets/:id/analytics/summary` was retired.
@@ -339,18 +362,18 @@ These look like the right product call. Update the spec so it is the source of t
 
 ### Missed or incomplete ❌
 
-| Spec item | Status |
-|---|---|
-| Presets: Lawn sign, Instagram, Facebook, TikTok, Flyer, **Shelter listing, Other** | The last two were removed in `1f373e1`. Self-report still offers "Other" and "Shelter". |
-| "Email for every inquiry notification via SES" | Code is done. **Not live:** `EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM and `WEB_ORIGIN` are not wired in Terraform. The footer link is relative (`/settings/notifications`) in production. |
-| Turnstile spam protection | Code is done. **Not live** (S1). |
-| "Rollup job keeps the final numbers" on adoption | Not implemented (L4) |
-| "approx. visitors" label | Not shown anywhere (L7) |
-| "Original QR" row explaining Direct traffic | Gone. v1 signs that point at pet URLs now appear only as "Direct / original QR" in charts, and nothing on the links page explains them. |
-| `packages/analytics` knows nothing about pets; configurable referrer map | Not met (Q3) |
-| Packages "liftable into Lattice" | Inconsistent build models (Q2) make lifting harder |
-| PostHog setting: confirm GeoIP still runs with "Discard client IP" | No doc or checklist entry found. Add it to `docs/deploy-aws.md` or the package README. |
-| Owner self-views excluded | Partially (L2) |
+| Spec item                                                                          | Status                                                                                                                                                                                              |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Presets: Lawn sign, Instagram, Facebook, TikTok, Flyer, **Shelter listing, Other** | The last two were removed in `1f373e1`. Self-report still offers "Other" and "Shelter".                                                                                                             |
+| "Email for every inquiry notification via SES"                                     | Code is done. **Not live:** `EMAIL_PROVIDER`, `EMAIL_FROM`, `ses:SendEmail` IAM and `WEB_ORIGIN` are not wired in Terraform. The footer link is relative (`/settings/notifications`) in production. |
+| Turnstile spam protection                                                          | Code is done. **Not live** (S1).                                                                                                                                                                    |
+| "Rollup job keeps the final numbers" on adoption                                   | Not implemented (L4)                                                                                                                                                                                |
+| "approx. visitors" label                                                           | Not shown anywhere (L7)                                                                                                                                                                             |
+| "Original QR" row explaining Direct traffic                                        | Gone. v1 signs that point at pet URLs now appear only as "Direct / original QR" in charts, and nothing on the links page explains them.                                                             |
+| `packages/analytics` knows nothing about pets; configurable referrer map           | Not met (Q3)                                                                                                                                                                                        |
+| Packages "liftable into Lattice"                                                   | Inconsistent build models (Q2) make lifting harder                                                                                                                                                  |
+| PostHog setting: confirm GeoIP still runs with "Discard client IP"                 | No doc or checklist entry found. Add it to `docs/deploy-aws.md` or the package README.                                                                                                              |
+| Owner self-views excluded                                                          | Partially (L2)                                                                                                                                                                                      |
 
 ### Scope creep (not in the v2 spec)
 
@@ -367,13 +390,14 @@ None of this is necessarily bad, but it widens the review and the risk:
 
 ## 5. CI status (PR head `b27d7ca`)
 
-| Job | Result | Cause |
-|---|---|---|
-| `test (22.x)` | ❌ | `test/web/unit/SearchPage.test.tsx` (3 tests): `No "usePathname" export is defined on the "next/navigation" mock`. `AppHeader` now calls `useUnreadNotificationCount`, which uses `usePathname`. Add it to that test's mock, or to a shared mock in `vitest.setup.ts`. |
-| `web-e2e` | ❌ | `Cannot find module …/node_modules/@lattice/notifications/dist/index.js`. The API dev server can't start because the package was never built (Q2). |
-| `terraform` | skipped | — |
+| Job           | Result  | Cause                                                                                                                                                                                                                                                                  |
+| ------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test (22.x)` | ❌      | `test/web/unit/SearchPage.test.tsx` (3 tests): `No "usePathname" export is defined on the "next/navigation" mock`. `AppHeader` now calls `useUnreadNotificationCount`, which uses `usePathname`. Add it to that test's mock, or to a shared mock in `vitest.setup.ts`. |
+| `web-e2e`     | ❌      | `Cannot find module …/node_modules/@lattice/notifications/dist/index.js`. The API dev server can't start because the package was never built (Q2).                                                                                                                     |
+| `terraform`   | skipped | —                                                                                                                                                                                                                                                                      |
 
 **Status: ✅ Fixed** (2026-10-18, not yet committed; verified locally, not yet on GitHub CI)
+
 - **Web unit:** adding `usePathname` to the mock isn't enough. The test then fails with "No QueryClient set", because the header's inbox badge (`useUnreadNotificationCount`) uses React Query. `SearchPage.test.tsx` now stubs that hook, the same way `AppHeader.test.tsx` does. `usePathname` is only called inside that hook, so it doesn't need mocking.
 - **E2E:** `apps/api/package.json` gained `predev` and `predev:prod` hooks that build `@lattice/notifications` before `ts-node-dev` starts. npm runs these for `npm run dev -w @lattice/api` (Playwright's server command) and for `turbo run dev`, so a fresh clone works too.
 - Verified locally: with `packages/notifications/dist` deleted, the API dev server reproduces the CI error before the fix and starts after it. `npm run test:web:e2e` passes 19/19 from that clean state. `npm run ci` passes (Jest 267/267, web unit 58/58 files).
@@ -386,7 +410,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 1. ~~**L1**: Fix the foster-me inquiry check and add a regression test.~~ ✅ Done
 2. ~~**CI**: Fix the `usePathname` mock and the notifications package resolution (Q2).~~ ✅ Done (the Q2 restructure itself is still open)
 3. **S1 / S2**: ~~Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, and fail closed in production~~ ✅ Done. Still open: per-route rate limits, SES and `WEB_ORIGIN`.
-4. **S3**: Validate and skip rollup rows, encode filter values, add an alarm (S6).
+4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. **L2**: Gate capture on auth having resolved.
 6. **S5, L3**: Harden email validation and reserve system channel keys.
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
@@ -406,9 +430,9 @@ Non-critical improvements, not blocking merge. Add to this list as they come up.
 **Plan:**
 
 1. **Explicit phase state in `InquiryForm`.** `phase: "idle" | "verifying" | "sending"`, set at each `await` and reset on error. Disable the fieldset on `phase !== "idle" || mutation.isPending` — today the form stays editable during the Turnstile wait (pairs with L6's no-feedback issue).
-2. **New `SubmitProgress.tsx`.** Inline stepper under the submit button: *Checking* (only when Turnstile is configured) → *Sending* → *Sent*. Active step shows a spinning `Loader2`; each completed step swaps to a `Check` that pops in (`animate-in zoom-in-50 fade-in`), with the connector filling via a width transition. `role="status" aria-live="polite"` so each step is announced.
+2. **New `SubmitProgress.tsx`.** Inline stepper under the submit button: _Checking_ (only when Turnstile is configured) → _Sending_ → _Sent_. Active step shows a spinning `Loader2`; each completed step swaps to a `Check` that pops in (`animate-in zoom-in-50 fade-in`), with the connector filling via a width transition. `role="status" aria-live="polite"` so each step is announced.
 3. **Success beat.** Animated check badge on the sent alert (circle scales in, SVG check draws via a `stroke-dashoffset` keyframe in `globals.css`); alert fades and slides up, source question follows ~150 ms later. Answering or skipping shows a small "Thanks!" check instead of disappearing.
-4. **Wrapper transitions.** Delay the parent's `onSuccess` by ~600 ms (0 under reduced motion) so the *Sent* check finishes before `ExpandableInquiryForm`'s dialog closes or `InquiryCta`'s sheet swaps to success. The floating "✓ Inquiry sent" pill gets a fade/zoom-in plus one `motion-safe:animate-ping` ring, the same pattern as `LinksHero.tsx`.
+4. **Wrapper transitions.** Delay the parent's `onSuccess` by ~600 ms (0 under reduced motion) so the _Sent_ check finishes before `ExpandableInquiryForm`'s dialog closes or `InquiryCta`'s sheet swaps to success. The floating "✓ Inquiry sent" pill gets a fade/zoom-in plus one `motion-safe:animate-ping` ring, the same pattern as `LinksHero.tsx`.
 5. **Tests.** Keep the `"Inquiry sent"` and "How did you hear about …?" strings — unit and E2E specs assert on them. Add unit cases for the progress row (sending → sent, error resets and keeps the draft) and update `ExpandableInquiryForm.test.tsx` for the delayed close. Put the reduced-motion check and delay in a small `motion.ts` helper so tests can force a 0 ms delay.
 
 **Constraints:** CSS only — `tw-animate-css` is already imported in `globals.css` and drives the dialog/sheet transitions, so no new dependency. Every animation gets `motion-safe:` / `motion-reduce:` variants, matching `LinksHero` and `FosterMePreview`.

@@ -1,6 +1,7 @@
 import { User, type SocialLink } from '@api/domain/entities/User';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
+import { chunk, inList } from '@api/infrastructure/adapters/dataAdapter/postgrestFilters';
 
 type UserRecord = {
   id: string;
@@ -58,6 +59,17 @@ export class UserRepository implements IUserRepository {
     );
     const row = rows[0];
     return row ? toUser(row) : null;
+  }
+
+  async listActiveIds(ids: string[]): Promise<Set<string>> {
+    const active = new Set<string>();
+    for (const batch of chunk([...new Set(ids)])) {
+      const rows = await this.dataAdapter.get<Array<{ id: string }>>(
+        `${this.table}?select=id&id=in.${inList(batch)}&deleted_at=is.null`
+      );
+      for (const row of rows) active.add(row.id);
+    }
+    return active;
   }
 
   async findByHandle(handle: string): Promise<User | null> {

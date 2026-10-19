@@ -1,5 +1,4 @@
 import {
-  normalizeAggregateRow,
   type AggregateQuery,
   type AggregateRow,
   type AnalyticsProvider,
@@ -35,9 +34,10 @@ export type PostHogQueryConfig = {
 export class PostHogProvider implements AnalyticsProvider {
   constructor(private readonly config: PostHogQueryConfig) {}
 
+  /** Raw rows. runRollup normalizes them and skips the malformed ones. */
   async queryAggregates(query: AggregateQuery): Promise<AggregateRow[]> {
     const body = await this.queryBody(query);
-    return rowsFromQueryResponse(body).map((row) => normalizeAggregateRow(row));
+    return rowsFromQueryResponse(body);
   }
 
   /** Column records before the pet-shaped aggregate normalizer. */

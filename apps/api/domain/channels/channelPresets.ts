@@ -22,6 +22,23 @@ export function isPresetChannelKey(key: string): boolean {
   return PRESET_KEYS.has(key);
 }
 
+/**
+ * Keys the browser derives from the referrer when no link code resolved
+ * (`@lattice/analytics` referrer map). Instagram, Facebook and TikTok are presets.
+ */
+export const REFERRER_CHANNEL_KEYS = ['direct', 'search'] as const;
+
+const SYSTEM_KEYS = new Set<string>([...PRESET_KEYS, ...REFERRER_CHANNEL_KEYS, RESERVED_CHANNEL_KEY]);
+
+/**
+ * Whether an analytics row may carry this channel key: a preset, a referrer key,
+ * the default link's key, or a key on one of the owner's links (archived included).
+ * Event properties are client-writable, so anything else is forged or stale.
+ */
+export function isKnownChannelKey(key: string, ownerChannelKeys: ReadonlySet<string>): boolean {
+  return SYSTEM_KEYS.has(key) || ownerChannelKeys.has(key);
+}
+
 /** Lowercased, trimmed, whitespace runs become a single hyphen. */
 export function slugifyChannelName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, '-');

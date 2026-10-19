@@ -30,6 +30,15 @@ export class InMemoryPetRepository implements IPetRepository {
       .sort((a, b) => b.toListDto().createdAt.localeCompare(a.toListDto().createdAt));
   }
 
+  async listOwnerIdsByIds(ids: string[]): Promise<Map<string, string>> {
+    const owners = new Map<string, string>();
+    for (const id of ids) {
+      const pet = this.pets.get(id);
+      if (pet && !pet.deletedAt) owners.set(pet.id, pet.ownerId);
+    }
+    return owners;
+  }
+
   async create(input: CreatePetInput): Promise<Pet> {
     if (!isPetSpecies(input.species)) {
       throw new Error('invalid species');

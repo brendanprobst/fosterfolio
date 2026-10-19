@@ -34,11 +34,9 @@ export function aggregateKey(
   ].join("\u0000");
 }
 
-function count(value: unknown, field: string): number {
+function count(value: unknown): number | null {
   const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n) || n < 0) {
-    throw new Error(`Aggregate row has an invalid ${field}`);
-  }
+  if (!Number.isFinite(n) || n < 0) return null;
   return Math.trunc(n);
 }
 
@@ -47,24 +45,34 @@ function normalizeDay(value: string): string | null {
   return match?.[1] ?? null;
 }
 
-/** Copies only the stored metrics. inquiry_submitted is not one of them. */
-export function normalizeAggregateRow(row: AggregateRow): AggregateRow {
-  const petId = row.pet_id?.trim() ?? "";
-  const channelKey = row.channel_key?.trim() ?? "";
-  const day = normalizeDay(row.day ?? "");
-  if (!petId || !channelKey || !day) {
-    throw new Error("Aggregate row is missing pet_id, channel_key, or day");
-  }
-  const linkId = row.link_id?.trim() ?? "";
-  const city = row.city?.trim() ?? "";
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * Copies only the stored metrics. inquiry_submitted is not one of them.
+ * Event properties are client-writable, so a malformed row returns null to be
+ * skipped. One bad event must not abort the whole rollup.
+ */
+export function normalizeAggregateRow(row: AggregateRow): AggregateRow | null {
+  const petId = text(row.pet_id);
+  const channelKey = text(row.channel_key);
+  const day = normalizeDay(text(row.day));
+  const views = count(row.views);
+  const approxVisitors = count(row.approx_visitors);
+  const formOpens = count(row.form_opens);
+  if (!petId || !channelKey || !day) return null;
+  if (views === null || approxVisitors === null || formOpens === null) return null;
+  const linkId = text(row.link_id);
+  const city = text(row.city);
   return {
     pet_id: petId,
     link_id: linkId ? linkId : null,
     channel_key: channelKey,
     city: city ? city : null,
     day,
-    views: count(row.views, "views"),
-    approx_visitors: count(row.approx_visitors, "approx_visitors"),
-    form_opens: count(row.form_opens, "form_opens"),
+    views,
+    approx_visitors: approxVisitors,
+    form_opens: formOpens,
   };
 }

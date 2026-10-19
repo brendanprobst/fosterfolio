@@ -11,6 +11,7 @@ import type {
   IPetRepository,
 } from '@api/domain/repositories/IPetRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
+import { chunk, inList } from '@api/infrastructure/adapters/dataAdapter/postgrestFilters';
 
 type PetRecord = {
   id: string;
@@ -96,6 +97,17 @@ export class PetRepository implements IPetRepository {
       `${this.table}?select=${PET_SELECT}&owner_id=eq.${encodeURIComponent(ownerId)}&deleted_at=is.null&order=created_at.desc`
     );
     return rows.map(toPet);
+  }
+
+  async listOwnerIdsByIds(ids: string[]): Promise<Map<string, string>> {
+    const owners = new Map<string, string>();
+    for (const batch of chunk([...new Set(ids)])) {
+      const rows = await this.dataAdapter.get<Array<{ id: string; owner_id: string }>>(
+        `${this.table}?select=id,owner_id&id=in.${inList(batch)}&deleted_at=is.null`
+      );
+      for (const row of rows) owners.set(row.id, row.owner_id);
+    }
+    return owners;
   }
 
   async create(input: CreatePetInput): Promise<Pet> {
