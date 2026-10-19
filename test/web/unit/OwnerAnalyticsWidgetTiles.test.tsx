@@ -91,10 +91,11 @@ describe("OwnerAnalyticsWidget tiles", () => {
       await screen.findByText(/No visits yet\. Share Mochi's link to start seeing views here/),
     ).toBeInTheDocument();
     expect(screen.queryByText("Top channel")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Links & analytics" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "View analytics" })).toHaveAttribute(
       "href",
-      "/profile/links",
+      "/@alex/pet/pet-1/analytics",
     );
+    expect(screen.queryByRole("link", { name: "Links & analytics" })).not.toBeInTheDocument();
   });
 
   it("keeps the adopted banner and hides week-over-week copy", async () => {

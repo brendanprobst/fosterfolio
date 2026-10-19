@@ -18,7 +18,6 @@ import { useState } from "react";
 import { ConnectedSitesCard } from "./ConnectedSitesCard";
 import { PetsEmptyState } from "./PetsEmptyState";
 import { ProfileEditDialog } from "./ProfileEditDialog";
-import { ProfileLinkCard } from "./ProfileLinkCard";
 import { ProfileLocationCard } from "./ProfileLocationCard";
 import { ProfileLocationDialog } from "./ProfileLocationDialog";
 import { SocialLinksDialog } from "./SocialLinksDialog";
@@ -60,7 +59,6 @@ export function ProfilePage() {
         <Link2 aria-hidden />
         Links &amp; QR codes
       </Link>
-      <ProfileLinkCard handleOrId={shareRef} hasHandle={Boolean(profile?.handle)} />
     </div>
   );
 

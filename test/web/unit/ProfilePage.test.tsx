@@ -77,7 +77,7 @@ describe("ProfilePage", () => {
     } as unknown as ReturnType<typeof useUpdateUserMutation>);
   });
 
-  it("leads with the identity header and shares public URLs from one sidebar card", () => {
+  it("leads with the identity header and keeps link sharing off the profile page", () => {
     renderWithQueryClient(<ProfilePage />);
 
     expect(
@@ -97,65 +97,17 @@ describe("ProfilePage", () => {
       "/profile/links",
     );
     expect(
-      addPet.compareDocumentPosition(within(tools).getByText("Sharing your profile")) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(within(tools).getByText("Sharing your profile")).toBeInTheDocument();
-    expect(screen.getAllByText("Sharing your profile")).toHaveLength(2);
-    expect(
-      within(tools).getByText(/preview, copy, or print the public link/i),
-    ).toBeInTheDocument();
-    expect(
       screen.getByText(/no handle yet — public links use a random address/i),
     ).toBeInTheDocument();
-    expect(within(tools).getByText("/@u1")).toBeInTheDocument();
-    expect(within(tools).getByText("/@u1/foster-me")).toBeInTheDocument();
-    expect(within(tools).getByRole("region", { name: "Profile Link" })).toBeInTheDocument();
-    expect(within(tools).getByRole("region", { name: '"Foster Me" Link' })).toBeInTheDocument();
-    expect(within(tools).getByRole("heading", { name: "Profile Link" })).toBeInTheDocument();
-    expect(within(tools).getByRole("heading", { name: '"Foster Me" Link' })).toBeInTheDocument();
-    expect(within(tools).getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
-      "href",
-      "/@u1",
-    );
-    expect(
-      within(tools).getByRole("link", { name: 'Preview "Foster Me" Link' }),
-    ).toHaveAttribute("href", "/@u1/foster-me");
-    expect(
-      within(screen.getByRole("region", { name: "Your tools" })).getByText(
-        /always opens whoever you’re fostering now/i,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("region", { name: "Your tools" })).getByRole("region", {
-        name: "Pet-specific links",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("region", { name: "Your tools" })).getByText(
-        /stable link that stays on one pet/i,
-      ),
-    ).toBeInTheDocument();
+    // Sharing and QR codes live on the links page and each pet's page, not here.
+    expect(screen.queryByText("Sharing your profile")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /QR code/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /copy .* link/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /QR code/i })).not.toBeInTheDocument();
   });
 
-  it("opens a download-only QR modal from the share card", async () => {
-    renderWithQueryClient(<ProfilePage />);
-
-    fireEvent.click(
-      within(screen.getByRole("region", { name: "Your tools" })).getByRole("button", {
-        name: "Profile Link QR code",
-      }),
-    );
-
-    const dialog = await screen.findByRole("dialog");
-    expect(dialog).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Profile QR" })).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /download qr/i })).toBeInTheDocument();
-  });
-
-  it("shows a claimed handle and handle-based share links", () => {
+  it("shows a claimed handle", () => {
     vi.mocked(useOwnUser).mockReturnValue({
       data: { ...profile, handle: "alex" },
       isError: false,
@@ -164,17 +116,7 @@ describe("ProfilePage", () => {
 
     renderWithQueryClient(<ProfilePage />);
 
-    const tools = screen.getByRole("region", { name: "Your tools" });
     expect(screen.getByText("@alex")).toBeInTheDocument();
-    expect(within(tools).getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
-      "href",
-      "/@alex",
-    );
-    expect(
-      within(tools).getByRole("link", { name: 'Preview "Foster Me" Link' }),
-    ).toHaveAttribute("href", "/@alex/foster-me");
-    expect(within(tools).getByText("/@alex/foster-me")).toBeInTheDocument();
-    expect(screen.getAllByText("/@alex/foster-me")).toHaveLength(2);
   });
 
   it("shows location and shelters read-only, without a key/value list", () => {
