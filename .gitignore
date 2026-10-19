@@ -81,3 +81,6 @@ override.tf.json
 
 # Infisical CLI project link from `infisical init` (workspace id, not a token)
 **/.infisical.json
+
+# Terraform archive_file output (rebuilt on every plan/apply)
+**/.generated/

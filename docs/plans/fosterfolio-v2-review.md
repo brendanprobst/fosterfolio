@@ -34,7 +34,7 @@
 | L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | ✅ Fixed (dev migrated; prod at launch) |
 | L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | ✅ Fixed                               |
 | S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | ✅ Fixed (needs `deploy:aws`, confirm SNS email) |
-| S7   | Low      | Infra/Hygiene  | Lambda zip build artifacts committed to git                                                           | Open                                   |
+| S7   | Low      | Infra/Hygiene  | Lambda zip build artifacts committed to git                                                           | ✅ Fixed (history keeps old copies)    |
 | S8   | Low      | Security       | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey`             | ✅ Fixed (dev migrated; prod at launch) |
 | C1   | Medium   | Compliance     | No privacy policy; third-party processors (Turnstile, PostHog, Supabase, SES, Zippopotam) undisclosed | Open (blocks public launch, not merge) |
 | L7   | Low      | Logic          | Metric semantics: conversion can exceed 100%; "approx visitors" is meaningless and hidden; UTC days   | Open                                   |
@@ -208,6 +208,12 @@
 **What:** About 1.5 MB of bundled API code goes into git history on every deploy. `archive_file` regenerates these files anyway. I grepped the rollup bundle and found no embedded keys, but the full bundled API code is still in history.
 
 **Fix:** Add `**/.generated/` to `.gitignore` and run `git rm --cached`.
+
+**Status: ✅ Fixed** (2026-10-19)
+
+- `.gitignore` has `**/.generated/`, and the four zips (dev and prod, API and rollup) are untracked with `git rm --cached`. The files stay on disk, and `archive_file` rebuilds them on every plan or apply. Nothing else reads them: CI only runs `terraform validate`, and `deploy-app.yml` builds its own bundle.
+- **Why now:** a push of 18 commits failed with `HTTP 400` / "remote end hung up". Nine of the objects were these zips, about 1.2 MB each for the API bundle, which pushed the request past git's default 1 MB `http.postBuffer`. That push went through with `git -c http.postBuffer=524288000 push`.
+- **Not done: rewriting history.** Earlier commits still carry the old zips. I grepped the bundles for keys before (no embedded secrets), so they cost only repo size. A `git filter-repo` would rewrite the shared branch, so it isn't worth it.
 
 ### S8 — Input bounds · Low
 
