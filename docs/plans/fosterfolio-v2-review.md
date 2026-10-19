@@ -4,6 +4,7 @@
 **Size:** 334 files, +23,971 / −2,045, 44 commits
 **Reviewed against:** [`fosterfolio-v2-spec.md`](./fosterfolio-v2-spec.md), plus [`v2_slice5b_foster_me_links.plan.md`](./v2_slice5b_foster_me_links.plan.md) where it intentionally changes the spec
 **Method:** I read the diff locally by area (infra, migrations, API, packages, web). One throwaway Jest probe confirmed L1, and I pulled the PR's CI logs. I did not run the full suite locally.
+**Second pass:** 2026-10-19 at head `557a142`, covering the 19 commits since `b27d7ca` plus a sweep for anything the first pass missed. See [section 7](#7-second-pass-2026-10-19-head-557a142), which ends with the go/no-go for the private beta.
 
 ---
 
@@ -49,6 +50,11 @@
 | Q6   | Low      | Structure      | Migration symlinks + master snapshots duplicate about 2.3k lines of SQL                               | Open                                   |
 | Q7   | Low      | Perf           | Owner widget makes 3 requests where one summary would do                                              | Open                                   |
 | Q8   | Low      | Hygiene        | PR is too large to review and the description is empty                                                | Open                                   |
+| P1   | Critical | Infra/Deploy   | Prod already runs a v2 branch build on the v1 schema: pet reads and link resolve return 500           | ✅ Schema fixed (prod redeploy pending) |
+| R1   | Low      | Data           | L4 backfill bumps `pets.updated_at` on prod through `pets_touch_updated_at`                            | Accepted (already ran on prod)         |
+| R2   | Low      | Logic          | Verifier's `listByOwnerIds` isn't paged past PostgREST's 1,000 rows                                    | Open (with L9)                         |
+| R3   | Low      | Infra          | A missing inquiry SSM parameter takes the whole API down, not just inquiries                           | Accepted (by design)                   |
+| R4   | Low      | Logic          | HogQL `toDate(timestamp)` may use the PostHog project timezone; freeze compares UTC days                | Open (check project setting)           |
 | SPEC | —        | Spec           | Conformance, deviations, misses, scope creep (section 4)                                              | —                                      |
 
 ---
@@ -652,6 +658,86 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. `npm run supabase:list -- --env prod` should show every local migration with a remote match.
 
 The first three are additive (new tables, nullable or defaulted columns, `if not exists`), and prod has no `tracked_links` rows, so nothing needs a backfill. The L5 migration drops and rebuilds the two analytics unique indexes, but on prod those tables are created empty in the same push. The L4 migration is the one with real work on prod: it backfills `analytics_stopped_at` for v1 pets already marked adopted. Don't run `LATEST_*.sql` on prod. It's for empty databases only.
+
+---
+
+## 7. Second pass (2026-10-19, head `557a142`)
+
+**Scope:** the 19 commits since `b27d7ca` (153 files, +7,170 / −624), plus a sweep of the original v2 surface: route authorization, RLS on the v2 tables, the email template, and the deployed dev and prod state. It also covers the new prod deploy. Checks were read-only: the AWS CLI (Lambda config *names* only, never values, plus logs, SSM metadata, alarms, routes), `supabase:list --env prod`, harmless GETs against both APIs, and the published web bundles in S3.
+
+**Verdict on the new code:** the fixes since the first pass hold up. The rollup verifier, bulk upsert, fail-closed secrets, cursor and email validation, Turnstile reset and timeout, IAM split and alarms all match their write-ups above. Nothing blocks merge. The blocker is the state of prod (P1).
+
+### P1 — Prod already runs v2 code on the v1 schema · Critical (verified)
+
+**What:** on **2026-10-18 at 19:38 EDT** a full `deploy:aws` ran against prod from the working tree, at about `517ec12` ("add turnstyle env validation", committed 19:40). The local prod `terraform.tfstate` (serial 54), the `fosterfolio-prod-web` S3 objects and both prod Lambdas are all stamped 19:38. The prod database still has only `20261003120000` (`supabase:list --env prod`: the five v2 migrations have no remote match).
+
+**Evidence:**
+
+| Check | Prod | Dev |
+| --- | --- | --- |
+| `GET /pets/<random uuid>` | **500** | 404 `PET_NOT_FOUND` |
+| `GET /links/resolve/zzzzzzzz` | **500** | 404 `TRACKED_LINK_NOT_FOUND` |
+| API Gateway routes | `ANY /`, `ANY /{proxy+}` only (no S1 throttles) | All 3 public routes present |
+| API Lambda env | Has the S1/S2 `*_PARAM` names; no `EMAIL_PROVIDER`, `EMAIL_FROM`, `WEB_ORIGIN` | Full E1 set |
+| Rollup Lambda | Shared `api-lambda-role` (pre-S6); PostHog project ID and key **empty**; schedule ENABLED; `Missing required environment variable: POSTHOG_PROJECT_ID` 3×/hour | Own role, creds set, clean runs since 04:25 UTC |
+| Alarms | None | Both present; rollup alarm still `ALARM` from the old failures, should clear |
+
+- **Cause of the 500s:** the branch's `PetRepository` `PET_SELECT` includes `analytics_stopped_at`, which only the v2 migration adds. Every pet read (pet pages, profiles, owner lists) fails on v1. Resolve fails because `tracked_links` doesn't exist.
+- **Impact so far: none seen.** The prod API logged no requests in 48 hours except the review's own probes.
+- **The prod web bundle is v2 too.** It has `ff_source`, foster-me routes and the inbox badge (`unread-count`), and the real Turnstile site key from `apps/web/.env.prod`.
+
+**Fix:** run "Prod schema at launch" (section 6) now, then a full `infisical run -- npm run deploy:aws` for prod. The migrations are additive, so they're safe under the code already deployed. Pushing the schema first fixes the 500s even before the redeploy.
+
+**Status: ✅ Schema fixed** (2026-10-19; the prod redeploy is still pending)
+
+- `supabase:push:dry -- --env prod` listed exactly the five v2 migrations and no seeds. `supabase:push -- --env prod` applied all five. The only warning was the CLI failing to cache its local catalog because Docker wasn't running, which doesn't affect the push. `supabase:list -- --env prod` now shows all six migrations matched, and `SUPABASE_PUSH_ENABLED` is back at `0` in `supabase/.env.prod`.
+- **Checked on prod after the push:** `GET /pets/<random uuid>` returns 404, `GET /links/resolve/zzzzzzzz` returns 404, and `GET /users/<owner>/pets` returns 200. That last call had returned 500 on the owner's own refreshes at 05:04 and 05:07 UTC, alongside `GET /me/notifications/unread-count`.
+- **Still to do:** the full prod `deploy:aws`. Prod still runs the `517ec12`-era bundle. That means the rollup on the shared role with empty PostHog values (it still fails hourly), no SES, `WEB_ORIGIN` or alarms, and no per-route throttles.
+
+**Prevention (recommended):** add a prod preflight to `scripts/deploy-aws.mjs`. Run `supabase:list --env prod` and stop if any local migration has no remote match. That check would have blocked this deploy.
+
+### R1 — L4 backfill overwrites `pets.updated_at` on prod · Low
+
+**Where:** `supabase/migrations/feature-migrations/20261018230000_app_v2_adopted_freeze.sql`, plus the v1 trigger `pets_touch_updated_at` (`20261003120000_app_v1_schema.sql:287`)
+
+**What:** `update public.pets set analytics_stopped_at = updated_at …` fires the `before update` trigger, which sets `new.updated_at = now()`. `analytics_stopped_at` still gets the *old* `updated_at`, so the freeze date is right. But every adopted v1 pet's `updated_at` becomes the migration time, and its real last-edit time is lost. Neither the web app nor any query uses `pets.updated_at` for display or ordering today, so nobody sees it.
+
+**Status: accepted.** The migration ran on prod unchanged on 2026-10-19 as part of the P1 fix, so the bump has happened. Nothing reads `pets.updated_at` today, so there's nothing to repair.
+
+**Fix (for reference):** before the push this would have been cheap. Wrap the backfill in `alter table public.pets disable trigger pets_touch_updated_at;` … `enable trigger …`. Dev already applied the old text, and the CLI won't re-run it. That drift is harmless: on dev the timestamps already moved. Alternatively, accept the bump.
+
+### R2 — Verifier link lookup isn't paged · Low
+
+`TrackedLinkRepository.listByOwnerIds` chunks 100 owners per request but doesn't page. PostgREST still caps each response at `max_rows = 1000`. Once 100 owners together have more than 1,000 links, the missing links make real rows look like `foreign_link` / `unknown_channel`, and they're dropped. They're logged as "untrusted" counts. This is the L9 problem again. It doesn't matter at beta scale; fix it with L9's paging helper.
+
+### R3 — Missing inquiry secrets take the whole API down · Low (accepted)
+
+`loadApiEnvFromSsm` and `readInquirySecrets` run in bootstrap. If either inquiry parameter is missing or `GetParameter` fails, every route fails, including sign-in and pet pages, not just `POST /inquiries`. This is deliberate (fail closed, same as the Supabase check), and both prod parameters exist (created 2026-10-18 19:12 EDT). The `api-errors` alarm is the only signal, and it isn't on prod until the launch deploy.
+
+### R4 — Freeze day may not be UTC · Low (unverified)
+
+HogQL applies the PostHog project's timezone to `toDate(timestamp)`, as far as I know. `RollupRowVerifier` and the L4 migration compare against the **UTC** day of `analytics_stopped_at`. If the project isn't set to UTC, the adoption-day cutoff can be off by one day, and "UTC days" in L7 is wrong too. Check the project's timezone in PostHog settings: set it to UTC, or document the real one.
+
+### Confirmed working
+
+- CI is green on `557a142` (`test (22.x)`, `web-e2e`, `repo-config`; `terraform` skipped).
+- Every new route checks ownership or recipient. `UpdateTrackedLink`, `GetPetAnalytics` and `ListTrackedLinks` compare the owner; notifications are scoped with `findForRecipient`. All v2 tables have RLS with select-only owner policies.
+- `NODE_ENV=production` is set on both API Lambdas, so the S1/S2 fail-closed checks are live. Both inquiry SSM parameters exist in dev and prod.
+- Dev end to end: real Turnstile site key in the bundle, `POST /inquiries` returned 201 at 2026-10-18 23:35 UTC, CORS preflight returns 204, and the dev SNS subscription is confirmed (not pending).
+- **Not exercised anywhere:** SES email. The only deployed inquiry came before the E1 dev deploy (04:06 UTC on 10-19).
+- **Not checked fully:** the prod and dev web bundles have different PostHog tokens. Only the first 10 characters were compared visually. Confirm the prod token belongs to the project that will be the prod `POSTHOG_PROJECT_ID`.
+
+### Go / no-go for the private beta
+
+**No-go today, because of P1 only. Go once the following is done:**
+
+1. ~~Fix R1 in the migration.~~ Skipped; it ran as is (accepted).
+2. ~~Push the prod schema (section 6).~~ ✅ Done 2026-10-19. Next, the full prod deploy with Infisical.
+3. Put the prod PostHog values in Infisical first (`POSTHOG_PROJECT_ID` in `/shared`, a `query:read` key scoped to the project in `/sensitive`, `NEXT_PUBLIC_POSTHOG_TOKEN`). Otherwise the rollup schedule deploys disabled and owners see empty analytics.
+4. Do the E1 email smoke test on dev, then send one real inquiry on prod through a foster-me link and a tapped pet.
+5. Confirm the prod SNS subscription email. Check that the prod Turnstile widget lists the CloudFront domain and the custom domain.
+
+These stay acceptable for a private beta with known testers: C1, the S4 SSM move, L7–L9, R2–R4 and Q1–Q8. Revisit them before a public launch.
 
 ---
 

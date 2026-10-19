@@ -177,20 +177,11 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: E2E_SEED.userDisplayName }),
       ).toBeVisible();
-      // The share card renders twice (desktop hero + mobile body); scope to the visible one.
       await expect(
-        page.getByRole("region", { name: "Your tools" }).getByText("Sharing your profile"),
+        page.getByRole("region", { name: "Your tools" }).getByRole("link", { name: "Links & QR codes" }),
       ).toBeVisible();
+      await expect(page.getByText("Sharing your profile")).toHaveCount(0);
       await expect(page.getByText("Private editor")).toHaveCount(0);
-      await expect(page.getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
-        "href",
-        E2E_PATHS.publicProfile,
-      );
-      await expect(
-        page.getByRole("link", { name: 'Preview "Foster Me" Link' }),
-      ).toHaveAttribute("href", E2E_PATHS.fosterMe);
-      await expect(page.getByRole("heading", { name: "Profile Link" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: '"Foster Me" Link' })).toBeVisible();
       await expect(page.getByText(E2E_SEED.petName)).toBeVisible();
       await expect(page.getByRole("link", { name: E2E_SEED.petName })).toHaveAttribute(
         "href",
@@ -205,7 +196,7 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(dialog.getByRole("button", { name: "Save" })).toBeVisible();
     });
 
-    test("owner sees analytics links instead of the pet-bio QR card", async ({ page }) => {
+    test("owner sees the pet's analytics link instead of the pet-bio QR card", async ({ page }) => {
       await page.goto(E2E_PATHS.petBio);
       await expect(page.getByRole("link", { name: "Edit bio" })).toHaveAttribute(
         "href",
@@ -214,11 +205,9 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(page.getByRole("form", { name: /contact the foster/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /send inquiry/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "QR code" })).toBeVisible();
-      await page.getByRole("link", { name: "Links & analytics" }).click();
-      await expect(page).toHaveURL(/\/profile\/links\/?$/);
-      await expect(
-        page.getByRole("heading", { level: 1, name: "Links & QR codes" }),
-      ).toBeVisible();
+      await expect(page.getByRole("link", { name: "Links & analytics" })).toHaveCount(0);
+      await page.getByRole("link", { name: "View analytics" }).click();
+      await expect(page).toHaveURL(new RegExp(`${E2E_PATHS.petBio}/analytics/?$`));
     });
 
     test("owner public profile offers edit, not inquiry", async ({ page }) => {

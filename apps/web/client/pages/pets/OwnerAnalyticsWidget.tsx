@@ -106,12 +106,10 @@ export function OwnerAnalyticsWidget({
             />
           </div>
         )}
+        {/* Link management lives on /profile/links; the pet page only goes to this pet's analytics. */}
         <div className="flex flex-wrap gap-2">
           <Link href={analyticsHref} className={buttonVariants({ size: "sm" })}>
             View analytics
-          </Link>
-          <Link href="/profile/links" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            Links &amp; analytics
           </Link>
         </div>
       </CardContent>

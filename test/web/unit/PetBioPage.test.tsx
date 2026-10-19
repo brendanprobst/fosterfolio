@@ -303,10 +303,7 @@ describe("PetBioPage", () => {
       "href",
       `/@owner-1/pet/${petId}/analytics`,
     );
-    expect(screen.getByRole("link", { name: "Links & analytics" })).toHaveAttribute(
-      "href",
-      "/profile/links",
-    );
+    expect(screen.queryByRole("link", { name: "Links & analytics" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Post update" }));
     const dialog = screen.getByRole("dialog");
