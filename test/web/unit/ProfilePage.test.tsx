@@ -4,7 +4,7 @@ import { useOwnerPets, type PetPublic } from "@client/features/pets";
 import { useOwnUser, useUpdateUserMutation } from "@client/features/users";
 import type { UserOwner } from "@client/features/users";
 import { ProfilePage } from "@client/pages/profile";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authSignedIn, renderWithQueryClient } from "./support/renderWithProviders";
 
@@ -89,32 +89,52 @@ describe("ProfilePage", () => {
     expect(
       screen.queryByRole("link", { name: /view public profile/i }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Sharing your profile")).toBeInTheDocument();
+    const tools = screen.getByRole("region", { name: "Your tools" });
+    const addPet = within(tools).getByRole("link", { name: "Add pet" });
+    expect(addPet).toHaveAttribute("href", "/profile/pets/new");
+    expect(within(tools).getByRole("link", { name: "Links & QR codes" })).toHaveAttribute(
+      "href",
+      "/profile/links",
+    );
     expect(
-      screen.getByText(/preview, copy, or print the public link/i),
+      addPet.compareDocumentPosition(within(tools).getByText("Sharing your profile")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(within(tools).getByText("Sharing your profile")).toBeInTheDocument();
+    expect(screen.getAllByText("Sharing your profile")).toHaveLength(2);
+    expect(
+      within(tools).getByText(/preview, copy, or print the public link/i),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/no handle yet — public links use a random address/i),
     ).toBeInTheDocument();
-    expect(screen.getByText("/@u1")).toBeInTheDocument();
-    expect(screen.getByText("/@u1/foster-me")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Profile Link" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: '"Foster Me" Link' })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Profile Link" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: '"Foster Me" Link' })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
+    expect(within(tools).getByText("/@u1")).toBeInTheDocument();
+    expect(within(tools).getByText("/@u1/foster-me")).toBeInTheDocument();
+    expect(within(tools).getByRole("region", { name: "Profile Link" })).toBeInTheDocument();
+    expect(within(tools).getByRole("region", { name: '"Foster Me" Link' })).toBeInTheDocument();
+    expect(within(tools).getByRole("heading", { name: "Profile Link" })).toBeInTheDocument();
+    expect(within(tools).getByRole("heading", { name: '"Foster Me" Link' })).toBeInTheDocument();
+    expect(within(tools).getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
       "href",
       "/@u1",
     );
     expect(
-      screen.getByRole("link", { name: 'Preview "Foster Me" Link' }),
+      within(tools).getByRole("link", { name: 'Preview "Foster Me" Link' }),
     ).toHaveAttribute("href", "/@u1/foster-me");
     expect(
-      screen.getByText(/always opens whoever you’re fostering now/i),
+      within(screen.getByRole("region", { name: "Your tools" })).getByText(
+        /always opens whoever you’re fostering now/i,
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Pet-specific links" })).toBeInTheDocument();
     expect(
-      screen.getByText(/stable link that stays on one pet/i),
+      within(screen.getByRole("region", { name: "Your tools" })).getByRole("region", {
+        name: "Pet-specific links",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("region", { name: "Your tools" })).getByText(
+        /stable link that stays on one pet/i,
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: /QR code/i })).not.toBeInTheDocument();
@@ -123,12 +143,16 @@ describe("ProfilePage", () => {
   it("opens a download-only QR modal from the share card", async () => {
     renderWithQueryClient(<ProfilePage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Profile Link QR code" }));
+    fireEvent.click(
+      within(screen.getByRole("region", { name: "Your tools" })).getByRole("button", {
+        name: "Profile Link QR code",
+      }),
+    );
 
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Profile QR" })).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /download png/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /download qr/i })).toBeInTheDocument();
   });
 
   it("shows a claimed handle and handle-based share links", () => {
@@ -140,15 +164,17 @@ describe("ProfilePage", () => {
 
     renderWithQueryClient(<ProfilePage />);
 
+    const tools = screen.getByRole("region", { name: "Your tools" });
     expect(screen.getByText("@alex")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
+    expect(within(tools).getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
       "href",
       "/@alex",
     );
     expect(
-      screen.getByRole("link", { name: 'Preview "Foster Me" Link' }),
+      within(tools).getByRole("link", { name: 'Preview "Foster Me" Link' }),
     ).toHaveAttribute("href", "/@alex/foster-me");
-    expect(screen.getByText("/@alex/foster-me")).toBeInTheDocument();
+    expect(within(tools).getByText("/@alex/foster-me")).toBeInTheDocument();
+    expect(screen.getAllByText("/@alex/foster-me")).toHaveLength(2);
   });
 
   it("shows location and shelters read-only, without a key/value list", () => {
@@ -210,7 +236,9 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("button", { name: "Add image" })).toBeInTheDocument();
     expect(screen.getByLabelText("Display name")).toHaveValue("Alex Foster");
     expect(screen.getByLabelText("Handle")).toHaveValue("");
-    expect(screen.getByLabelText("Bio (markdown)")).toHaveValue("Fostering since 2019");
+    expect(await screen.findByRole("textbox", { name: "Bio" })).toHaveTextContent(
+      "Fostering since 2019",
+    );
     expect(screen.queryByLabelText("ZIP code")).not.toBeInTheDocument();
   });
 
@@ -231,7 +259,9 @@ describe("ProfilePage", () => {
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Edit profile" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Bio (markdown)")).toHaveValue(bio);
+    const bioEditor = await screen.findByRole("textbox", { name: "Bio" });
+    expect(bioEditor).toHaveTextContent("Editor line 1.");
+    expect(bioEditor).toHaveTextContent(`Editor line ${BIO_PREVIEW_MAX_LINES + 1}.`);
     expect(screen.queryByText("About this foster")).not.toBeInTheDocument();
   });
 
@@ -268,7 +298,9 @@ describe("ProfilePage", () => {
   it("shows an empty state with a call to action when there are no pets", async () => {
     renderWithQueryClient(<ProfilePage />);
 
-    expect(screen.getByText("No pets yet")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("region", { name: "Currently fostering" })).getByText("No pets yet"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /add your first pet/i })).toHaveAttribute(
       "href",
       "/profile/pets/new",
@@ -321,14 +353,77 @@ describe("ProfilePage", () => {
       "href",
       "/profile/pets/edit?petId=pet-1",
     );
-    expect(screen.getByRole("link", { name: "Add pet" })).toHaveAttribute(
-      "href",
-      "/profile/pets/new",
-    );
+    expect(
+      within(screen.getByRole("region", { name: "Your tools" })).getByRole("link", {
+        name: "Add pet",
+      }),
+    ).toHaveAttribute("href", "/profile/pets/new");
     expect(screen.queryByRole("form", { name: "Edit Fido" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Fido" })).toHaveAttribute(
       "href",
       "/@u1/pet/pet-1",
     );
+  });
+
+  it("lists current fosters above past fosters, with Add pet in the hero", () => {
+    const listed = {
+      id: "pet-active",
+      ownerId: "u1",
+      owner: null,
+      name: "Fido",
+      species: "dog",
+      breed: "Husky",
+      ageValue: 3,
+      ageUnit: "years",
+      sex: "male",
+      size: "large",
+      status: "actively_fostering",
+      subStatus: null,
+      shelterLinkName: null,
+      shelterLinkUrl: null,
+      primaryPhotoUrl: null,
+      photos: [],
+      bioMarkdown: null,
+      importantLinks: [],
+      createdAt: "2026-08-01T00:00:00.000Z",
+      updatedAt: "2026-08-01T00:00:00.000Z",
+      meta: { title: "Fido", description: "", imageUrl: null },
+      updates: [],
+    } satisfies PetPublic;
+    vi.mocked(useOwnerPets).mockReturnValue({
+      data: [
+        listed,
+        { ...listed, id: "pet-past", name: "Nori", status: "adopted" },
+      ],
+      isLoading: false,
+    } as ReturnType<typeof useOwnerPets>);
+
+    renderWithQueryClient(<ProfilePage />);
+
+    const tools = screen.getByRole("region", { name: "Your tools" });
+    const current = within(tools).getByRole("region", { name: "Currently fostering" });
+    const pastSection = screen.getByRole("region", { name: "Past fosters" });
+    expect(within(tools).getByRole("region", { name: "Your details" })).toBeInTheDocument();
+    expect(within(tools).queryByRole("region", { name: "Past fosters" })).not.toBeInTheDocument();
+    expect(within(tools).getByRole("link", { name: "Add pet" })).toHaveAttribute(
+      "href",
+      "/profile/pets/new",
+    );
+    expect(current.compareDocumentPosition(pastSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(within(current).getByRole("link", { name: "Fido" })).toHaveAttribute(
+      "href",
+      "/@u1/pet/pet-active",
+    );
+    expect(within(pastSection).getByRole("link", { name: "Nori" })).toHaveAttribute(
+      "href",
+      "/@u1/pet/pet-past",
+    );
+    expect(within(pastSection).getByRole("link", { name: "Edit" })).toHaveAttribute(
+      "href",
+      "/profile/pets/edit?petId=pet-past",
+    );
+    expect(within(current).queryByRole("link", { name: "Nori" })).not.toBeInTheDocument();
   });
 });

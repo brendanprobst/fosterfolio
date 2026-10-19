@@ -2,11 +2,12 @@
 
 import { useAuth } from "@client/auth";
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
+import { MarkdownEditor } from "@client/components/markdown";
+import { PhotoDropzone } from "@client/components/PhotoDropzone";
 import { Button } from "@client/components/ui/button";
 import { Input } from "@client/components/ui/input";
 import { Label } from "@client/components/ui/label";
 import { Separator } from "@client/components/ui/separator";
-import { Textarea } from "@client/components/ui/textarea";
 import {
   MAX_PET_PHOTOS,
   PET_SPECIES,
@@ -26,7 +27,6 @@ import { Check, Trash2, X } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { AddPetShelterDialog } from "./AddPetShelterDialog";
 import { AgeUnitToggle } from "./AgeUnitToggle";
-import { PetPhotoDropzone } from "./PetPhotoDropzone";
 import { PetPhotoList } from "./PetPhotoList";
 import { PetShelterPicker } from "./PetShelterPicker";
 import { SexToggle } from "./SexToggle";
@@ -254,19 +254,26 @@ export function PetEditor({ pet, onClose }: PetEditorProps) {
             <SexToggle value={sex} onChange={setSex} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="pet-bio">Bio (markdown)</Label>
-            <Textarea
+            <Label id="pet-bio-label">Bio</Label>
+            <MarkdownEditor
               id="pet-bio"
+              aria-labelledby="pet-bio-label"
               value={bioMarkdown}
-              onChange={(e) => setBioMarkdown(e.target.value)}
-              rows={6}
+              onChange={setBioMarkdown}
+              toolbarPosition="bottom"
             />
           </div>
         </div>
 
         <div className="space-y-3">
           {photos.length < MAX_PET_PHOTOS ? (
-            <PetPhotoDropzone pending={upload.isPending} onFiles={onPickFiles} />
+            <PhotoDropzone
+              label="Photos"
+              hint={`Drop photos here, or click browse. Up to ${MAX_PET_PHOTOS}. You can also paste from the clipboard.`}
+              multiple
+              pending={upload.isPending}
+              onFiles={onPickFiles}
+            />
           ) : (
             <p className="text-muted-foreground text-sm">
               {MAX_PET_PHOTOS} photos is the maximum.

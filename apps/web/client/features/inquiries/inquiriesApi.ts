@@ -10,3 +10,18 @@ export async function createInquiry(payload: CreateInquiryPayload): Promise<Inqu
   await throwIfNotOk(response, "Failed to send inquiry.");
   return (await response.json()) as Inquiry;
 }
+
+export async function reportInquirySource(
+  inquiryId: string,
+  token: string,
+  selfReportedSource: string,
+): Promise<void> {
+  const response = await publicApiRequest(
+    `/inquiries/${encodeURIComponent(inquiryId)}/self-reported-source`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ token, selfReportedSource }),
+    },
+  );
+  await throwIfNotOk(response, "Could not save how you heard about this pet.");
+}

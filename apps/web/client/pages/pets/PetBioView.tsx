@@ -1,21 +1,25 @@
 "use client";
 
+import { PhotoOpener } from "@client/components/PhotoOpener";
 import { OutboundLink } from "@client/components/OutboundLink";
 import { PetFacts } from "@client/components/PetFacts";
 import { Markdown } from "@client/components/markdown";
 import type { PetPublic } from "@client/features/pets";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { PetPhotoGallery } from "./PetPhotoGallery";
 
 type PetBioViewProps = {
   pet: PetPublic;
   /** Foster-me keeps its own document title. */
   setDocumentTitle?: boolean;
+  /** Rendered after the details (guest page passes the foster card here). */
+  afterDetails?: ReactNode;
 };
 
 export function PetBioView({
   pet,
   setDocumentTitle = true,
+  afterDetails,
 }: PetBioViewProps) {
   useEffect(() => {
     if (!setDocumentTitle) return;
@@ -35,26 +39,33 @@ export function PetBioView({
           photos={pet.photos}
           primaryPhotoUrl={pet.primaryPhotoUrl}
         />
-        <div className="space-y-3">
-          <PetFacts
-            pet={pet}
-            showSpecies
-            title={
-              <h1 className="text-3xl font-semibold tracking-tight">{pet.name}</h1>
-            }
-          />
-          {pet.shelterLinkUrl ? (
-            <p className="text-sm">
-              <span className="text-muted-foreground">Shelter: </span>
-              <OutboundLink href={pet.shelterLinkUrl} className="text-primary hover:underline">
-                {pet.shelterLinkName || pet.shelterLinkUrl}
-              </OutboundLink>
-            </p>
-          ) : null}
-        </div>
+        <PetFacts
+          pet={pet}
+          part="header"
+          showSpecies
+          title={<h1 className="text-3xl font-semibold tracking-tight">{pet.name}</h1>}
+        />
       </header>
 
       {pet.bioMarkdown ? <Markdown>{pet.bioMarkdown}</Markdown> : null}
+
+      <section className="space-y-2" aria-labelledby="pet-about-heading">
+        <h2 id="pet-about-heading" className="text-lg font-medium">
+          About {pet.name}
+        </h2>
+        <PetFacts pet={pet} part="details" showSpecies />
+      </section>
+
+      {afterDetails}
+
+      {pet.shelterLinkUrl ? (
+        <p className="text-sm">
+          <span className="text-muted-foreground">Shelter: </span>
+          <OutboundLink href={pet.shelterLinkUrl} className="text-primary hover:underline">
+            {pet.shelterLinkName || pet.shelterLinkUrl}
+          </OutboundLink>
+        </p>
+      ) : null}
 
       {pet.importantLinks.length > 0 ? (
         <section className="space-y-2" aria-label="Links">
@@ -81,12 +92,7 @@ export function PetBioView({
             {pet.updates.map((update) => (
               <li key={update.id} className="border-border space-y-2 border-t pt-4">
                 {update.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={update.imageUrl}
-                    alt=""
-                    className="border-border max-h-64 w-full rounded-md border object-cover"
-                  />
+                  <PhotoOpener src={update.imageUrl} label={`Photo from an update on ${pet.name}`} />
                 ) : null}
                 {update.bodyText ? <Markdown>{update.bodyText}</Markdown> : null}
                 <p className="text-muted-foreground text-xs">

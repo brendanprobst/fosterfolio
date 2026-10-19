@@ -19,5 +19,11 @@ describe('HttpErrorMapper', () => {
     it('reads status from USER_FORBIDDEN (403)', () => {
       expect(HttpErrorMapper.getStatusCode(ErrorCatalog.USER_FORBIDDEN)).toBe(403);
     });
+
+    it('reads status from tracked-link errors', () => {
+      expect(HttpErrorMapper.getStatusCode(ErrorCatalog.TRACKED_LINK_NOT_FOUND)).toBe(404);
+      expect(HttpErrorMapper.getStatusCode(ErrorCatalog.TRACKED_LINK_FORBIDDEN)).toBe(403);
+      expect(HttpErrorMapper.getStatusCode(ErrorCatalog.TRACKED_LINK_INVALID_INPUT)).toBe(400);
+    });
   });
 });

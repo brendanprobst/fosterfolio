@@ -32,8 +32,7 @@ export function ShareQrDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Download a PNG for now. Size, color, and other print settings will land
-            here later.
+            Pick a size for the web, an A4 flyer, or a large print.
           </DialogDescription>
         </DialogHeader>
         {open ? (
@@ -42,6 +41,7 @@ export function ShareQrDialog({
             downloadName={downloadName}
             imageAlt={imageAlt}
             showHeader={false}
+            centered
           />
         ) : null}
       </DialogContent>

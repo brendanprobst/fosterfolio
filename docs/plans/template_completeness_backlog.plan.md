@@ -14,6 +14,12 @@ todos:
   - id: add-supabase-cli-layout
     content: Add root supabase/ (config.toml, timestamped migrations), npm run supabase:push; see docs/playbooks/supabase-migrations.md
     status: completed
+  - id: e2e-separate-next-dist-dir
+    content: Playwright's next dev uses NEXT_DIST_DIR=.next-e2e so E2E never clobbers apps/web/.next under a running npm run dev; harvest from fosterfolio
+    status: completed
+  - id: dev-separate-next-dist-dir
+    content: next.config.ts is phase-aware so next dev writes .next-dev and next build keeps .next — a build no longer breaks a running npm run dev; harvest from fosterfolio together with e2e-separate-next-dist-dir
+    status: completed
   - id: add-refresh-spawn-script
     content: Implement scripts/refresh-spawn.mjs + npm run scaffold:refresh (reads target .lattice/refresh.json); spec in docs/scaffold-workflow.md
     status: pending
@@ -105,6 +111,8 @@ High value, small scope—work in roughly this order:
 |-------|------|--------|
 | F0 | **`scripts/refresh-spawn.mjs`** | Re-sync long-lived spawns from local template; target owns `.lattice/refresh.json` — [scaffold workflow § Refresh](../scaffold-workflow.md#refresh-an-existing-spawn-re-sync-from-template). |
 | F0b | **Supabase CLI layout** | ✅ Done in fosterfolio (harvest candidate `supabase-cli-migrations`) — root `supabase/migrations/`, `npm run supabase:*` — [Supabase migrations playbook](../playbooks/supabase-migrations.md). |
+| F0c | **E2E alongside dev** | ✅ Done in fosterfolio (harvest candidate `e2e-separate-next-dist-dir`). Both `next dev` processes shared `apps/web/.next`, so starting E2E broke a running dev server even on separate ports. Fix: `distDir` from `NEXT_DIST_DIR` in `apps/web/next.config.ts`; Playwright sets `.next-e2e`; added to `tsconfig.json` include, `.gitignore`, `turbo.json` E2E inputs, `npm run clean`, scaffold/harvest skip lists; noted in `test/web/AGENTS.md`. |
+| F0d | **Build alongside dev** | ✅ Done in fosterfolio (harvest candidate `dev-separate-next-dist-dir`; harvest with F0c — same files). `next build` and `next dev` shared `apps/web/.next`, so building while dev ran failed with `Cannot find module '../chunks/ssr/[turbopack]_runtime.js'`. Fix: `apps/web/next.config.ts` exports a phase function — `next dev` → `.next-dev`, `next build` → `.next`, `NEXT_DIST_DIR` still overrides (E2E keeps `.next-e2e`); `.next-dev` added to `tsconfig.json` include, `.gitignore`, `turbo.json` E2E inputs, `npm run clean`, scaffold/harvest skip lists; noted in `test/web/AGENTS.md`. |
 | F1 | **`scripts/smoke`** | Deployed HTTPS checks with `API_BASE_URL` + `BEARER_TOKEN`; no secret logging. |
 | F2 | **Deploy + smoke GitHub workflow** | AWS OIDC; masked outputs. |
 | F3 | **Prod hardening** | Restrict or disable `/api-docs` on public API URLs; Lambda logging verbosity (`morgan` vs structured). |

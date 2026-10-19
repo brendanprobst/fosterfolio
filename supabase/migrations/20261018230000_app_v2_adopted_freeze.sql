@@ -1,0 +1,1 @@
+feature-migrations/20261018230000_app_v2_adopted_freeze.sql

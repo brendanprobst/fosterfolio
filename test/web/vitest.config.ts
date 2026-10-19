@@ -12,6 +12,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@client': path.join(repoRoot, 'apps/web/client'),
+      '@lattice/analytics': path.join(repoRoot, 'packages/analytics/src/index.ts'),
     },
   },
   test: {

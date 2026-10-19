@@ -16,3 +16,11 @@ export function selectFosterMePet<T extends { status: string }>(
   if (pets[0]) return { kind: "fallback", pet: pets[0] };
   return { kind: "empty" };
 }
+
+/**
+ * Every actively fostering pet, newest first. Callers must pass pets already
+ * sorted `created_at` descending.
+ */
+export function selectActiveFosters<T extends { status: string }>(pets: T[]): T[] {
+  return pets.filter((pet) => pet.status === "actively_fostering");
+}

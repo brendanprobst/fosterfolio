@@ -64,5 +64,15 @@ export function loadWebEnv(root, env) {
     }
   }
 
+  // Every deployed API runs with NODE_ENV=production and requires a Turnstile token on inquiries.
+  // A site without the site key sends none, so every inquiry would be rejected.
+  if (!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()) {
+    console.error(
+      `NEXT_PUBLIC_TURNSTILE_SITE_KEY is not set (checked ${relative(root, full)} and the shell).\n` +
+        "Add the Cloudflare Turnstile site key there or in Infisical /fosterfolio/shared. See docs/deploy-aws.md.",
+    );
+    process.exit(1);
+  }
+
   console.log(`→ web env ${relative(root, full)}`);
 }

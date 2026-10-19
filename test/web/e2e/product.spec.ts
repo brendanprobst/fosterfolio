@@ -3,6 +3,11 @@ import { E2E_PATHS } from "./support/e2ePaths";
 import { E2E_SEED } from "./support/e2eSeedConstants";
 import { browseAsGuest, staySignedIn } from "./support/e2eSession";
 
+async function openPetBioInquiry(page: Page) {
+  await page.getByRole("button", { name: `Ask about ${E2E_SEED.petName}` }).click();
+  return page.getByRole("dialog");
+}
+
 async function submitInquiry(scope: Page | Locator) {
   await scope.getByLabel("Your name").fill("Jamie");
   await scope.getByLabel("Your email").fill("jamie@example.com");
@@ -10,7 +15,7 @@ async function submitInquiry(scope: Page | Locator) {
   await scope.getByRole("button", { name: /send inquiry/i }).click();
   await expect(scope.getByText("Inquiry sent")).toBeVisible();
   await expect(
-    scope.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+    scope.getByRole("alert").getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
   ).toBeVisible();
 }
 
@@ -44,8 +49,8 @@ test.describe("Fosterfolio product smoke", () => {
         page.getByRole("link", { name: E2E_SEED.userDisplayName }),
       ).toHaveAttribute("href", E2E_PATHS.publicProfile);
       await expect(page.getByText(`Actively fostering ${E2E_SEED.petName}`)).toBeVisible();
-      await expect(page.getByRole("form", { name: "Contact the foster" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Expand" })).toBeVisible();
+      const dialog = await openPetBioInquiry(page);
+      await expect(dialog.getByRole("form", { name: "Contact the foster" })).toBeVisible();
       await expect(page.getByRole("button", { name: "QR code" })).toHaveCount(0);
       await expect(page.getByRole("link", { name: /fostering now/i })).toHaveCount(0);
       await expect(page).toHaveTitle(/Mochi/);
@@ -53,25 +58,29 @@ test.describe("Fosterfolio product smoke", () => {
 
     test("inquiry form on the bio page shows success after submit", async ({ page }) => {
       await page.goto(E2E_PATHS.petBio);
-      await submitInquiry(page);
+      await submitInquiry(await openPetBioInquiry(page));
     });
 
-    test("expanding the bio inquiry keeps a draft and submits from the modal", async ({
+    test("opening the bio inquiry keeps a draft and submits from the sheet", async ({
       page,
     }) => {
       await page.goto(E2E_PATHS.petBio);
-      await page.getByLabel("Your name").fill("Jamie");
-      await page.getByRole("button", { name: "Expand" }).click();
-      const dialog = page.getByRole("dialog");
-      await expect(dialog.getByRole("heading", { name: "Contact the foster" })).toBeVisible();
+      const ask = page.getByRole("button", { name: `Ask about ${E2E_SEED.petName}` });
+      await ask.click();
+      let dialog = page.getByRole("dialog");
+      await expect(dialog.getByRole("form", { name: "Contact the foster" })).toBeVisible();
+      await dialog.getByLabel("Your name").fill("Jamie");
+      await dialog.getByRole("button", { name: "Close" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await ask.click();
+      dialog = page.getByRole("dialog");
       await expect(dialog.getByLabel("Your name")).toHaveValue("Jamie");
       await dialog.getByLabel("Your email").fill("jamie@example.com");
       await dialog.getByLabel("Message").fill("Can I meet Mochi this weekend?");
       await dialog.getByRole("button", { name: /send inquiry/i }).click();
-      await expect(page.getByText("Inquiry sent")).toBeVisible();
-      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(dialog.getByText("Inquiry sent")).toBeVisible();
       await expect(
-        page.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+        dialog.getByRole("alert").getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
       ).toBeVisible();
     });
 
@@ -82,9 +91,17 @@ test.describe("Fosterfolio product smoke", () => {
       await submitInquiry(page);
     });
 
-    test("inquiry form on foster-me shows success after submit", async ({ page }) => {
+    test("foster-me preview opens the pet bio", async ({ page }) => {
       await page.goto(E2E_PATHS.fosterMe);
-      await submitInquiry(page);
+      await expect(page.getByRole("form", { name: /contact the foster/i })).toHaveCount(0);
+      const card = page.getByRole("link", { name: E2E_SEED.petName });
+      await expect(card).toHaveAttribute("href", new RegExp(`/pet/${E2E_SEED.petId}\\?via=foster-me$`));
+      await card.click();
+      await expect(
+        page.getByRole("heading", { level: 1, name: E2E_SEED.petName }),
+      ).toBeVisible();
+      // The bio records the mark, then strips the one-shot param so it isn't shared onward.
+      await expect(page).toHaveURL(new RegExp(`/pet/${E2E_SEED.petId}$`));
     });
 
     test("public profile shows guest sidebar and pets", async ({ page }) => {
@@ -112,11 +129,15 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(page).toHaveURL(/\/foster-me\/?$/);
       await expect(page).not.toHaveURL(/\/pet\//);
       await expect(
-        page.getByRole("heading", { level: 1, name: E2E_SEED.petName }),
+        page.getByRole("heading", { level: 1, name: `Meet ${E2E_SEED.petName}` }),
       ).toBeVisible();
-      await expect(page.getByText(`Actively fostering ${E2E_SEED.petName}`)).toBeVisible();
-      await expect(page.getByRole("form", { name: "Contact the foster" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Expand" })).toBeVisible();
+      await expect(page.getByText(`fostered by ${E2E_SEED.userDisplayName}`)).toBeVisible();
+      await expect(page.getByRole("link", { name: E2E_SEED.petName })).toHaveAttribute(
+        "href",
+        `/@${E2E_PATHS.userRef}/pet/${E2E_SEED.petId}?via=foster-me`,
+      );
+      await expect(page.getByRole("form", { name: "Contact the foster" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Expand" })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "QR code" })).toHaveCount(0);
       await expect(page.getByText('"Foster Me" Link')).toHaveCount(0);
       await expect(page).toHaveTitle(/Foster me/);
@@ -130,23 +151,18 @@ test.describe("Fosterfolio product smoke", () => {
       await browseAsGuest(page);
     });
 
-    test("pet bio inquiry can be sent from the side panel", async ({ page }) => {
+    test("pet bio inquiry can be sent from the floating button", async ({ page }) => {
       await page.goto(E2E_PATHS.petBio);
-      const openPanel = page.getByRole("button", {
-        name: `Open Ask about ${E2E_SEED.petName}`,
-      });
-      await expect(openPanel).toBeVisible();
-      await openPanel.click();
-      const panel = page.getByRole("dialog", { name: `Ask about ${E2E_SEED.petName}` });
-      const form = panel.getByRole("form", { name: "Contact the foster" });
+      const dialog = await openPetBioInquiry(page);
+      const form = dialog.getByRole("form", { name: "Contact the foster" });
       await expect(form).toBeVisible();
       await form.getByLabel("Your name").fill("Jamie");
       await form.getByLabel("Your email").fill("jamie@example.com");
       await form.getByLabel("Message").fill("Can I meet Mochi this weekend?");
       await form.getByRole("button", { name: /send inquiry/i }).click();
-      await expect(panel.getByText("Inquiry sent")).toBeVisible();
+      await expect(dialog.getByText("Inquiry sent")).toBeVisible();
       await expect(
-        panel.getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
+        dialog.getByRole("alert").getByText(`${E2E_SEED.userDisplayName} will get your message by email`),
       ).toBeVisible();
     });
   });
@@ -161,7 +177,10 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: E2E_SEED.userDisplayName }),
       ).toBeVisible();
-      await expect(page.getByText("Sharing your profile")).toBeVisible();
+      // The share card renders twice (desktop hero + mobile body); scope to the visible one.
+      await expect(
+        page.getByRole("region", { name: "Your tools" }).getByText("Sharing your profile"),
+      ).toBeVisible();
       await expect(page.getByText("Private editor")).toHaveCount(0);
       await expect(page.getByRole("link", { name: "Preview Profile Link" })).toHaveAttribute(
         "href",
@@ -186,21 +205,20 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(dialog.getByRole("button", { name: "Save" })).toBeVisible();
     });
 
-    test("owner can generate a pet-bio QR on demand", async ({ page }) => {
+    test("owner sees analytics links instead of the pet-bio QR card", async ({ page }) => {
       await page.goto(E2E_PATHS.petBio);
-      await expect(page.getByText(`Edit ${E2E_SEED.petName}'s bio`)).toBeVisible();
       await expect(page.getByRole("link", { name: "Edit bio" })).toHaveAttribute(
         "href",
         `/profile/pets/edit?petId=${E2E_SEED.petId}&from=${encodeURIComponent(E2E_PATHS.petBio)}`,
       );
       await expect(page.getByRole("form", { name: /contact the foster/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /send inquiry/i })).toHaveCount(0);
-      await expect(page.getByRole("img", { name: /QR code/i })).toHaveCount(0);
-      await page.getByRole("button", { name: "QR code" }).click();
-      const dialog = page.getByRole("dialog");
-      await expect(dialog.getByRole("heading", { name: `${E2E_SEED.petName} QR` })).toBeVisible();
-      await expect(dialog.getByRole("img", { name: `QR code for ${E2E_SEED.petName}` })).toBeVisible();
-      await expect(dialog.getByRole("button", { name: /download png/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: "QR code" })).toBeVisible();
+      await page.getByRole("link", { name: "Links & analytics" }).click();
+      await expect(page).toHaveURL(/\/profile\/links\/?$/);
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Links & QR codes" }),
+      ).toBeVisible();
     });
 
     test("owner public profile offers edit, not inquiry", async ({ page }) => {
@@ -217,19 +235,86 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(page.getByText("Interested in adopting?")).toHaveCount(0);
     });
 
-    test("owner foster-me shows share without an inquiry form", async ({ page }) => {
+    test("guest inquiry shows in the owner inbox and can be archived", async ({ page }) => {
+      const sender = "Riley Quinn";
+      const message = "Inbox archive path for Mochi";
+
+      await browseAsGuest(page);
+      await page.goto(E2E_PATHS.petBio);
+      const dialog = await openPetBioInquiry(page);
+      await dialog.getByLabel("Your name").fill(sender);
+      await dialog.getByLabel("Your email").fill("riley.quinn@example.com");
+      await dialog.getByLabel("Message").fill(message);
+      await dialog.getByRole("button", { name: /send inquiry/i }).click();
+      await expect(dialog.getByText("Inquiry sent")).toBeVisible();
+
+      await staySignedIn(page);
+      await page.goto("/inbox");
+      const messagePane = page.getByRole("region", { name: "Message", exact: true });
+      await page.getByRole("button", { name: new RegExp(sender) }).click();
+      await expect(messagePane.getByText(message)).toBeVisible();
+      await expect(messagePane.getByRole("link", { name: "riley.quinn@example.com" })).toBeVisible();
+      await messagePane.getByRole("button", { name: "Archive" }).click();
+      await expect(page.getByRole("button", { name: new RegExp(sender) })).toHaveCount(0);
+
+      await page.getByRole("button", { name: "Archived" }).click();
+      await expect(page.getByRole("button", { name: new RegExp(sender) })).toBeVisible();
+    });
+
+    test("links page: first-run tutorial, then an Instagram link", async ({ page }) => {
+      await page.goto("/profile/links");
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Links & QR codes" }),
+      ).toBeVisible();
+      await expect(page.getByRole("region", { name: "No links yet" })).toBeVisible();
+
+      await page.getByRole("button", { name: "Create link" }).click();
+      const create = page.getByRole("dialog");
+      await expect(create.getByRole("button", { name: "Instagram" })).toBeDisabled();
+      await create.getByRole("button", { name: /create first link/i }).click();
+
+      const intro = page.getByRole("dialog");
+      await expect(intro.getByText("This is your default link to the pets you foster.")).toBeVisible();
+      await intro.getByRole("button", { name: "Next" }).click();
+      await intro.getByRole("button", { name: "Got it" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+
+      const defaultRow = page.getByRole("article", {
+        name: `${E2E_SEED.userDisplayName}'s default link`,
+      });
+      await expect(defaultRow).toBeVisible();
+      await expect(defaultRow.getByText("Default", { exact: true })).toBeVisible();
+      await expect(page.getByRole("article", { name: "Untagged visits" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "No links yet" })).toHaveCount(0);
+
+      await page.getByRole("button", { name: "Create link" }).click();
+      const normal = page.getByRole("dialog");
+      await expect(normal.getByLabel("Custom channel")).toBeEnabled();
+      await normal.getByRole("button", { name: "Instagram" }).click();
+      await normal.getByLabel(/label/i).fill("Story highlight");
+      await normal.getByRole("button", { name: "Create link" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+
+      const instagram = page.getByRole("article", { name: "Story highlight" });
+      await expect(instagram).toBeVisible();
+      await expect(instagram.getByText("Instagram")).toBeVisible();
+      await expect(instagram.getByRole("img", { name: "QR code for Story highlight" })).toBeVisible();
+    });
+
+    test("owner foster-me shows the preview and manage links", async ({ page }) => {
       await page.goto(E2E_PATHS.fosterMe);
       await expect(page).toHaveURL(/\/foster-me\/?$/);
       await expect(
-        page.getByRole("heading", { level: 1, name: E2E_SEED.petName }),
+        page.getByRole("heading", { level: 1, name: `Meet ${E2E_SEED.petName}` }),
       ).toBeVisible();
-      await expect(page.getByText('"Foster Me" Link')).toBeVisible();
+      await expect(page.getByRole("link", { name: "Manage links" })).toHaveAttribute(
+        "href",
+        "/profile/links",
+      );
       await expect(page.getByRole("form", { name: /contact the foster/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /send inquiry/i })).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "Expand" })).toHaveCount(0);
-      await page.getByRole("button", { name: "QR code" }).click();
-      await expect(page.getByRole("heading", { name: "Foster-me QR" })).toBeVisible();
-      await expect(page.getByRole("button", { name: /download png/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: "QR code" })).toHaveCount(0);
+      await expect(page.getByText('"Foster Me" Link')).toHaveCount(0);
     });
   });
 });

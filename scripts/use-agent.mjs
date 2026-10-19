@@ -2,19 +2,22 @@
 /**
  * Switch between Claude Code and Cursor agent configurations.
  *
- *   npm run use:claude   — generate CLAUDE.md files from agents/prompts/; remove .mdc files
- *   npm run use:cursor   — generate .cursor/rules/*.mdc from agents/prompts/; remove CLAUDE.md files
+ *   npm run use:claude   — generate CLAUDE.md, .claude/{rules,commands,skills}, .mcp.json; remove .cursor/rules
+ *   npm run use:cursor   — generate .cursor/rules/*.mdc (+ README); remove the Claude files above
  *   npm run agents:sync  — generate both (for teams using both tools simultaneously)
  *   npm run agent:status — show which mode is currently active
  *
- * Source of truth: agents/prompts/<id>.md
- * Edit expert content there, then re-run the appropriate command to regenerate.
+ * Source of truth:
+ *   agents/prompts/<id>.md          — expert personas (both tools)
+ *   .cursor/skills/<name>/          — skills, mirrored to .claude/skills/<name>/
+ *   .cursor/mcp.json                — MCP servers, converted to .mcp.json
+ * Edit there, then re-run the appropriate command to regenerate.
  *
  * Generated files are committed to git — both Cursor and Claude configs can coexist in
  * git history. Switching is always reversible by re-running the generate command.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, cpSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -104,10 +107,10 @@ function writeFile(relPath, content) {
   console.log(`  + ${relPath}`);
 }
 
-function removeFile(relPath) {
+function removePath(relPath) {
   const abs = join(ROOT, relPath);
   if (existsSync(abs)) {
-    unlinkSync(abs);
+    rmSync(abs, { recursive: true, force: true });
     console.log(`  - ${relPath}`);
   }
 }
@@ -115,6 +118,41 @@ function removeFile(relPath) {
 // Derive target directories for CLAUDE.md from globs (skip file-only entries like seed.json)
 function dirsFromGlobs(globs) {
   return globs.filter((g) => g.endsWith("/**")).map((g) => g.slice(0, -3));
+}
+
+// Globs a directory CLAUDE.md can't express (single files, wildcards) — emitted as a
+// path-scoped .claude/rules/<id>.md instead
+function fileGlobs(globs) {
+  return globs.filter((g) => !g.endsWith("/**"));
+}
+
+// Short display name: "DDD expert — domain & …" → "DDD expert"
+function shortName(agent) {
+  return agent.description.split(" — ")[0];
+}
+
+// ─── Cursor-native sources mirrored into Claude ──────────────────────────────
+
+const CURSOR_SKILLS_DIR = ".cursor/skills";
+const CURSOR_MCP = ".cursor/mcp.json";
+
+function skillNames() {
+  const abs = join(ROOT, CURSOR_SKILLS_DIR);
+  if (!existsSync(abs)) return [];
+  return readdirSync(abs, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && existsSync(join(abs, e.name, "SKILL.md")))
+    .map((e) => e.name)
+    .sort();
+}
+
+// Cursor writes `${env:VAR}` and infers HTTP from `url`; Claude wants `${VAR}` and an explicit type
+function claudeMcpContent() {
+  const cursor = JSON.parse(readFileSync(join(ROOT, CURSOR_MCP), "utf8"));
+  const mcpServers = {};
+  for (const [name, server] of Object.entries(cursor.mcpServers ?? {})) {
+    mcpServers[name] = server.url && !server.type ? { type: "http", ...server } : server;
+  }
+  return JSON.stringify({ mcpServers }, null, 2).replace(/\$\{env:(\w+)\}/g, "${$1}") + "\n";
 }
 
 // Build .mdc frontmatter from agent metadata
@@ -134,16 +172,48 @@ function claudePaths() {
   const paths = ["CLAUDE.md"];
   for (const a of PATH_AGENTS) {
     for (const dir of dirsFromGlobs(a.globs)) paths.push(`${dir}/CLAUDE.md`);
+    if (fileGlobs(a.globs).length) paths.push(`.claude/rules/${a.id}.md`);
   }
   for (const a of GLOBAL_AGENTS) paths.push(`.claude/commands/${a.command}.md`);
+  for (const name of skillNames()) paths.push(`.claude/skills/${name}`);
+  if (existsSync(join(ROOT, CURSOR_MCP))) paths.push(".mcp.json");
   return paths;
 }
 
 function cursorPaths() {
-  return [...PATH_AGENTS, ...GLOBAL_AGENTS].map((a) => `.cursor/rules/${a.id}.mdc`);
+  return [...[...PATH_AGENTS, ...GLOBAL_AGENTS].map((a) => `.cursor/rules/${a.id}.mdc`), ".cursor/rules/README.md"];
 }
 
 // ─── Root CLAUDE.md ──────────────────────────────────────────────────────────
+
+function fileScopedSection() {
+  const rows = PATH_AGENTS.filter((a) => fileGlobs(a.globs).length).map(
+    (a) => `| ${fileGlobs(a.globs).map((g) => `\`${g}\``).join(", ")} | ${shortName(a)} (\`.claude/rules/${a.id}.md\`) |`,
+  );
+  if (!rows.length) return "";
+  return `
+Single-file globs load from \`.claude/rules/\` when Claude reads a matching file:
+
+| Files | Expert loaded |
+|-------|---------------|
+${rows.join("\n")}
+`;
+}
+
+function mirroredSection() {
+  const skills = skillNames();
+  const hasMcp = existsSync(join(ROOT, CURSOR_MCP));
+  if (!skills.length && !hasMcp) return "";
+  const lines = ["", "## Skills and MCP", ""];
+  if (skills.length) {
+    lines.push(
+      `Project skills (${skills.map((s) => `\`${s}\``).join(", ")}) are mirrored from \`.cursor/skills/\` into \`.claude/skills/\`.`,
+    );
+  }
+  if (hasMcp) lines.push("MCP servers in `.mcp.json` are converted from `.cursor/mcp.json`.");
+  lines.push("Edit the `.cursor/` sources, not the Claude copies — they are overwritten on every sync.", "");
+  return lines.join("\n");
+}
 
 function rootClaudeContent() {
   return `# Claude agent mode
@@ -160,7 +230,7 @@ guidance automatically as you navigate the project:
 | \`apps/api/domain/\`, \`apps/api/application/\`, \`docs/adr/\` | DDD expert |
 | \`apps/api/\`, \`apps/web/client/\`, \`apps/web/app/\`, \`test/api/\`, \`test/web/\` | Test expert (tests-first) |
 | \`apps/api/infrastructure/\`, \`apps/api/config/\`, \`apps/web/client/lib/\` | Infrastructure expert |
-
+${fileScopedSection()}
 ## Slash commands (global experts)
 
 Type \`/\` in Claude Code to attach a global expert:
@@ -173,7 +243,7 @@ Type \`/\` in Claude Code to attach a global expert:
 | \`/session-review\` | Re-read the work session without editing |
 | \`/session-fix\` | Apply only the quick fixes from a session review |
 | \`/session-next\` | Append the session stop to the log and commit it with a SESSION trailer |
-
+${mirroredSection()}
 ---
 _Managed by \`npm run use:claude\` / \`npm run agents:sync\`._
 _Edit expert content in \`agents/prompts/*.md\`, then re-run to sync._
@@ -187,10 +257,22 @@ function generateClaude() {
   for (const agent of PATH_AGENTS) {
     const body = readPrompt(agent.prompt);
     for (const dir of dirsFromGlobs(agent.globs)) writeFile(`${dir}/CLAUDE.md`, body);
+    const files = fileGlobs(agent.globs);
+    if (files.length) {
+      const frontmatter = ["---", "paths:", ...files.map((g) => `  - "${g}"`), "---", ""].join("\n");
+      writeFile(`.claude/rules/${agent.id}.md`, frontmatter + body);
+    }
   }
   for (const agent of GLOBAL_AGENTS) {
     writeFile(`.claude/commands/${agent.command}.md`, readPrompt(agent.prompt));
   }
+  for (const name of skillNames()) {
+    const dest = `.claude/skills/${name}`;
+    rmSync(join(ROOT, dest), { recursive: true, force: true });
+    cpSync(join(ROOT, CURSOR_SKILLS_DIR, name), join(ROOT, dest), { recursive: true });
+    console.log(`  + ${dest}/`);
+  }
+  if (existsSync(join(ROOT, CURSOR_MCP))) writeFile(".mcp.json", claudeMcpContent());
 }
 
 // ─── Generate Cursor artifacts ────────────────────────────────────────────────
@@ -200,18 +282,50 @@ function generateCursor() {
     const body = readPrompt(agent.prompt);
     writeFile(`.cursor/rules/${agent.id}.mdc`, mdcFrontmatter(agent) + body);
   }
+  writeFile(".cursor/rules/README.md", cursorReadmeContent());
+}
+
+function cursorReadmeContent() {
+  const code = (s) => `\`${s}\``;
+  const rows = [
+    ...PATH_AGENTS.map(
+      (a) => `| ${code(`${a.id}.mdc`)} | ${shortName(a)} | Automatically when you work on ${a.globs.map(code).join(", ")}. |`,
+    ),
+    ...GLOBAL_AGENTS.map(
+      (a) => `| ${code(`${a.id}.mdc`)} | ${shortName(a)} | **Not** path-scoped — attach with **\`@\` → Rules**. |`,
+    ),
+  ];
+  return `# Cursor project rules
+
+These \`.mdc\` files define **expert personas** for this repo.
+
+| Rule file | Expert | When it applies |
+|-----------|--------|------------------|
+${rows.join("\n")}
+
+## Attaching global experts (\`@\`)
+
+In **Chat** or **Composer**, type **\`@\`** → **Rules** (wording may be **Cursor Rules** in your build) → select the expert.
+
+Fallback: **\`@\`** → **Files** → the matching file under \`.cursor/rules/\`.
+
+Scoped rules still apply from file paths; \`@\` adds the global expert when you need it (e.g. debugging outside \`test/api/\`, or a janitor pass on the whole tree).
+
+---
+_Generated by \`npm run use:cursor\` / \`npm run agents:sync\` from \`agents/prompts/\` — edit there, then re-run._
+`;
 }
 
 // ─── Remove Claude artifacts ──────────────────────────────────────────────────
 
 function removeClaude() {
-  for (const p of claudePaths()) removeFile(p);
+  for (const p of claudePaths()) removePath(p);
 }
 
 // ─── Remove Cursor artifacts ──────────────────────────────────────────────────
 
 function removeCursor() {
-  for (const p of cursorPaths()) removeFile(p);
+  for (const p of cursorPaths()) removePath(p);
 }
 
 // ─── Commands ─────────────────────────────────────────────────────────────────

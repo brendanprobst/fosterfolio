@@ -28,6 +28,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { applyEnvFile, envFileLabel, resolveEnvFile, takeEnvArg } from "./env-files.mjs";
+import { adoptCliMigrations, syncFeatureMigrations } from "./sync-feature-migrations.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATION_PREFIXES = ["platform_", "app_"];
@@ -69,7 +70,9 @@ function redactSecrets(text) {
   return out;
 }
 
-function run(args) {
+function run(args, { exit = true } = {}) {
+  adoptCliMigrations(root);
+  syncFeatureMigrations(root);
   const bin = supabaseBin();
   // Capture I/O so we can redact secrets. Never use shell:true — that would
   // expand/$interpolate passwords and print them via npm script echo.
@@ -83,8 +86,10 @@ function run(args) {
   if (r.stderr) process.stderr.write(redactSecrets(r.stderr));
   if (r.error) {
     console.error(`\n  Failed to run Supabase CLI (${r.error.code || "error"}).\n`);
+    if (!exit) return 1;
     process.exit(1);
   }
+  if (!exit) return r.status ?? 1;
   process.exit(r.status ?? 1);
 }
 
@@ -172,15 +177,27 @@ switch (command) {
     run(args);
     break;
   }
-  case "new":
-    run(["migration", "new", migrationName(passthrough)]);
-    break;
+  case "new": {
+    const status = run(["migration", "new", migrationName(passthrough)], { exit: false });
+    adoptCliMigrations(root);
+    process.exit(status ?? 1);
+  }
   case "push:dry":
     run(withDbUrl(["db", "push", "--dry-run", ...passthrough]));
     break;
-  case "push":
+  case "push": {
+    const armed = ["1", "true", "yes"].includes(
+      String(process.env.SUPABASE_PUSH_ENABLED ?? "").trim().toLowerCase(),
+    );
+    if (!armed) {
+      fail(
+        `Refusing to push. Schema push is disarmed.\n` +
+          `  Set SUPABASE_PUSH_ENABLED=1 in ${ENV_FILE}, run the push, then set it back to 0.`,
+      );
+    }
     run(withDbUrl(["db", "push", ...passthrough]));
     break;
+  }
   case "list":
     run(withDbUrl(["migration", "list", ...passthrough]));
     break;
@@ -208,6 +225,8 @@ switch (command) {
     const pw = passwordFromDbUrl();
     const linkArgs = ["link", "--project-ref", ref];
     if (pw) linkArgs.push("--password", pw);
+    adoptCliMigrations(root);
+    syncFeatureMigrations(root);
     const link = spawnSync(supabaseBin(), linkArgs, {
       cwd: root,
       encoding: "utf8",

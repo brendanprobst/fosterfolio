@@ -147,6 +147,48 @@ describe('Pets API', () => {
     expect(tooMany.body.error.code).toBe('PET_PHOTOS_LIMIT');
   });
 
+  it('does not treat a path word as a pet id', async () => {
+    const { app } = createTestAppWithContainer();
+    const links = await request(app).get('/pets/links').expect(404);
+    const updates = await request(app).get('/pets/updates').expect(404);
+    expect(links.body.error.code).toBeUndefined();
+    expect(updates.body.error.code).toBeUndefined();
+  });
+
+  it('sets analytics_stopped_at when status becomes adopted and clears it otherwise', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'owner@example.com' });
+    const created = await createOwnedPet(app, ownerId);
+    const token = await createAuthToken(ownerId, 'owner@example.com');
+
+    expect((await container.petRepository.findById(created.id))?.analyticsStoppedAt).toBeNull();
+
+    await request(app)
+      .put(`/pets/${created.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'adopted' })
+      .expect(200);
+
+    const stopped = (await container.petRepository.findById(created.id))?.analyticsStoppedAt;
+    expect(stopped).toBeInstanceOf(Date);
+
+    await request(app)
+      .put(`/pets/${created.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Mochi still' })
+      .expect(200);
+    expect(
+      (await container.petRepository.findById(created.id))?.analyticsStoppedAt?.toISOString()
+    ).toBe(stopped?.toISOString());
+
+    await request(app)
+      .put(`/pets/${created.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'available' })
+      .expect(200);
+    expect((await container.petRepository.findById(created.id))?.analyticsStoppedAt).toBeNull();
+  });
+
   it('rejects unauthenticated create', async () => {
     const { app } = createTestAppWithContainer();
     await request(app)

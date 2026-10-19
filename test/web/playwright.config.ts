@@ -57,6 +57,8 @@ export default defineConfig({
       timeout: 120_000,
       env: {
         ...process.env,
+        // Separate build dir so this server never clobbers `.next` under a running `npm run dev`.
+        NEXT_DIST_DIR: ".next-e2e",
         NEXT_PUBLIC_API_URL: e2eApiOrigin,
         NEXT_PUBLIC_LATTICE_E2E: "1",
         NEXT_PUBLIC_LATTICE_E2E_ACCESS_TOKEN: e2eToken,

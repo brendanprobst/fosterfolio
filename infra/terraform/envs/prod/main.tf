@@ -19,7 +19,28 @@ locals {
     jwt_secret       = null
   }
 
+  # Created by hand with `aws ssm put-parameter --type SecureString` (docs/deploy-aws.md), never by
+  # Terraform, so the values stay out of state. The API refuses to start in production without them.
+  inquiry_secret_parameter_names = {
+    turnstile_secret_key = "${local.ssm_path_prefix}/inquiries/turnstile_secret_key"
+    source_token_secret  = "${local.ssm_path_prefix}/inquiries/source_token_secret"
+  }
+
   budget_notification_thresholds = [50, 80, 100]
+
+  # Without both PostHog values the rollup throws on every run, so its schedule is disabled.
+  # The Lambda itself stays, so a Terraform run without Infisical pauses it instead of destroying it.
+  # Whether a key is set is not secret, so plans show ENABLED / DISABLED.
+  analytics_rollup_enabled = nonsensitive(trimspace(var.posthog_project_id) != "" && trimspace(var.posthog_personal_api_key) != "")
+
+  # Notification email (SES). The identity is the From address's domain, verified in SES
+  # (modules/ses_smtp, enabled in prod; the identity is account-wide in aws_region).
+  notification_email_from    = trimspace(coalesce(var.notification_email_from, ""))
+  notification_email_enabled = local.notification_email_from != ""
+  notification_email_domain  = local.notification_email_enabled ? split("@", local.notification_email_from)[1] : ""
+
+  # Links in notification emails (e.g. /settings/notifications) need an absolute origin.
+  web_origin = local.web_use_custom_domain ? "https://${trimspace(var.web_custom_domain)}" : "https://${aws_cloudfront_distribution.web.domain_name}"
 
   # Matches apps/api/app.ts — browser Origin must be listed for credentialed requests.
   api_cors_origins = join(",", compact(concat(
@@ -79,6 +100,70 @@ resource "aws_iam_role_policy" "api_lambda_ssm_read" {
         ]
         Resource = [
           "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.supabase_parameter_names.url, "/")}",
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.supabase_parameter_names.service_role_key, "/")}",
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.inquiry_secret_parameter_names.turnstile_secret_key, "/")}",
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.inquiry_secret_parameter_names.source_token_secret, "/")}"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "api_lambda_ses_send" {
+  count = local.notification_email_enabled ? 1 : 0
+  name  = "${local.name_prefix}-api-ses-send"
+  role  = aws_iam_role.api_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ses:SendEmail"]
+        Resource = ["arn:aws:ses:${var.aws_region}:${data.aws_caller_identity.current.account_id}:identity/${local.notification_email_domain}"]
+      }
+    ]
+  })
+}
+
+# The rollup gets its own role: it needs only the two Supabase parameters, not the inquiry
+# secrets or SES.
+resource "aws_iam_role" "analytics_rollup_lambda" {
+  name = "${local.name_prefix}-analytics-rollup-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "analytics_rollup_lambda_basic_execution" {
+  role       = aws_iam_role.analytics_rollup_lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "analytics_rollup_lambda_ssm_read" {
+  name = "${local.name_prefix}-analytics-rollup-ssm-read"
+  role = aws_iam_role.analytics_rollup_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter"
+        ]
+        Resource = [
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.supabase_parameter_names.url, "/")}",
           "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(local.supabase_parameter_names.service_role_key, "/")}"
         ]
       }
@@ -101,17 +186,76 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      NODE_ENV                        = "production"
-      CORS_ORIGINS                    = local.api_cors_origins
-      SUPABASE_URL_PARAM              = local.supabase_parameter_names.url
-      SUPABASE_SERVICE_ROLE_KEY_PARAM = local.supabase_parameter_names.service_role_key
-      EMAIL_ALLOWLIST_ENABLED         = var.email_allowlist_enabled ? "true" : "false"
+      NODE_ENV                          = "production"
+      CORS_ORIGINS                      = local.api_cors_origins
+      SUPABASE_URL_PARAM                = local.supabase_parameter_names.url
+      SUPABASE_SERVICE_ROLE_KEY_PARAM   = local.supabase_parameter_names.service_role_key
+      TURNSTILE_SECRET_KEY_PARAM        = local.inquiry_secret_parameter_names.turnstile_secret_key
+      INQUIRY_SOURCE_TOKEN_SECRET_PARAM = local.inquiry_secret_parameter_names.source_token_secret
+      EMAIL_ALLOWLIST_ENABLED           = var.email_allowlist_enabled ? "true" : "false"
+      EMAIL_PROVIDER                    = local.notification_email_enabled ? "ses" : "log"
+      EMAIL_FROM                        = local.notification_email_enabled ? "${trimspace(var.notification_email_from_name)} <${local.notification_email_from}>" : ""
+      WEB_ORIGIN                        = local.web_origin
     }
   }
 
   depends_on = [
     aws_iam_role_policy_attachment.api_lambda_basic_execution
   ]
+}
+
+data "archive_file" "analytics_rollup_lambda_zip" {
+  type        = "zip"
+  source_file = var.analytics_rollup_lambda_bundle_path
+  output_path = "${path.module}/.generated/analytics-rollup-lambda.zip"
+}
+
+resource "aws_lambda_function" "analytics_rollup" {
+  function_name = "${local.name_prefix}-analytics-rollup"
+  role          = aws_iam_role.analytics_rollup_lambda.arn
+  runtime       = var.api_lambda_runtime
+  handler       = "rollup.handler"
+  memory_size   = var.api_lambda_memory_mb
+  timeout       = var.analytics_rollup_lambda_timeout_seconds
+  filename      = data.archive_file.analytics_rollup_lambda_zip.output_path
+
+  source_code_hash = data.archive_file.analytics_rollup_lambda_zip.output_base64sha256
+
+  environment {
+    variables = {
+      NODE_ENV                        = "production"
+      SUPABASE_URL_PARAM              = local.supabase_parameter_names.url
+      SUPABASE_SERVICE_ROLE_KEY_PARAM = local.supabase_parameter_names.service_role_key
+      POSTHOG_HOST                    = var.posthog_api_host
+      POSTHOG_PROJECT_ID              = var.posthog_project_id
+      POSTHOG_PERSONAL_API_KEY        = var.posthog_personal_api_key
+    }
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.analytics_rollup_lambda_basic_execution
+  ]
+}
+
+resource "aws_cloudwatch_event_rule" "analytics_rollup_hourly" {
+  name                = "${local.name_prefix}-analytics-rollup-hourly"
+  description         = "Hourly PostHog rollup into analytics_daily"
+  schedule_expression = "rate(1 hour)"
+  state               = local.analytics_rollup_enabled ? "ENABLED" : "DISABLED"
+}
+
+resource "aws_cloudwatch_event_target" "analytics_rollup_hourly" {
+  rule      = aws_cloudwatch_event_rule.analytics_rollup_hourly.name
+  target_id = "analytics-rollup"
+  arn       = aws_lambda_function.analytics_rollup.arn
+}
+
+resource "aws_lambda_permission" "analytics_rollup_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.analytics_rollup.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.analytics_rollup_hourly.arn
 }
 
 resource "aws_apigatewayv2_api" "api_http" {
@@ -138,6 +282,17 @@ resource "aws_apigatewayv2_route" "root" {
   target    = "integrations/${aws_apigatewayv2_integration.api_lambda.id}"
 }
 
+# Unauthenticated routes get their own route (same Lambda) so they can carry tighter throttles than
+# the proxy. Each route has its own budget, so a flood on one can't use up the limit for the rest of
+# the API. HTTP APIs can't throttle per client IP, so this caps the route for everyone together.
+resource "aws_apigatewayv2_route" "public" {
+  for_each = var.api_gateway_public_route_throttles
+
+  api_id    = aws_apigatewayv2_api.api_http.id
+  route_key = each.key
+  target    = "integrations/${aws_apigatewayv2_integration.api_lambda.id}"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.api_http.id
   name        = "$default"
@@ -147,11 +302,22 @@ resource "aws_apigatewayv2_stage" "default" {
   depends_on = [
     aws_apigatewayv2_route.root,
     aws_apigatewayv2_route.proxy,
+    aws_apigatewayv2_route.public,
   ]
 
   default_route_settings {
     throttling_rate_limit  = var.api_gateway_throttling_rate_limit
     throttling_burst_limit = var.api_gateway_throttling_burst_limit
+  }
+
+  dynamic "route_settings" {
+    for_each = var.api_gateway_public_route_throttles
+
+    content {
+      route_key              = route_settings.key
+      throttling_rate_limit  = route_settings.value.rate_limit
+      throttling_burst_limit = route_settings.value.burst_limit
+    }
   }
 }
 

@@ -7,6 +7,7 @@ import {
 import type {
   CreatePetInput,
   IPetRepository,
+  RollupPet,
 } from '@api/domain/repositories/IPetRepository';
 
 export class InMemoryPetRepository implements IPetRepository {
@@ -28,6 +29,17 @@ export class InMemoryPetRepository implements IPetRepository {
     return Array.from(this.pets.values())
       .filter((p) => p.ownerId === ownerId && !p.deletedAt)
       .sort((a, b) => b.toListDto().createdAt.localeCompare(a.toListDto().createdAt));
+  }
+
+  async listRollupPetsByIds(ids: string[]): Promise<Map<string, RollupPet>> {
+    const pets = new Map<string, RollupPet>();
+    for (const id of ids) {
+      const pet = this.pets.get(id);
+      if (pet && !pet.deletedAt) {
+        pets.set(pet.id, { ownerId: pet.ownerId, analyticsStoppedAt: pet.analyticsStoppedAt });
+      }
+    }
+    return pets;
   }
 
   async create(input: CreatePetInput): Promise<Pet> {
@@ -56,6 +68,7 @@ export class InMemoryPetRepository implements IPetRepository {
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
+      analyticsStoppedAt: null,
     });
     this.pets.set(pet.id, pet);
     return pet;

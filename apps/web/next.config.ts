@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -12,9 +13,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  */
 const isStaticExport = process.env.NODE_ENV === "production";
 
+/**
+ * Each Next process gets its own build dir so none wipes another's chunks:
+ * `next dev` → `.next-dev`, `next build` → `.next`, and Playwright's own `next dev`
+ * sets `NEXT_DIST_DIR=.next-e2e` (see `test/web/playwright.config.ts`).
+ */
+function distDirFor(phase: string): string {
+  return process.env.NEXT_DIST_DIR || (phase === PHASE_DEVELOPMENT_SERVER ? ".next-dev" : ".next");
+}
+
 /** Monorepo root (this file: apps/web/next.config.ts) — silences lockfile/workspace root warnings. */
-const nextConfig: NextConfig = {
+const baseConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../.."),
+  transpilePackages: ["@lattice/analytics"],
   ...(isStaticExport ? { output: "export" as const } : {}),
   images: {
     unoptimized: true,
@@ -33,4 +44,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default function nextConfig(phase: string): NextConfig {
+  return { ...baseConfig, distDir: distDirFor(phase) };
+}

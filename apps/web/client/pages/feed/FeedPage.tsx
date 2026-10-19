@@ -4,11 +4,10 @@ import { useAuth } from "@client/auth";
 import { FeatureUnavailable } from "@client/components/FeatureUnavailable";
 import { AppShell, DataPageSkeleton } from "@client/components/layout";
 import { Button, buttonVariants } from "@client/components/ui/button";
-import { PostCard, useFeed } from "@client/features/posts";
+import { PostCard, PostComposer, useFeed } from "@client/features/posts";
 import { isFosterfolioFeedEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { cn } from "@client/lib/utils";
 import Link from "next/link";
-import { FeedComposer } from "./FeedComposer";
 
 export function FeedPage() {
   if (!isFosterfolioFeedEnabled()) {
@@ -39,7 +38,7 @@ function FeedPageInner() {
         </header>
 
         {signedIn ? (
-          <FeedComposer />
+          <PostComposer />
         ) : (
           <p className="text-muted-foreground text-sm">
             <Link

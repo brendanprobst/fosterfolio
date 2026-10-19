@@ -1,10 +1,13 @@
 "use client";
 
+import { Sparkline } from "@client/components/charts";
+import { seriesConfig } from "@client/components/charts/chartConfig";
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@client/components/ui/alert";
+import { ChartContainer } from "@client/components/ui/chart";
 import { Badge } from "@client/components/ui/badge";
 import { Button, buttonVariants } from "@client/components/ui/button";
 import {
@@ -20,6 +23,7 @@ import { Label } from "@client/components/ui/label";
 import { Separator } from "@client/components/ui/separator";
 import { cn } from "@client/lib/utils";
 import Link from "next/link";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   AlertCircle,
   Check,
@@ -173,6 +177,43 @@ export function UiGalleryPage() {
               </AlertDescription>
             </Alert>
           </div>
+        </section>
+
+        <Separator />
+
+        <section data-testid="ui-section-charts" aria-labelledby="gallery-charts">
+          <h2 id="gallery-charts" className="font-heading mb-4 text-lg font-medium">
+            Charts
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-sm">Views</p>
+              <Sparkline values={[4, 6, 5, 9, 8, 12, 11]} series="views" label="Views this week" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-sm">Inquiries</p>
+              <Sparkline values={[0, 1, 0, 2, 1, 1, 3]} series="inquiries" label="Inquiries this week" />
+            </div>
+          </div>
+          <figure className="mt-6 space-y-2">
+            <figcaption className="text-muted-foreground text-sm">Views by channel</figcaption>
+            <ChartContainer config={seriesConfig} className="aspect-auto h-28 w-full">
+              <BarChart
+                data={[
+                  { name: "Lawn sign", value: 42 },
+                  { name: "Instagram", value: 28 },
+                  { name: "Flyer", value: 11 },
+                ]}
+                layout="vertical"
+                margin={{ left: 0, right: 16 }}
+              >
+                <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" width={96} tickLine={false} axisLine={false} />
+                <Bar dataKey="value" name="Views" fill="var(--color-views)" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </figure>
         </section>
       </main>
     </div>

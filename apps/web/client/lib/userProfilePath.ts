@@ -55,6 +55,11 @@ export function fosterMeHref(handleOrId: string): string {
   return `${handleHref(handleOrId)}/foster-me`;
 }
 
+/** Foster-me URL tagged with a tracked-link code (`?s=`). */
+export function fosterMeLinkHref(handleOrId: string, code: string): string {
+  return `${fosterMeHref(handleOrId)}?s=${encodeURIComponent(code)}`;
+}
+
 export function publicHandle(user: {
   id: string;
   handle?: string | null;

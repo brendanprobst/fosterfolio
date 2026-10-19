@@ -94,6 +94,12 @@ jobs:
               missing=1
             fi
           done
+          # Not a Terraform output: the deployed API requires Turnstile, so a build without the
+          # site key would reject every inquiry. See docs/deploy-aws.md.
+          if [ -z "${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}" ]; then
+            echo "Infisical /fosterfolio/shared did not provide NEXT_PUBLIC_TURNSTILE_SITE_KEY. Add the Cloudflare Turnstile site key there."
+            missing=1
+          fi
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi

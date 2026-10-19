@@ -59,6 +59,37 @@ variable "api_lambda_bundle_path" {
   default     = "../../../../apps/api/dist-lambda/index.js"
 }
 
+variable "analytics_rollup_lambda_bundle_path" {
+  description = "Path to the analytics rollup Lambda bundle from `npm run build:lambda -w @lattice/api`."
+  type        = string
+  default     = "../../../../apps/api/dist-lambda/rollup.js"
+}
+
+variable "analytics_rollup_lambda_timeout_seconds" {
+  description = "Analytics rollup Lambda timeout in seconds."
+  type        = number
+  default     = 60
+}
+
+variable "posthog_api_host" {
+  description = "PostHog query API host for the hourly rollup. This is not the ingestion host."
+  type        = string
+  default     = "https://us.posthog.com"
+}
+
+variable "posthog_project_id" {
+  description = "PostHog project id for the hourly rollup. Set in terraform.tfvars; not applied by this slice."
+  type        = string
+  default     = ""
+}
+
+variable "posthog_personal_api_key" {
+  description = "PostHog personal API key for the HogQL query API. Set in terraform.tfvars; not applied by this slice."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "api_lambda_runtime" {
   description = "Lambda runtime for the API function."
   type        = string
@@ -101,10 +132,45 @@ variable "api_gateway_throttling_burst_limit" {
   default     = 20
 }
 
+variable "api_gateway_public_route_throttles" {
+  description = <<-EOT
+    Throttles for the unauthenticated routes, keyed by HTTP API route key. Each key becomes its own
+    route on the API Lambda, with a budget separate from the default stage limit. The limit is shared
+    by every caller of that route (HTTP APIs can't throttle per client IP).
+  EOT
+  type = map(object({
+    rate_limit  = number
+    burst_limit = number
+  }))
+  default = {
+    "POST /inquiries"                            = { rate_limit = 1, burst_limit = 5 }
+    "PATCH /inquiries/{id}/self-reported-source" = { rate_limit = 1, burst_limit = 5 }
+    "GET /links/resolve/{code}"                  = { rate_limit = 2, burst_limit = 10 }
+  }
+}
+
 variable "api_cors_extra_origins" {
   description = "Optional comma-separated extra browser origins for the Express CORS middleware (e.g. https://app.example.com). The deployed CloudFront HTTPS origin and local dev (3001) origins are always included."
   type        = string
   default     = ""
+}
+
+variable "notification_email_from" {
+  description = "From address for notification emails (inquiries), on a domain verified in SES in aws_region. Null keeps EMAIL_PROVIDER=log, so the API only logs emails."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.notification_email_from == null || can(regex("^[^@\\s<>]+@[^@\\s<>]+\\.[^@\\s<>]+$", trimspace(var.notification_email_from)))
+    error_message = "notification_email_from must be a bare address like notifications@example.com, without a display name."
+  }
+}
+
+variable "notification_email_from_name" {
+  description = "Display name on notification emails."
+  type        = string
+  default     = "Fosterfolio"
 }
 
 variable "email_allowlist_enabled" {
@@ -134,6 +200,12 @@ variable "monthly_cost_budget_limit_usd" {
 
 variable "budget_alert_email_addresses" {
   description = "Email recipients for budget alerts (requires subscription confirmation in AWS)."
+  type        = list(string)
+  default     = []
+}
+
+variable "alarm_email_addresses" {
+  description = "Email recipients for Lambda error alarms (each must confirm the SNS subscription)."
   type        = list(string)
   default     = []
 }

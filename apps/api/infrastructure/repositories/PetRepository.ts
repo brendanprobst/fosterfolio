@@ -9,8 +9,10 @@ import {
 import type {
   CreatePetInput,
   IPetRepository,
+  RollupPet,
 } from '@api/domain/repositories/IPetRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
+import { chunk, inList } from '@api/infrastructure/adapters/dataAdapter/postgrestFilters';
 
 type PetRecord = {
   id: string;
@@ -33,6 +35,7 @@ type PetRecord = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  analytics_stopped_at: string | null;
 };
 
 type PostUpdateRecord = {
@@ -44,7 +47,7 @@ type PostUpdateRecord = {
 };
 
 const PET_SELECT =
-  'id,owner_id,name,species,breed,age_value,age_unit,sex,size,status,sub_status,shelter_link_name,shelter_link_url,primary_photo_url,photos,bio_markdown,important_links,created_at,updated_at,deleted_at';
+  'id,owner_id,name,species,breed,age_value,age_unit,sex,size,status,sub_status,shelter_link_name,shelter_link_url,primary_photo_url,photos,bio_markdown,important_links,created_at,updated_at,deleted_at,analytics_stopped_at';
 
 function toPet(row: PetRecord): Pet {
   const species = isPetSpecies(row.species) ? row.species : 'other';
@@ -69,6 +72,7 @@ function toPet(row: PetRecord): Pet {
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
+    analyticsStoppedAt: row.analytics_stopped_at ? new Date(row.analytics_stopped_at) : null,
   });
 }
 
@@ -94,6 +98,24 @@ export class PetRepository implements IPetRepository {
       `${this.table}?select=${PET_SELECT}&owner_id=eq.${encodeURIComponent(ownerId)}&deleted_at=is.null&order=created_at.desc`
     );
     return rows.map(toPet);
+  }
+
+  async listRollupPetsByIds(ids: string[]): Promise<Map<string, RollupPet>> {
+    const pets = new Map<string, RollupPet>();
+    for (const batch of chunk([...new Set(ids)])) {
+      const rows = await this.dataAdapter.get<
+        Array<{ id: string; owner_id: string; analytics_stopped_at: string | null }>
+      >(
+        `${this.table}?select=id,owner_id,analytics_stopped_at&id=in.${inList(batch)}&deleted_at=is.null`
+      );
+      for (const row of rows) {
+        pets.set(row.id, {
+          ownerId: row.owner_id,
+          analyticsStoppedAt: row.analytics_stopped_at ? new Date(row.analytics_stopped_at) : null,
+        });
+      }
+    }
+    return pets;
   }
 
   async create(input: CreatePetInput): Promise<Pet> {

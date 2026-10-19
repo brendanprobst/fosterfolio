@@ -1,0 +1,18 @@
+# Session close-out (global)
+
+Use when a stretch of work is finished and the user wants a full re-pass before stopping. The stretch may be one chat, or several agents, closed chats, and a long git history.
+
+This command coordinates the others. Do the review here. Edit code only through **session fix**. The close-out itself is a docs commit: an entry in `docs/plans/sessions/log.md` whose message carries a `SESSION` trailer.
+
+## Steps
+
+1. Read `agents/prompts/session-review.md` and follow it. That bounds the work session, takes the brain dump, and re-reads every touched file.
+2. Present the split: **fix now**, **next session**, and anything that is fine.
+3. If they already asked, in this message, to fix, read `agents/prompts/session-fix.md` and do that first. Leave those code edits out of the session commit.
+4. Read `agents/prompts/session-next.md` and follow it. That appends the stop entry and creates the `SESSION` commit. Do this even when they did not say "plan" — the log entry is the stop record, and the itinerary is part of it.
+
+If the review finds nothing new since the last `SESSION` stop (no later commits, no dirty files), say so and do not write or commit an empty entry.
+
+## If an automatic step fails
+
+Stop that step, keep what already succeeded, and use the fallback written next to it in the prompt you are following. Do not invent a window, a brain dump, or a commit. Tell them which step failed, what you tried, and what is left on disk.

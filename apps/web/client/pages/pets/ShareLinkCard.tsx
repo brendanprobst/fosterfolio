@@ -1,6 +1,5 @@
 "use client";
 
-import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
 import { ShareQrDialog } from "@client/components/ShareQrDialog";
 import { Button } from "@client/components/ui/button";
 import {
@@ -10,8 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@client/components/ui/card";
-import { Check, Copy, QrCode } from "lucide-react";
+import { QrCode } from "lucide-react";
 import { useState } from "react";
+import { CopyLinkButton } from "./CopyLinkButton";
 
 export type ShareLinkCardProps = {
   title: string;
@@ -30,41 +30,17 @@ export function ShareLinkCard({
   imageAlt,
   qrTitle,
 }: ShareLinkCardProps) {
-  const [copied, setCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
-
-  async function copyLink() {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    try {
-      await navigator.clipboard.writeText(`${origin}${path}`);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
 
   return (
     <Card size="sm">
       <CardHeader>
-        <div className="space-y-1">
-          <OwnerOnlyLabel />
-          <CardTitle>{title}</CardTitle>
-        </div>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-muted-foreground font-mono text-xs break-all">{path}</p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={() => void copyLink()}
-        >
-          {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-          {copied ? "Copied" : "Copy link"}
-        </Button>
+        <CopyLinkButton path={path} size="sm" className="w-full" />
         <Button
           type="button"
           variant="outline"

@@ -13,6 +13,10 @@ vi.mock("@client/lib/fosterfolioFeatureFlags", () => ({
   isFosterfolioSearchEnabled: vi.fn(() => false),
 }));
 
+vi.mock("@client/features/notifications/useUnreadNotificationCount", () => ({
+  useUnreadNotificationCount: vi.fn(() => 0),
+}));
+
 describe("AppHeader", () => {
   beforeEach(async () => {
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());
@@ -64,6 +68,10 @@ describe("AppHeader", () => {
       "href",
       "/profile",
     );
+    expect(screen.getByRole("menuitem", { name: "Links & QR codes" })).toHaveAttribute(
+      "href",
+      "/profile/links",
+    );
     fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
     expect(auth.signOut).toHaveBeenCalled();
   });
@@ -76,5 +84,16 @@ describe("AppHeader", () => {
     expect(
       screen.getByRole("navigation", { name: "Mobile" }).querySelector("a[href='/']"),
     ).toBeTruthy();
+  });
+
+  it("lists Links & QR codes in the mobile menu for a signed-in owner", () => {
+    vi.mocked(useAuth).mockReturnValue(authSignedIn());
+    render(<AppHeader active="links" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    const nav = screen.getByRole("navigation", { name: "Mobile" });
+    const links = nav.querySelector("a[href='/profile/links']");
+    expect(links).toHaveTextContent("Links & QR codes");
+    expect(links).toHaveAttribute("aria-current", "page");
   });
 });
