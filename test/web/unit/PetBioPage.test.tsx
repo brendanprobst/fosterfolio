@@ -208,6 +208,46 @@ describe("PetBioPage", () => {
     expect(opened).toEqual([["inquiry_form_opened", { id: petId, ownerId: "owner-1" }]]);
   });
 
+  describe("pet_viewed capture", () => {
+    const loaded = {
+      data: pet,
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as ReturnType<typeof usePet>;
+
+    function viewedCalls() {
+      return vi.mocked(capturePetEvent).mock.calls.filter(([event]) => event === "pet_viewed");
+    }
+
+    it("skips the owner's own refresh when the pet loads before the session restores", () => {
+      vi.mocked(useAuth).mockReturnValue({ ...authLoggedOut(), loading: true });
+      vi.mocked(usePet).mockReturnValue(loaded);
+
+      const { rerender } = renderWithQueryClient(<PetBioPage />);
+      expect(viewedCalls()).toEqual([]);
+
+      vi.mocked(useAuth).mockReturnValue(
+        authSignedIn({ id: "owner-1", email: "alex@example.com" } as User),
+      );
+      rerender(<PetBioPage />);
+
+      expect(viewedCalls()).toEqual([]);
+    });
+
+    it("records one view once the session resolves signed out", () => {
+      vi.mocked(useAuth).mockReturnValue({ ...authLoggedOut(), loading: true });
+      vi.mocked(usePet).mockReturnValue(loaded);
+
+      const { rerender } = renderWithQueryClient(<PetBioPage />);
+      vi.mocked(useAuth).mockReturnValue(authLoggedOut());
+      rerender(<PetBioPage />);
+      rerender(<PetBioPage />);
+
+      expect(viewedCalls()).toEqual([["pet_viewed", { id: petId, ownerId: "owner-1" }]]);
+    });
+  });
+
   it("hides the pet QR from a signed-in visitor who does not own the pet", () => {
     vi.mocked(useAuth).mockReturnValue(
       authSignedIn({ id: "visitor-9", email: "visitor@example.com" } as User),

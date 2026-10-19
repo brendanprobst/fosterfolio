@@ -3,6 +3,7 @@ import { useOwnerPets } from "@client/features/pets";
 import type { PetPublic } from "@client/features/pets";
 import { useUser } from "@client/features/users";
 import type { UserPublic } from "@client/features/users";
+import { captureFosterMeViewed } from "@client/lib/analytics/initFosterfolioAnalytics";
 import { petHrefFromFosterMe } from "@client/lib/petBioPath";
 import { FosterMePage } from "@client/pages/users";
 import { screen } from "@testing-library/react";
@@ -31,6 +32,12 @@ vi.mock("@client/features/users", async (importOriginal) => {
 vi.mock("@client/features/pets", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@client/features/pets")>();
   return { ...actual, useOwnerPets: vi.fn() };
+});
+
+vi.mock("@client/lib/analytics/initFosterfolioAnalytics", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@client/lib/analytics/initFosterfolioAnalytics")>();
+  return { ...actual, captureFosterMeViewed: vi.fn() };
 });
 
 vi.mock("qrcode", () => ({
@@ -90,6 +97,7 @@ describe("FosterMePage", () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());
     vi.mocked(usePathname).mockReturnValue("/@alex/foster-me");
+    vi.mocked(captureFosterMeViewed).mockClear();
     vi.mocked(useUser).mockReturnValue({
       data: user,
       isLoading: false,
@@ -247,5 +255,43 @@ describe("FosterMePage", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Loading…");
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+  });
+
+  describe("foster_me_viewed capture", () => {
+    beforeEach(() => {
+      vi.mocked(useOwnerPets).mockReturnValue({
+        data: [pet()],
+        isLoading: false,
+        isSuccess: true,
+        isError: false,
+      } as ReturnType<typeof useOwnerPets>);
+    });
+
+    it("skips the owner's own refresh when the profile loads before the session restores", () => {
+      vi.mocked(useAuth).mockReturnValue({ ...authLoggedOut(), loading: true });
+
+      const { rerender } = renderWithQueryClient(<FosterMePage />);
+      expect(captureFosterMeViewed).not.toHaveBeenCalled();
+
+      vi.mocked(useAuth).mockReturnValue(
+        authSignedIn({ id: "owner-1", email: "alex@example.com" } as User),
+      );
+      rerender(<FosterMePage />);
+
+      expect(captureFosterMeViewed).not.toHaveBeenCalled();
+    });
+
+    it("records one view once the session resolves signed out", () => {
+      vi.mocked(useAuth).mockReturnValue({ ...authLoggedOut(), loading: true });
+
+      const { rerender } = renderWithQueryClient(<FosterMePage />);
+      vi.mocked(useAuth).mockReturnValue(authLoggedOut());
+      rerender(<FosterMePage />);
+      rerender(<FosterMePage />);
+
+      expect(vi.mocked(captureFosterMeViewed).mock.calls).toEqual([
+        [{ ownerId: "owner-1", petCount: 1 }],
+      ]);
+    });
   });
 });

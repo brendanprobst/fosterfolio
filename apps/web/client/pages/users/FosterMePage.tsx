@@ -4,7 +4,6 @@ import { useAuth } from "@client/auth";
 import { AppShell, PageWithSidebar } from "@client/components/layout";
 import { useOwnerPets } from "@client/features/pets";
 import { useUser } from "@client/features/users";
-import { syncPetCaptureSuppression } from "@client/lib/analytics/initFosterfolioAnalytics";
 import { useFosterMeViewCapture } from "@client/lib/analytics/usePetViewCapture";
 import { isFosterfolioSearchEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { selectActiveFosters, selectFosterMePet } from "@client/lib/selectFosterMePet";
@@ -29,7 +28,7 @@ import { FosterMeSidebar } from "./FosterMeSidebar";
 export function FosterMePage() {
   const pathname = usePathname();
   const handle = handleFromPathname(pathname);
-  const { user: viewer } = useAuth();
+  const { user: viewer, loading: authLoading } = useAuth();
   const userQuery = useUser(handle);
   const petsQuery = useOwnerPets(handle);
   const user = userQuery.data;
@@ -58,13 +57,11 @@ export function FosterMePage() {
   const fosterMePath = ownerRef ? fosterMeHref(ownerRef) : "";
   const isOwner = Boolean(viewer && user && viewer.id === user.id);
   const petCount = petsQuery.data?.length ?? 0;
-  if (user) {
-    syncPetCaptureSuppression({ isOwner, status: null });
-  }
+  // Wait for auth so the owner's own refresh isn't counted (see PetBioPage).
   useFosterMeViewCapture({
     ownerId: user?.id,
     petCount,
-    capture: Boolean(user) && !isOwner && petCount > 0,
+    capture: !authLoading && Boolean(user) && !isOwner && petCount > 0,
   });
 
   const sidebar = fosterMePath ? (

@@ -5,7 +5,6 @@ import { useAuth } from "@client/auth";
 import { InquiryCta } from "@client/features/inquiries";
 import { usePet } from "@client/features/pets";
 import { useOwnUser } from "@client/features/users";
-import { syncPetCaptureSuppression } from "@client/lib/analytics/initFosterfolioAnalytics";
 import { usePetViewCapture } from "@client/lib/analytics/usePetViewCapture";
 import { petHref, petIdFromPathname } from "@client/lib/petBioPath";
 import {
@@ -32,10 +31,10 @@ export function PetBioPage() {
   const own = useOwnUser(user?.id ?? null);
   const ownerRef = pet?.owner ? publicHandle(pet.owner) : pet?.ownerId ?? "";
   const isOwner = Boolean(user && pet && user.id === pet.ownerId);
-  const capturePetEvents = Boolean(pet) && !isOwner && pet?.status !== "adopted";
-  if (pet) {
-    syncPetCaptureSuppression({ isOwner, status: pet.status });
-  }
+  // Wait for auth: on refresh the pet can load before the session restores, and the
+  // owner would count as a visitor.
+  const capturePetEvents =
+    !authLoading && Boolean(pet) && !isOwner && pet?.status !== "adopted";
   usePetViewCapture(pet, capturePetEvents);
   // Before the pet loads, guess ownership from the URL's owner segment so the skeleton
   // matches the owner tools. On refresh the session restores after this page starts

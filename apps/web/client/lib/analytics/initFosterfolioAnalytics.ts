@@ -6,9 +6,7 @@ import {
   ensureAttribution,
   hasEntityMark,
   init,
-  isCaptureSuppressed,
   readStoredAttribution,
-  setCaptureSuppressed,
   track,
   type Attribution,
 } from "@lattice/analytics";
@@ -68,13 +66,6 @@ export function readFosterfolioSource(): Attribution | null {
   }
 }
 
-export function syncPetCaptureSuppression(input: {
-  isOwner: boolean;
-  status: string | null | undefined;
-}): void {
-  setCaptureSuppressed(input.isOwner || input.status === "adopted");
-}
-
 export function consumeViaFosterMe(petId: string): boolean {
   return consumeMarkFromUrl({
     param: "via",
@@ -92,9 +83,7 @@ export async function capturePetEvent(
   event: "pet_viewed" | "inquiry_form_opened" | "inquiry_submitted",
   pet: { id: string; ownerId: string },
 ): Promise<void> {
-  if (isCaptureSuppressed()) return;
   const source = await ensureAttribution();
-  if (isCaptureSuppressed()) return;
   const linkMatches = !source.targetId || source.targetId === pet.id;
   track(event, {
     pet_id: pet.id,
@@ -110,9 +99,8 @@ export async function captureFosterMeViewed(input: {
   ownerId: string;
   petCount: number;
 }): Promise<void> {
-  if (isCaptureSuppressed() || input.petCount <= 0) return;
+  if (input.petCount <= 0) return;
   const source = await ensureAttribution();
-  if (isCaptureSuppressed() || input.petCount <= 0) return;
   track("foster_me_viewed", {
     owner_id: input.ownerId,
     link_id: source.linkId,

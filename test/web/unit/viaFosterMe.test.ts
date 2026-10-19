@@ -14,7 +14,6 @@ vi.mock("@lattice/analytics", async (importOriginal) => {
       referrerDomain: null,
       targetId: null,
     })),
-    isCaptureSuppressed: vi.fn(() => false),
   };
 });
 

@@ -26,7 +26,7 @@
 | S1   | High     | Security/Infra | Turnstile fails open in prod; no rate limiting on public endpoints                                    | ✅ Fixed                               |
 | S2   | High     | Security       | Source-token HMAC falls back to a hardcoded, committed secret                                         | ✅ Fixed (needs manual SSM setup)      |
 | S3   | High     | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection)             | ✅ Fixed                               |
-| L2   | High     | Logic          | Owner self-views are captured before auth resolves                                                    | Open                                   |
+| L2   | High     | Logic          | Owner self-views are captured before auth resolves                                                    | ✅ Fixed                               |
 | S4   | Medium   | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state                                   | Open                                   |
 | S5   | Medium   | Security       | `mailto:` injection through sender email                                                              | Open                                   |
 | L3   | Medium   | Logic          | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates           | Open                                   |
@@ -213,6 +213,13 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 
 **Fix:** Gate capture on `!authLoading`, using the existing viewer hint for the no-session case. Move suppression into a `useEffect`, or pass it explicitly to `capturePetEvent` rather than relying on global module state.
 
+**Status: ✅ Fixed** (2026-10-18, not yet committed; no manual steps)
+
+- **Wait for auth:** `PetBioPage` and `FosterMePage` only turn capture on once `useAuth().loading` is false. On an owner's refresh, `pet_viewed` and `foster_me_viewed` now wait until the session restores, see the owner, and never fire. The same `capturePetEvents` flag gates `inquiry_form_opened` and `inquiry_submitted`, so those wait too.
+- **No side effect in render:** `syncPetCaptureSuppression` is gone, and nothing in the app calls `setCaptureSuppressed` any more. Each page already passes an explicit capture flag down, so the module-global switch was only a backstop. It also outlived the page, since it stayed set after you left. `capturePetEvent` and `captureFosterMeViewed` no longer check it. `@lattice/analytics` still exports `setCaptureSuppressed` / `isCaptureSuppressed` and `track` still respects them, because the spec lists an opt-out hook as part of the package.
+- **Decision: no viewer-hint shortcut.** For a visitor with no stored session, auth resolves locally (no network call), so waiting costs almost nothing. A hint can't prove someone is *not* the owner, so using it would bring the race back. The worst case is the 12 s auth bootstrap fallback in `AuthProvider`: a view from a visitor who leaves within that window is lost. That's better than counting the owner.
+- **Tests:** `test/web/unit/PetBioPage.test.tsx` and `FosterMePage.test.tsx` each gained a "capture" block. The first test loads the page before auth resolves, then resolves it as the owner, and expects no event. The second resolves as signed out and expects exactly one event across rerenders. Both owner cases failed before the fix. `npm run test:web:unit` passes (58 files, 244 tests), and web type-check and lint are clean.
+
 ### L3 — Channel key collisions and picker duplicates · Medium
 
 **Where:** `apps/api/domain/channels/channelPresets.ts:26`, `apps/api/application/use-cases/ListChannelsUseCase.ts:28`
@@ -373,7 +380,7 @@ These look like the right product call. Update the spec so it is the source of t
 | `packages/analytics` knows nothing about pets; configurable referrer map           | Not met (Q3)                                                                                                                                                                                        |
 | Packages "liftable into Lattice"                                                   | Inconsistent build models (Q2) make lifting harder                                                                                                                                                  |
 | PostHog setting: confirm GeoIP still runs with "Discard client IP"                 | No doc or checklist entry found. Add it to `docs/deploy-aws.md` or the package README.                                                                                                              |
-| Owner self-views excluded                                                          | Partially (L2)                                                                                                                                                                                      |
+| Owner self-views excluded                                                          | Fixed (L2)                                                                                                                                                                                          |
 
 ### Scope creep (not in the v2 spec)
 
@@ -411,7 +418,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 2. ~~**CI**: Fix the `usePathname` mock and the notifications package resolution (Q2).~~ ✅ Done (the Q2 restructure itself is still open)
 3. **S1 / S2**: ~~Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, and fail closed in production~~ ✅ Done. Still open: per-route rate limits, SES and `WEB_ORIGIN`.
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
-5. **L2**: Gate capture on auth having resolved.
+5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
 6. **S5, L3**: Harden email validation and reserve system channel keys.
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
 
