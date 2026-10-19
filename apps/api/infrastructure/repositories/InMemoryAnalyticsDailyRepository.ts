@@ -3,13 +3,17 @@ import type {
   AnalyticsDailyWrite,
   IAnalyticsDailyRepository,
 } from '@api/domain/repositories/IAnalyticsDailyRepository';
-import { analyticsDailyKey } from '@api/infrastructure/analytics/analyticsDailyKey';
+import {
+  addAnalyticsDailyRows,
+  analyticsDailyKey,
+} from '@api/infrastructure/analytics/analyticsDailyKey';
+import { sumRowsByKey } from '@api/infrastructure/analytics/sumRowsByKey';
 
 export class InMemoryAnalyticsDailyRepository implements IAnalyticsDailyRepository {
   readonly records: AnalyticsDailyRecord[] = [];
 
   async upsert(rows: AnalyticsDailyWrite[]): Promise<void> {
-    for (const row of rows) {
+    for (const row of sumRowsByKey(rows, analyticsDailyKey, addAnalyticsDailyRows)) {
       const key = analyticsDailyKey(row);
       const index = this.records.findIndex((existing) => analyticsDailyKey(existing) === key);
       if (index >= 0) {

@@ -1,4 +1,11 @@
 /**
+ * PostHog's query API returns only 100 rows when the HogQL has no LIMIT, and 50,000 is its
+ * maximum. Both rollup queries sort newest day first, so a run that hits the limit leaves some
+ * rows from the oldest days as an earlier run wrote them. The handler logs a warning.
+ */
+export const ROLLUP_ROW_LIMIT = 50000;
+
+/**
  * One HogQL query per rollup run. Last 14 calendar days inclusive (today and
  * the 13 days before it), grouped by pet, link, channel, city, and day.
  *
@@ -22,4 +29,6 @@ WHERE event IN ('pet_viewed', 'inquiry_form_opened')
   AND toDate(timestamp) >= today() - 13
   AND toDate(timestamp) <= today()
 GROUP BY pet_id, link_id, channel_key, city, day
+ORDER BY day DESC
+LIMIT ${ROLLUP_ROW_LIMIT}
 `.trim();

@@ -4,8 +4,11 @@ import type {
   IAnalyticsOwnerDailyRepository,
 } from '@api/domain/repositories/IAnalyticsOwnerDailyRepository';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
-import { eqValue, inList } from '@api/infrastructure/adapters/dataAdapter/postgrestFilters';
-import { analyticsOwnerDailyKey } from '@api/infrastructure/analytics/analyticsOwnerDailyKey';
+import {
+  addAnalyticsOwnerDailyRows,
+  analyticsOwnerDailyKey,
+} from '@api/infrastructure/analytics/analyticsOwnerDailyKey';
+import { sumRowsByKey } from '@api/infrastructure/analytics/sumRowsByKey';
 
 type AnalyticsOwnerDailyRow = {
   owner_id: string;
@@ -20,6 +23,9 @@ type AnalyticsOwnerDailyRow = {
 
 const SELECT = 'owner_id,link_id,channel_key,city,day,views,approx_visitors,pet_taps';
 
+/** Columns of the analytics_owner_daily_uniq index (unique nulls not distinct). */
+const ON_CONFLICT = 'owner_id,link_id,channel_key,city,day';
+
 function toRecord(row: AnalyticsOwnerDailyRow): AnalyticsOwnerDailyRecord {
   return {
     ownerId: row.owner_id,
@@ -31,11 +37,6 @@ function toRecord(row: AnalyticsOwnerDailyRow): AnalyticsOwnerDailyRecord {
     approxVisitors: row.approx_visitors,
     petTaps: row.pet_taps,
   };
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes('23505') || message.includes('duplicate') || message.includes('(409)');
 }
 
 export class AnalyticsOwnerDailyRepository implements IAnalyticsOwnerDailyRepository {
@@ -57,64 +58,23 @@ export class AnalyticsOwnerDailyRepository implements IAnalyticsOwnerDailyReposi
     return rows.map(toRecord);
   }
 
+  /** One statement, so the batch is written all or nothing. */
   async upsert(rows: AnalyticsOwnerDailyWrite[]): Promise<void> {
     if (rows.length === 0) return;
-    const ownerIds = [...new Set(rows.map((row) => row.ownerId))];
-    const days = rows.map((row) => row.day).sort();
-    const start = days[0];
-    const end = days[days.length - 1];
-    if (!start || !end) return;
-
-    const existing = await this.dataAdapter.get<AnalyticsOwnerDailyRow[]>(
-      `${this.table}?select=${SELECT}&owner_id=in.${inList(ownerIds)}&day=gte.${eqValue(start)}&day=lte.${eqValue(end)}&limit=10000`
-    );
-    const keys = new Set(existing.map((row) => analyticsOwnerDailyKey(toRecord(row))));
-
-    for (const row of rows) {
-      const key = analyticsOwnerDailyKey(row);
-      if (keys.has(key)) {
-        await this.patch(row);
-        continue;
-      }
-      try {
-        await this.dataAdapter.insertReturning(
-          this.table,
-          [
-            {
-              owner_id: row.ownerId,
-              link_id: row.linkId,
-              channel_key: row.channelKey,
-              city: row.city,
-              day: row.day,
-              views: row.views,
-              approx_visitors: row.approxVisitors,
-              pet_taps: row.petTaps,
-              updated_at: new Date().toISOString(),
-            },
-          ],
-          { headers: { Prefer: 'return=minimal' } }
-        );
-        keys.add(key);
-      } catch (error) {
-        if (!isUniqueViolation(error)) throw error;
-        await this.patch(row);
-        keys.add(key);
-      }
-    }
-  }
-
-  private async patch(row: AnalyticsOwnerDailyWrite): Promise<void> {
-    const linkFilter = row.linkId ? `link_id=eq.${eqValue(row.linkId)}` : 'link_id=is.null';
-    const cityFilter = row.city ? `city=eq.${eqValue(row.city)}` : 'city=is.null';
-    await this.dataAdapter.update(
-      `${this.table}?owner_id=eq.${eqValue(row.ownerId)}&${linkFilter}&channel_key=eq.${eqValue(row.channelKey)}&${cityFilter}&day=eq.${eqValue(row.day)}`,
-      {
-        views: row.views,
-        approx_visitors: row.approxVisitors,
-        pet_taps: row.petTaps,
-        updated_at: new Date().toISOString(),
-      },
-      { headers: { Prefer: 'return=minimal' } }
-    );
+    const updatedAt = new Date().toISOString();
+    const body = sumRowsByKey(rows, analyticsOwnerDailyKey, addAnalyticsOwnerDailyRows).map((row) => ({
+      owner_id: row.ownerId,
+      link_id: row.linkId,
+      channel_key: row.channelKey,
+      city: row.city,
+      day: row.day,
+      views: row.views,
+      approx_visitors: row.approxVisitors,
+      pet_taps: row.petTaps,
+      updated_at: updatedAt,
+    }));
+    await this.dataAdapter.post(`${this.table}?on_conflict=${ON_CONFLICT}`, body, {
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    });
   }
 }

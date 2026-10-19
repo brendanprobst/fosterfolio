@@ -1,3 +1,5 @@
+import { ROLLUP_ROW_LIMIT } from "@api/application/analytics/fosterfolioDailyQuery";
+
 /**
  * Owner-level rollup. views and approx_visitors count foster_me_viewed.
  * pet_taps count pet_viewed only when via_foster_me is set. An empty channel
@@ -27,6 +29,8 @@ WHERE event IN ('foster_me_viewed', 'pet_viewed')
   AND toDate(timestamp) >= today() - 13
   AND toDate(timestamp) <= today()
 GROUP BY owner_id, link_id, channel_key, city, day
+ORDER BY day DESC
+LIMIT ${ROLLUP_ROW_LIMIT}
 `.trim();
 
 export type OwnerDailyWrite = {

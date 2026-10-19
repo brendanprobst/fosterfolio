@@ -3,7 +3,11 @@ import type {
   AnalyticsOwnerDailyWrite,
   IAnalyticsOwnerDailyRepository,
 } from '@api/domain/repositories/IAnalyticsOwnerDailyRepository';
-import { analyticsOwnerDailyKey } from '@api/infrastructure/analytics/analyticsOwnerDailyKey';
+import {
+  addAnalyticsOwnerDailyRows,
+  analyticsOwnerDailyKey,
+} from '@api/infrastructure/analytics/analyticsOwnerDailyKey';
+import { sumRowsByKey } from '@api/infrastructure/analytics/sumRowsByKey';
 
 export class InMemoryAnalyticsOwnerDailyRepository implements IAnalyticsOwnerDailyRepository {
   readonly records: AnalyticsOwnerDailyRecord[] = [];
@@ -22,7 +26,7 @@ export class InMemoryAnalyticsOwnerDailyRepository implements IAnalyticsOwnerDai
   }
 
   async upsert(rows: AnalyticsOwnerDailyWrite[]): Promise<void> {
-    for (const row of rows) {
+    for (const row of sumRowsByKey(rows, analyticsOwnerDailyKey, addAnalyticsOwnerDailyRows)) {
       const key = analyticsOwnerDailyKey(row);
       const index = this.records.findIndex((existing) => analyticsOwnerDailyKey(existing) === key);
       if (index >= 0) {

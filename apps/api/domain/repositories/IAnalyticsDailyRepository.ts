@@ -12,7 +12,10 @@ export type AnalyticsDailyRecord = {
 export type AnalyticsDailyWrite = AnalyticsDailyRecord;
 
 export interface IAnalyticsDailyRepository {
-  /** Overwrites matching keys. Does not delete days outside the written set. */
+  /**
+   * Overwrites matching keys, all or nothing. Rows in one call that share a key are summed first.
+   * Does not delete days outside the written set.
+   */
   upsert(rows: AnalyticsDailyWrite[]): Promise<void>;
   /** sinceDay is inclusive (YYYY-MM-DD). Null returns every stored day. */
   listByPetId(petId: string, sinceDay: string | null): Promise<AnalyticsDailyRecord[]>;

@@ -380,13 +380,7 @@ select
   now()
 from taps
 where views > 0
-on conflict (
-  pet_id,
-  (coalesce(link_id, '00000000-0000-0000-0000-000000000000'::uuid)),
-  channel_key,
-  (coalesce(city, '')),
-  day
-) do update
+on conflict (pet_id, link_id, channel_key, city, day) do update
   set views           = analytics_daily.views + excluded.views,
       approx_visitors = analytics_daily.approx_visitors + excluded.approx_visitors,
       form_opens      = analytics_daily.form_opens + excluded.form_opens,

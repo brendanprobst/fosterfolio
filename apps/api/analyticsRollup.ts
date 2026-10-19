@@ -1,4 +1,7 @@
-import { FOSTERFOLIO_DAILY_AGGREGATE_HOGQL } from '@api/application/analytics/fosterfolioDailyQuery';
+import {
+  FOSTERFOLIO_DAILY_AGGREGATE_HOGQL,
+  ROLLUP_ROW_LIMIT,
+} from '@api/application/analytics/fosterfolioDailyQuery';
 import { FOSTERFOLIO_OWNER_DAILY_HOGQL, mapOwnerDailyRow } from '@api/application/analytics/ownerDailyQuery';
 import { RollupRowVerifier, type RollupSkipCounts } from '@api/application/analytics/verifyRollupRows';
 import { SupabaseAdapter } from '@api/infrastructure/adapters/supabase/SupabaseAdapter';
@@ -65,6 +68,15 @@ export const handler = async (): Promise<{ rows: number }> => {
       skipped = verified.skipped;
     },
   });
+
+  const petQueried = petRollup.rows + petRollup.skipped;
+  if (petQueried >= ROLLUP_ROW_LIMIT || ownerRecords.length >= ROLLUP_ROW_LIMIT) {
+    Logger.warning(
+      `[analytics-rollup] query hit the ${ROLLUP_ROW_LIMIT}-row limit ` +
+        `(pet ${petQueried}, owner ${ownerRecords.length}); ` +
+        'some rows from the oldest days were not refreshed'
+    );
+  }
 
   const malformed = petRollup.skipped + ownerRecords.length - ownerRows.length;
   if (malformed > 0) skipped.malformed = (skipped.malformed ?? 0) + malformed;

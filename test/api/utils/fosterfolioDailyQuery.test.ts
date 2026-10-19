@@ -1,4 +1,7 @@
-import { FOSTERFOLIO_DAILY_AGGREGATE_HOGQL } from '@api/application/analytics/fosterfolioDailyQuery';
+import {
+  FOSTERFOLIO_DAILY_AGGREGATE_HOGQL,
+  ROLLUP_ROW_LIMIT,
+} from '@api/application/analytics/fosterfolioDailyQuery';
 import { FOSTERFOLIO_OWNER_DAILY_HOGQL, mapOwnerDailyRow } from '@api/application/analytics/ownerDailyQuery';
 import { InMemoryAnalyticsOwnerDailyRepository } from '@api/infrastructure/repositories/InMemoryAnalyticsOwnerDailyRepository';
 
@@ -59,5 +62,14 @@ describe('fosterfolio daily HogQL', () => {
     expect(repo.records).toHaveLength(2);
     expect(repo.records.map((row) => row.petTaps)).toEqual([2, 1]);
     expect(repo.records.map((row) => row.views)).toEqual([4, 1]);
+  });
+
+  // PostHog's query API returns 100 rows when the HogQL has no LIMIT.
+  it.each([
+    ['pet', FOSTERFOLIO_DAILY_AGGREGATE_HOGQL],
+    ['owner', FOSTERFOLIO_OWNER_DAILY_HOGQL],
+  ])('sets an explicit row limit on the %s query, newest days first', (_name, sql) => {
+    expect(ROLLUP_ROW_LIMIT).toBe(50000);
+    expect(sql).toMatch(/\nORDER BY day DESC\nLIMIT 50000$/);
   });
 });

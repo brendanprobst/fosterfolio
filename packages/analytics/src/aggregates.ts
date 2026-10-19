@@ -19,7 +19,7 @@ export interface AnalyticsProvider {
   queryAggregates(query: AggregateQuery): Promise<AggregateRow[]>;
 }
 
-/** Matches analytics_daily's coalesced unique key. */
+/** Stands in for a null link_id, so aggregateKey matches analytics_daily_uniq. */
 export const NULL_LINK_ID = "00000000-0000-0000-0000-000000000000";
 
 export function aggregateKey(

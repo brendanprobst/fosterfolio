@@ -1,127 +1,124 @@
-import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
 import { AnalyticsDailyRepository } from '@api/infrastructure/repositories/AnalyticsDailyRepository';
+import { RecordingDataAdapter } from '../support/fakes/RecordingDataAdapter';
 
-type Stored = {
-  pet_id: string;
-  link_id: string | null;
-  channel_key: string;
-  city: string | null;
-  day: string;
-  views: number;
-  approx_visitors: number;
-  form_opens: number;
-  updated_at?: string;
-};
-
-class MemoryAdapter implements DataAdapter {
-  rows: Stored[] = [];
-  paths: string[] = [];
-
-  async get<T>(path: string): Promise<T> {
-    this.paths.push(path);
-    if (path.includes('day=gte.')) {
-      const start = /day=gte\.(\d{4}-\d{2}-\d{2})/.exec(path)?.[1];
-      const end = /day=lte\.(\d{4}-\d{2}-\d{2})/.exec(path)?.[1];
-      return this.rows.filter((row) => {
-        if (start && row.day < start) return false;
-        if (end && row.day > end) return false;
-        return true;
-      }) as T;
-    }
-    return this.rows as T;
-  }
-
-  async post<T>(): Promise<T> {
-    throw new Error('unused');
-  }
-
-  async update<T>(path: string, body?: unknown): Promise<T> {
-    this.paths.push(path);
-    const day = /day=eq\.(\d{4}-\d{2}-\d{2})/.exec(path)?.[1];
-    const row = this.rows.find((item) => item.day === day);
-    if (row && body && typeof body === 'object') {
-      Object.assign(row, body);
-    }
-    return [] as T;
-  }
-
-  async delete<T>(): Promise<T> {
-    throw new Error('unused');
-  }
-
-  async getWithCount<T>(): Promise<{ data: T; count: number | null }> {
-    throw new Error('unused');
-  }
-
-  async rpc<T>(): Promise<T> {
-    throw new Error('unused');
-  }
-
-  async insertReturning<T>(_path: string, body?: unknown): Promise<T> {
-    const rows = body as Stored[];
-    this.rows.push(...rows);
-    return [] as T;
-  }
+function write(overrides: Record<string, unknown> = {}) {
+  return {
+    petId: '6a1f0d7e-1c1b-4c8e-9d0f-2a3b4c5d6e7f',
+    linkId: '7b2e1e8f-2d2c-4d9f-8e1a-3b4c5d6e7f80',
+    channelKey: 'instagram',
+    city: 'Austin',
+    day: '2026-10-08',
+    views: 2,
+    approxVisitors: 2,
+    formOpens: 1,
+    ...overrides,
+  };
 }
 
 describe('AnalyticsDailyRepository upsert', () => {
-  it('replaces the same key and leaves a day outside the window', async () => {
-    const adapter = new MemoryAdapter();
-    adapter.rows.push({
-      pet_id: 'pet-1',
-      link_id: null,
-      channel_key: 'direct',
-      city: null,
-      day: '2026-01-01',
-      views: 8,
-      approx_visitors: 8,
-      form_opens: 0,
-    });
+  it('writes every row in one bulk upsert on the plain-column key', async () => {
+    const adapter = new RecordingDataAdapter();
     const repo = new AnalyticsDailyRepository(adapter);
+    const rows = Array.from({ length: 50 }, (_, i) =>
+      write({ day: `2026-10-${String((i % 14) + 1).padStart(2, '0')}`, city: `City ${i}` })
+    );
 
-    const write = {
-      petId: 'pet-1',
-      linkId: 'link-1',
-      channelKey: 'instagram',
-      city: 'Austin',
-      day: '2026-10-08',
+    await repo.upsert(rows);
+
+    expect(adapter.calls).toHaveLength(1);
+    const [call] = adapter.calls;
+    expect(call?.method).toBe('post');
+    expect(call?.path).toBe('analytics_daily?on_conflict=pet_id,link_id,channel_key,city,day');
+    expect(call?.options?.headers?.Prefer).toBe('resolution=merge-duplicates,return=minimal');
+    expect(call?.body).toHaveLength(50);
+    expect((call?.body as unknown[])[0]).toEqual({
+      pet_id: rows[0]?.petId,
+      link_id: rows[0]?.linkId,
+      channel_key: 'instagram',
+      city: 'City 0',
+      day: '2026-10-01',
       views: 2,
-      approxVisitors: 2,
-      formOpens: 1,
-    };
-    await repo.upsert([write]);
-    await repo.upsert([{ ...write, views: 9, approxVisitors: 4, formOpens: 3 }]);
-
-    expect(adapter.rows).toHaveLength(2);
-    expect(adapter.rows.find((row) => row.day === '2026-01-01')?.views).toBe(8);
-    expect(adapter.rows.find((row) => row.day === '2026-10-08')).toMatchObject({
-      views: 9,
-      approx_visitors: 4,
-      form_opens: 3,
+      approx_visitors: 2,
+      form_opens: 1,
+      updated_at: expect.any(String),
     });
   });
 
-  it('encodes every filter value it sends to PostgREST', async () => {
-    const adapter = new MemoryAdapter();
+  it('sends null link and city as null, and reserved characters verbatim', async () => {
+    const adapter = new RecordingDataAdapter();
     const repo = new AnalyticsDailyRepository(adapter);
-    const write = {
-      petId: '6a1f0d7e-1c1b-4c8e-9d0f-2a3b4c5d6e7f',
-      linkId: '7b2e1e8f-2d2c-4d9f-8e1a-3b4c5d6e7f80',
-      channelKey: 'vet-office',
-      city: 'St. Paul & Co',
-      day: '2026-10-08',
-      views: 1,
-      approxVisitors: 1,
-      formOpens: 0,
-    };
-    await repo.upsert([write]);
-    await repo.upsert([{ ...write, views: 2 }]);
 
-    const patch = adapter.paths[adapter.paths.length - 1] ?? '';
-    expect(patch).toContain(`city=eq.${encodeURIComponent('"St. Paul & Co"')}`);
-    expect(patch).not.toContain('& Co');
-    expect(patch).toContain(`pet_id=eq.${write.petId}`);
-    expect(patch).toContain(`link_id=eq.${write.linkId}`);
-    expect(adapter.rows[0]?.views).toBe(2);
+    await repo.upsert([
+      write({ linkId: null, channelKey: 'direct', city: null }),
+      write({ city: 'St. Paul & Co' }),
+    ]);
+
+    const body = adapter.calls[0]?.body as Array<Record<string, unknown>>;
+    expect(body[0]).toMatchObject({ link_id: null, city: null });
+    expect(body[1]).toMatchObject({ city: 'St. Paul & Co' });
+  });
+
+  it('sums rows that share a key, since one statement cannot update a row twice', async () => {
+    const adapter = new RecordingDataAdapter();
+    const repo = new AnalyticsDailyRepository(adapter);
+
+    await repo.upsert([
+      write({ views: 2, approxVisitors: 1, formOpens: 0 }),
+      write({ city: 'Boston' }),
+      write({ views: 5, approxVisitors: 4, formOpens: 3 }),
+    ]);
+
+    const body = adapter.calls[0]?.body as Array<Record<string, unknown>>;
+    expect(body).toHaveLength(2);
+    expect(body[0]).toMatchObject({ city: 'Austin', views: 7, approx_visitors: 5, form_opens: 3 });
+    expect(body[1]).toMatchObject({ city: 'Boston', views: 2 });
+  });
+
+  it('sends nothing for an empty batch', async () => {
+    const adapter = new RecordingDataAdapter();
+    await new AnalyticsDailyRepository(adapter).upsert([]);
+    expect(adapter.calls).toHaveLength(0);
+  });
+
+  it('lets a failed bulk write throw instead of retrying row by row', async () => {
+    const adapter = new RecordingDataAdapter();
+    adapter.post = async () => {
+      throw new Error('Supabase request failed (400): bad row');
+    };
+    const repo = new AnalyticsDailyRepository(adapter);
+
+    await expect(repo.upsert([write(), write({ city: 'Boston' })])).rejects.toThrow('(400)');
+  });
+});
+
+describe('AnalyticsDailyRepository sumViewsByLinkIds', () => {
+  it('sums in SQL through one rpc, so totals are not cut off by the row cap', async () => {
+    const adapter = new RecordingDataAdapter();
+    adapter.rpcResult = [
+      { link_id: 'link-1', views: 4200 },
+      { link_id: 'link-2', views: '7' },
+    ];
+    const repo = new AnalyticsDailyRepository(adapter);
+
+    const totals = await repo.sumViewsByLinkIds(['link-1', 'link-2', 'link-3']);
+
+    expect(adapter.calls).toEqual([
+      {
+        method: 'rpc',
+        path: 'analytics_link_view_totals',
+        body: { p_link_ids: ['link-1', 'link-2', 'link-3'] },
+      },
+    ]);
+    expect([...totals]).toEqual([
+      ['link-1', 4200],
+      ['link-2', 7],
+    ]);
+  });
+
+  it('skips the request when there are no links', async () => {
+    const adapter = new RecordingDataAdapter();
+    const totals = await new AnalyticsDailyRepository(adapter).sumViewsByLinkIds([]);
+    expect(totals.size).toBe(0);
+    expect(adapter.calls).toHaveLength(0);
   });
 });

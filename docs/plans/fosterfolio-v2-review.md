@@ -31,7 +31,7 @@
 | S5   | Medium   | Security       | `mailto:` injection through sender email                                                              | ✅ Fixed                               |
 | L3   | Medium   | Logic          | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates           | ✅ Fixed                               |
 | L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | Open                                   |
-| L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | Open                                   |
+| L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | ✅ Fixed (dev migrated; prod at launch) |
 | L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | Open                                   |
 | S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | Open                                   |
 | S7   | Low      | Infra/Hygiene  | Lambda zip build artifacts committed to git                                                           | Open                                   |
@@ -39,6 +39,7 @@
 | C1   | Medium   | Compliance     | No privacy policy; third-party processors (Turnstile, PostHog, Supabase, SES, Zippopotam) undisclosed | Open (blocks public launch, not merge) |
 | L7   | Low      | Logic          | Metric semantics: conversion can exceed 100%; "approx visitors" is meaningless and hidden; UTC days   | Open                                   |
 | L8   | Low      | Perf/Data      | Inbox does N+1 lookups; notification payload duplicates PII it then overwrites                        | Open                                   |
+| L9   | Medium   | Logic/Perf     | Analytics and inquiry list reads silently stop at PostgREST's 1,000-row cap                           | Open                                   |
 | Q1   | Medium   | DRY            | Two near-identical rollup repositories; the coalesced key is defined 3 times                          | Open                                   |
 | Q2   | Medium   | Structure      | Two workspace packages built two different ways; 4 places to keep aliases in sync                     | Open                                   |
 | Q3   | Medium   | Structure      | `@lattice/analytics` isn't app-agnostic (pet-shaped rows, hardcoded referrer map)                     | Open                                   |
@@ -127,7 +128,7 @@
   - Anyone can still inflate a _real_ pet's numbers with its real ids, which are public in URLs and in `GET /links/resolve`. Client-side analytics can't prevent that; the verifier only stops cross-owner and nonsense writes.
   - Rows written before this fix are not cleaned up. If you suspect forged rows, check `analytics_daily` / `analytics_owner_daily` for channel keys outside the allowed set.
   - If an owner renames a custom channel on a link, events within the 14-day window that still carry the old custom key are dropped as `unknown_channel`. Rows already stored under the old key stay.
-  - Alarm on rollup errors is S6. The existing-rows read and `sumViewsByLinkIds` are still unchunked with `limit=10000` (L5).
+  - Alarm on rollup errors is S6. The existing-rows read and `sumViewsByLinkIds` are still unchunked with `limit=10000` (L5, since fixed: the read is gone and the totals are summed in SQL).
 
 ### S4 — PostHog personal API key stored in a plaintext env var · Medium
 
@@ -297,6 +298,62 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 
 **Fix:** Replace the expression index with `unique nulls not distinct (pet_id, link_id, channel_key, city, day)` (Postgres 15+, which Supabase has). Then a single bulk `POST …?on_conflict=…` with `resolution=merge-duplicates` does the whole upsert. Or write one SQL RPC that upserts a JSON array in a single transaction. Do the per-link totals in SQL with `group by`.
 
+**Status: ✅ Fixed** (2026-10-18, not yet committed; dev is migrated, and the Lambdas still need a redeploy)
+
+- **Correction to this finding:** the truncation was worse than `limit=10000`. Supabase caps every PostgREST read at `max_rows = 1000` (`supabase/config.toml`, and the hosted default), so the reads stopped at 1,000 rows with no error.
+- **Upsert:** `AnalyticsDailyRepository.upsert` and `AnalyticsOwnerDailyRepository.upsert` now send one `POST <table>?on_conflict=<key columns>` with `Prefer: resolution=merge-duplicates,return=minimal` and the whole batch in the body. One statement means one transaction, so a failure writes nothing for that table. There's no "existing" read, no `in.(…)` list in the URL, and no per-row insert or patch. The unique-violation fallback, the patch helper and the `postgrestFilters` imports are gone from both repositories.
+- **Duplicate keys:** one `on conflict do update` statement fails if it touches the same row twice. Two PostHog groups can normalize to the same key (`" Austin"` and `"Austin"`, or a UUID with and without padding), and since properties are client-writable that would be a new poison pill (S3). The new `sumRowsByKey` (`apps/api/infrastructure/analytics/sumRowsByKey.ts`) folds them first, using the existing `analyticsDailyKey` / `analyticsOwnerDailyKey`. No 4th copy of the key.
+- **Decision: sum duplicate keys instead of keeping the last one.** The old per-row loop let the last row win. Both groups are real traffic, so their counts are added. The interface docs now say so.
+- **DB:** new feature migration `supabase/migrations/feature-migrations/20261018200000_app_v2_rollup_bulk_upsert.sql` (plus its CLI symlink):
+  - `analytics_daily_uniq` and `analytics_owner_daily_uniq` are rebuilt as plain-column `unique … nulls not distinct` indexes, so PostgREST's `on_conflict` (column names only) can target them.
+  - It sets `city = ''` to `null` first, because the old key treated `''` and `null` as equal and the new one doesn't. The rollup never writes `''`, and under the old key the two could not both exist, so this can't collide.
+  - New partial index `analytics_daily_link_id_idx`.
+  - New function `analytics_link_view_totals(uuid[])`: `sum(views) … group by link_id`, `stable`, `search_path = ''`. Execute is revoked from `public`, `anon` and `authenticated` and granted to `service_role`.
+  - The master is rebuilt as `LATEST_20261018.sql`, and the earlier same-day master moved to `archive/LATEST_20261018.sql`.
+- **Link totals:** `sumViewsByLinkIds` calls that RPC, so the ids go in the POST body and the result is one row per link. The link list's view counts are no longer cut off at 1,000 daily rows.
+- **Seed:** `supabase/seed/features/v2-analytics.sql` section 5 used the old expression target (`on conflict (pet_id, (coalesce(link_id, …)), …)`). That would no longer match any index, so it now uses `on conflict (pet_id, link_id, channel_key, city, day)`. **Run the seed only after the migration**, or the seed fails with "no unique or exclusion constraint matching".
+- **Decision: a new migration, not an edit to the applied ones.** Dev has already applied both migrations that created the indexes, and the CLI won't re-run an edited file.
+- **Deploy order:** push the migration first. The old API and rollup code still work on the new schema: the per-row insert falls back to a patch on a unique violation, and the patch filters with `is.null`. The new code needs the migration: `on_conflict` returns 400 without the plain-column index, and the RPC returns 404 without the function.
+- **PostHog row limit (found during L5):** PostHog's query API returns only **100 rows** when the HogQL has no `LIMIT` ([docs](https://posthog.com/docs/api/queries)). Neither rollup query had one, so every hourly run stored at most 100 pet rows and 100 owner rows for the whole 14-day window. The seeded dev numbers hid this.
+  - Both queries now end with `ORDER BY day DESC LIMIT 50000` (`ROLLUP_ROW_LIMIT`, PostHog's maximum). Newest days come first, so if a run ever hits the limit, the rows left out are from the oldest days, which earlier runs already wrote.
+  - The handler logs a warning with both counts when either query returns the full 50,000. There's no alarm until S6.
+- **In-memory fakes:** `InMemoryAnalyticsDailyRepository` and `InMemoryAnalyticsOwnerDailyRepository` now sum duplicate keys within one call, like the real repositories. The adders (`addAnalyticsDailyRows`, `addAnalyticsOwnerDailyRows`) moved next to the key functions, so the real repositories and the fakes share them.
+- **Tests:** `test/api/repositories/analyticsDailyRepository.test.ts` is rewritten, and `analyticsOwnerDailyRepository.test.ts` is new. They share a new `test/api/support/fakes/RecordingDataAdapter.ts`. The tests check:
+  - 50 rows (or 30 for owners) go out in exactly one bulk POST with the right `on_conflict` columns and `Prefer` header.
+  - Null link and city are sent as `null`, and `St. Paul & Co` is sent verbatim.
+  - Duplicate keys are summed into one row.
+  - An empty batch sends nothing, and a failed write throws.
+  - Totals come from one `analytics_link_view_totals` RPC, including a bigint that arrives as a string.
+  - Against the old implementations, 7 of the 10 new tests fail. The 3 that pass are the empty-batch and no-links guards, which already worked.
+  - `test/api/utils/fosterfolioDailyQuery.test.ts` checks that both queries end with `ORDER BY day DESC` / `LIMIT 50000`. The new `test/api/repositories/inMemoryAnalyticsDailyRepositories.test.ts` checks that both fakes sum within a call and overwrite across calls. All of these fail before the change.
+  - The new `test/api/analyticsRollup.test.ts` runs the real handler end to end, with only global `fetch` faked: PostHog and Supabase are answered by a small fake backend. It covers:
+    - Verified pet and owner rows go out in one bulk upsert per table, and both HogQL queries carry `LIMIT 50000`.
+    - Forged and malformed rows are dropped, and the warning holds only the skip counts, never the values.
+    - Rows that normalize to the same key (`" Austin "`, an empty owner channel) are summed, not failed.
+    - The row-limit warning fires at 50,000.
+    - A failed upsert fails the run.
+    - With the limit check removed, or with the repository's summing removed, the matching test fails.
+- **Verified:**
+  - `npm run ci` passes (Jest 46 suites / 371 tests, web unit 59 files / 249 tests, lint, type-check, build).
+  - `npm run supabase:push:dry` on dev lists exactly `20261018200000_app_v2_rollup_bulk_upsert.sql`.
+  - **On dev**, through PostgREST with the service role, without writing any rows:
+    - An empty-array bulk upsert with the new `on_conflict` columns returns 200 on both tables. A control with `on_conflict=pet_id,day` returns `42P10` ("no unique or exclusion constraint matching"), so the empty-array check does exercise index matching.
+    - `analytics_link_view_totals` returns `[]` for no ids. For three real links it returns 14 and 26 (and omits the link with no rows), matching sums of the raw rows.
+    - No `''` cities are left.
+    - The anon key gets `401 permission denied for function analytics_link_view_totals`.
+  - The seed's new `on conflict` target has not been run. Dev wasn't re-seeded.
+- **Manual steps:**
+  1. ✅ **Dev push done** (2026-10-18). `npm run supabase:push` applied `20261018200000_app_v2_rollup_bulk_upsert.sql`, and `supabase:list` shows all five migrations matched on the remote. The arming flag is back at `0`.
+  2. **Redeploy both Lambdas.** The rollup Lambda uses the new upsert and the PostHog `LIMIT`, and the API Lambda uses the new link totals. Expect stored numbers to rise after the first rollup run: earlier runs only read 100 rows. Use `infisical run -- npm run deploy:aws`, never a bare `terraform apply`, which blanks `POSTHOG_PERSONAL_API_KEY` (see S1/S4).
+  3. **Prod** takes this migration at launch with the other v2 migrations (see "Prod schema at launch").
+- **Still open:**
+  - **Cross-table atomicity:** pet rows and owner rows are two statements. If the second fails, the tables disagree until the next hourly run rewrites the 14-day window. Both writes are idempotent overwrites, so this heals itself.
+  - **One request per table, no chunking.** Chunking would give up all-or-nothing writes. At about 230 bytes a row, a full 50,000-row PostHog result is about 11.5 MB per request. Not tested at that size.
+  - **Other capped reads:** the per-pet and per-owner analytics reads and three inquiry reads still stop at 1,000 rows. Moved to **L9**.
+  - `analytics_link_view_totals` always reads `analytics_daily`. It ignores the repository's `SUPABASE_ANALYTICS_DAILY_TABLE` override, which nothing sets.
+  - Q1 is smaller but not done: the two repositories still mirror each other (`toRecord`, the upsert body), and the key is still defined in three places.
+  - `fosterfolio-v2-spec.md` still shows the old `coalesce` index. That's for step 7.
+
 ### L6 — Turnstile client behavior · Medium
 
 **Where:** `apps/web/client/features/inquiries/InquiryForm.tsx:239`, `InvisibleTurnstile`
@@ -321,6 +378,24 @@ These sit alongside Supabase and the server-side ZIP lookup to `api.zippopotam.u
 **What:** Each notification triggers up to three sequential lookups: inquiry, then link, then pet. A page of 20 can mean about 60 Supabase round trips from Lambda. The stored `payload` snapshot (sender email, message, zip) is overwritten by the live inquiry anyway. That leaves a second copy of PII that won't follow deletes or edits of the inquiry.
 
 **Fix:** Batch with `id=in.(…)` per entity type. Store only `{ petId }` and the entity ref in the payload, and hydrate everything else at read time.
+
+### L9 — Capped list reads · Medium
+
+Found while fixing L5.
+
+**Where:**
+
+- `AnalyticsDailyRepository.listByPetId` and `AnalyticsOwnerDailyRepository.listByOwnerId`
+- `InquiryRepository.listSourcesByPetId` (:98), `listFosterMeSourcesByOwner` (:119) and `countBySourceLinkIds` (:132)
+
+**What:**
+
+- Every one of these reads asks for `limit=10000`, but PostgREST caps responses at `max_rows = 1000` and doesn't say so.
+- The two analytics reads sort by `day.asc`. On the "all" range (`sinceDay = null`), a pet or owner with more than 1,000 daily rows (pet × link × channel × city × day) silently loses its **newest** days.
+- The inquiry reads only matter past 1,000 inquiries per pet or owner.
+- `countBySourceLinkIds` also builds `in.(…)` without `inList` encoding. Its ids come from the database, not from a request.
+
+**Fix:** Add a paging helper that reads `limit=1000&offset=n` until a short page, with a stable order on the key columns, and use it for all five reads. No schema change. Longer term, sum the dashboard numbers in SQL instead of shipping raw rows.
 
 ### Also worth a look
 
@@ -466,16 +541,16 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
-6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch).
+6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch).
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
 
 **Prod schema at launch.** Prod's database is still on the v1 schema. On 2026-10-18 `npm run supabase:list -- --env prod` showed only `20261003120000` applied. When the branch ships, push the v2 schema *before* the API deploy, because the v2 API reads tables v1 doesn't have:
 
-1. `npm run supabase:push:dry -- --env prod` should list exactly `20261008133000_app_v2_tracked_links.sql`, `20261010010000_app_v2_foster_me_links.sql` and `20261018120000_app_v2_link_input_bounds.sql`, plus any migration added after this note.
+1. `npm run supabase:push:dry -- --env prod` should list exactly `20261008133000_app_v2_tracked_links.sql`, `20261010010000_app_v2_foster_me_links.sql`, `20261018120000_app_v2_link_input_bounds.sql` and `20261018200000_app_v2_rollup_bulk_upsert.sql`, plus any migration added after this note.
 2. Set `SUPABASE_PUSH_ENABLED=1` in `supabase/.env.prod`, run `npm run supabase:push -- --env prod`, then set it back to `0`.
 3. `npm run supabase:list -- --env prod` should show every local migration with a remote match.
 
-All three are additive (new tables, nullable or defaulted columns, `if not exists`), and prod has no `tracked_links` rows, so nothing needs a backfill. Don't run `LATEST_*.sql` on prod. It's for empty databases only.
+The first three are additive (new tables, nullable or defaulted columns, `if not exists`), and prod has no `tracked_links` rows, so nothing needs a backfill. The L5 migration drops and rebuilds the two analytics unique indexes, but on prod those tables are created empty in the same push. Don't run `LATEST_*.sql` on prod. It's for empty databases only.
 
 ---
 
