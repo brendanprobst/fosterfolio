@@ -10,6 +10,7 @@ import type {
 } from '@api/domain/repositories/ITrackedLinkRepository';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
 import { linkCreditsInquiry } from '@api/domain/trackedLinks/linkCreditsInquiry';
+import { isValidEmailAddress } from '@api/domain/value-objects/EmailAddress';
 import { isUuid } from '@api/domain/value-objects/UserHandle';
 import type { TurnstileVerifier } from '@api/infrastructure/adapters/turnstile/verifyTurnstileToken';
 import { Logger } from '@api/utils/logger';
@@ -39,8 +40,6 @@ export type InquiryDto = {
   sourceToken: string;
 };
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export type TurnstileGate = {
   /** null skips verification. Composition only allows that outside production. */
   getSecret: () => string | null;
@@ -62,7 +61,7 @@ export class CreateInquiryUseCase {
     const senderName = input.senderName?.trim() ?? '';
     const senderEmail = input.senderEmail?.trim() ?? '';
     const message = input.message?.trim() ?? '';
-    if (!senderName || !senderEmail || !message || !EMAIL_RE.test(senderEmail)) {
+    if (!senderName || !senderEmail || !message || !isValidEmailAddress(senderEmail)) {
       return Result.failure(ErrorCatalog.INQUIRY_INVALID_INPUT);
     }
     if (!input.targetUserId?.trim()) {

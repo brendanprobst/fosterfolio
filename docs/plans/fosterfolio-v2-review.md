@@ -28,7 +28,7 @@
 | S3   | High     | Security/Logic | Rollup trusts client-writable PostHog properties (poison pill, forgery, filter injection)             | ✅ Fixed                               |
 | L2   | High     | Logic          | Owner self-views are captured before auth resolves                                                    | ✅ Fixed                               |
 | S4   | Medium   | Security/Infra | PostHog personal API key in a plaintext Lambda env var and TF state                                   | Open                                   |
-| S5   | Medium   | Security       | `mailto:` injection through sender email                                                              | Open                                   |
+| S5   | Medium   | Security       | `mailto:` injection through sender email                                                              | ✅ Fixed                               |
 | L3   | Medium   | Logic          | Custom channel names collide with system keys (`direct`, `search`); picker shows duplicates           | Open                                   |
 | L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | Open                                   |
 | L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | Open                                   |
@@ -144,6 +144,15 @@
 **What:** `EMAIL_RE` (`^[^\s@]+@[^\s@]+\.[^\s@]+$`) accepts `a@b.co?bcc=evil%40x.com&body=…`. The inbox puts the raw value into `href={\`mailto:${email}?subject=…\`}`. When the owner clicks **Reply by email**, the draft gets a hidden BCC or a pre-filled body. The same value is used as SES `ReplyToAddresses`, which SES rejects, so the notification email quietly fails too.
 
 **Fix:** Use a stricter address check that rejects `?`, `&`, `%`, `,` and `;`. Also `encodeURIComponent` the address in the `mailto:`.
+
+**Status: ✅ Fixed** (2026-10-18, not yet committed; no manual steps)
+
+- **API:** new `apps/api/domain/value-objects/EmailAddress.ts` (`isValidEmailAddress`) replaces `EMAIL_RE` in `CreateInquiryUseCase`. It accepts ASCII `dot-atom@domain` only: the HTML `type="email"` local-part characters minus `%`, `&` and `?`, no leading, trailing or doubled dots, hostname labels with at least one dot, and RFC lengths (64-char local part, 63-char labels, 254 total). That rules out `?`, `&`, `%`, `,`, `;`, whitespace/CRLF, display names (`Name <a@b.co>`), quoted local parts, comments and IP-literal domains. A rejected address returns `400 INQUIRY_INVALID_INPUT` before Turnstile, storage or email, so SES never sees a Reply-To it would refuse.
+- **Web:** `InboxView` builds both `mailto:` links with `mailtoHref()`, which percent-encodes each side of the last `@`. Inquiries stored before this fix (or written straight to the DB) still can't add `?bcc=`, `&body=` or a second recipient. A normal address renders exactly as before (`mailto:jamie@example.com`). I encoded each side separately instead of the whole string so the `@` stays literal, which RFC 6068 expects.
+- **Decision: ASCII only.** Unicode local parts and non-punycode domains (`josé@…`, `…@bücher.de`) are now rejected. The old regex accepted them, but SES doesn't support SMTPUTF8: it needs an ASCII local part and a punycode domain, so those inquiries' emails were failing anyway. Punycode domains (`xn--…`) still pass. Visitors see the existing "Please provide a name, email, and message." error.
+- **Tests:** `test/api/emailAddress.test.ts` covers 5 valid addresses, 28 rejected ones (the injection payloads from this item, lists, display names, quoting, dot and label structure, CRLF, Unicode, each length limit) and the exact length boundaries. `test/api/inquiries.test.ts` gained "rejects a sender email that would inject mailto: headers": three payloads each get 400 with no inquiry, notification or email. Against the old use case it fails (201). `test/web/unit/InboxView.test.tsx` gained a stored-payload test that checks both hrefs are encoded. It failed before `mailtoHref`.
+- **Verified:** `npm run ci` passes (Jest 42 suites / 321 tests, web unit 58 files / 245 tests, lint, type-check, build).
+- **Still open:** the inquiry form doesn't pre-check the stricter rule. The browser's `type="email"` still allows `%`, `&` and `?`, so those rare addresses only fail on submit. Other input bounds (label, channel name, cursor, `sourceChannelKey`) stay with S8.
 
 ### S6 — Rollup Lambda operations · Low
 
@@ -424,7 +433,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
-6. **S5, L3**: Harden email validation and reserve system channel keys.
+6. ~~**S5**: Harden email validation.~~ ✅ Done. **L3**: Reserve system channel keys.
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
 
 ---

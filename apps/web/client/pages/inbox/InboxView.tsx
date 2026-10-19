@@ -146,7 +146,7 @@ export function InquiryDetail({
         receivedAt={item.createdAt}
         subtitle={
           email ? (
-            <a className="text-foreground underline" href={`mailto:${email}`}>
+            <a className="text-foreground underline" href={mailtoHref(email)}>
               {email}
             </a>
           ) : (
@@ -158,7 +158,7 @@ export function InquiryDetail({
             {email ? (
               <a
                 className={cn(buttonVariants({ variant: "default", size: "sm" }))}
-                href={`mailto:${email}?subject=${subject}`}
+                href={`${mailtoHref(email)}?subject=${subject}`}
               >
                 Reply by email
               </a>
@@ -235,4 +235,12 @@ function InquiryDetailBody({
 
 function text(value: string | null | undefined): string {
   return value?.trim() ?? "";
+}
+
+/** Percent-encodes each side of the `@` so a stored `?`, `&` or `,` can't add mailto headers. */
+function mailtoHref(email: string): string {
+  const at = email.lastIndexOf("@");
+  if (at < 0) return `mailto:${encodeURIComponent(email)}`;
+  const local = encodeURIComponent(email.slice(0, at));
+  return `mailto:${local}@${encodeURIComponent(email.slice(at + 1))}`;
 }

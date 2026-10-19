@@ -288,6 +288,32 @@ describe('Inquiries API', () => {
     }
   });
 
+  it('rejects a sender email that would inject mailto: headers', async () => {
+    const { app, container } = createTestAppWithContainer();
+    container.seedUser({ id: ownerId, email: 'foster@example.com' });
+    const sent: EmailMessage[] = [];
+    container.setEmailAdapter({
+      send: async (message) => {
+        sent.push(message);
+      },
+    });
+
+    for (const senderEmail of [
+      'a@b.co?bcc=evil%40x.com&body=hi',
+      'a@b.co,evil@x.com',
+      'Jamie <jamie@example.com>',
+    ]) {
+      const res = await request(app)
+        .post('/inquiries')
+        .send({ targetUserId: ownerId, senderName: 'Jamie', senderEmail, message: 'Hello' })
+        .expect(400);
+      expect(res.body.error.code).toBe('INQUIRY_INVALID_INPUT');
+    }
+    expect(container.inquiryRepository.records).toHaveLength(0);
+    expect(container.notificationRepository.records).toHaveLength(0);
+    expect(sent).toHaveLength(0);
+  });
+
   it('accepts an inquiry with no Turnstile token when the secret is unset', async () => {
     const { app, container } = createTestAppWithContainer();
     container.seedUser({ id: ownerId, email: 'foster@example.com' });

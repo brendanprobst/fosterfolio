@@ -66,6 +66,23 @@ describe("InboxView", () => {
     );
   });
 
+  it("encodes a stored sender email so it can't add mailto: headers", () => {
+    // Inquiries saved before the API tightened its email check can still hold this.
+    const injected = "a@b.co?bcc=evil%40x.com&body=hi";
+    render(
+      <Harness items={[{ ...item, payload: { ...item.payload, senderEmail: injected } }]} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Jamie/ }));
+    expect(screen.getByRole("link", { name: injected })).toHaveAttribute(
+      "href",
+      "mailto:a@b.co%3Fbcc%3Devil%2540x.com%26body%3Dhi",
+    );
+    expect(screen.getByRole("link", { name: "Reply by email" })).toHaveAttribute(
+      "href",
+      "mailto:a@b.co%3Fbcc%3Devil%2540x.com%26body%3Dhi?subject=Re%3A%20Mochi",
+    );
+  });
+
   it("filters and shows an unavailable pet", () => {
     const onStatus = vi.fn();
     render(
