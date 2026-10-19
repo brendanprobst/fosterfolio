@@ -1,8 +1,23 @@
 /**
  * Test setup - Creates isolated test app instances
  */
+import { GetNotificationPreferencesUseCase, PutNotificationPreferenceUseCase } from '@api/application/use-cases/NotificationPreferencesUseCases';
+import { GetUnreadNotificationCountUseCase } from '@api/application/use-cases/GetUnreadNotificationCountUseCase';
+import { ListNotificationsUseCase } from '@api/application/use-cases/ListNotificationsUseCase';
+import { UpdateNotificationUseCase } from '@api/application/use-cases/UpdateNotificationUseCase';
+import { ensureInquiryReceivedRegistered } from '@api/application/notifications/inquiryReceived';
+import { GetOwnerLinkAnalyticsUseCase } from '@api/application/use-cases/GetOwnerLinkAnalyticsUseCase';
+import { GetPetAnalyticsUseCase } from '@api/application/use-cases/GetPetAnalyticsUseCase';
 import { AddStarUseCase } from '@api/application/use-cases/AddStarUseCase';
 import { CreateInquiryUseCase } from '@api/application/use-cases/CreateInquiryUseCase';
+import { ReportInquirySourceUseCase } from '@api/application/use-cases/ReportInquirySourceUseCase';
+import { CreateOwnerLinkUseCase } from '@api/application/use-cases/CreateOwnerLinkUseCase';
+import { CreateTrackedLinkUseCase } from '@api/application/use-cases/CreateTrackedLinkUseCase';
+import { ListChannelsUseCase } from '@api/application/use-cases/ListChannelsUseCase';
+import { ListOwnerLinksUseCase } from '@api/application/use-cases/ListOwnerLinksUseCase';
+import { ListTrackedLinksUseCase } from '@api/application/use-cases/ListTrackedLinksUseCase';
+import { ResolveTrackedLinkUseCase } from '@api/application/use-cases/ResolveTrackedLinkUseCase';
+import { UpdateTrackedLinkUseCase } from '@api/application/use-cases/UpdateTrackedLinkUseCase';
 import { CreatePetUseCase } from '@api/application/use-cases/CreatePetUseCase';
 import { CreatePostUseCase } from '@api/application/use-cases/CreatePostUseCase';
 import { GetPetUpdatesUseCase } from '@api/application/use-cases/GetPetUpdatesUseCase';
@@ -28,10 +43,19 @@ import { resetProtectedMiddlewareStackForTests } from '@api/auth/createProtected
 import { NoopGeoLookupAdapter } from '@api/infrastructure/adapters/geo/NoopGeoLookupAdapter';
 import type { GeoLookupAdapter } from '@api/infrastructure/adapters/geo/GeoLookupAdapter';
 import type { EmailAdapter } from '@api/infrastructure/adapters/email/EmailAdapter';
+import {
+  verifyTurnstileToken,
+  type TurnstileVerifier,
+} from '@api/infrastructure/adapters/turnstile/verifyTurnstileToken';
 import { LoggingEmailAdapter } from '@api/infrastructure/adapters/email/LoggingEmailAdapter';
+import { EmailChannelAdapter } from '@api/infrastructure/adapters/email/EmailChannelAdapter';
+import { InMemoryNotificationRepository } from '@api/infrastructure/repositories/InMemoryNotificationRepository';
 import { InMemoryStorageAdapter } from '@api/infrastructure/adapters/storage/InMemoryStorageAdapter';
 import { Container } from '@api/infrastructure/container';
+import { InMemoryAnalyticsDailyRepository } from '@api/infrastructure/repositories/InMemoryAnalyticsDailyRepository';
+import { InMemoryAnalyticsOwnerDailyRepository } from '@api/infrastructure/repositories/InMemoryAnalyticsOwnerDailyRepository';
 import { InMemoryInquiryRepository } from '@api/infrastructure/repositories/InMemoryInquiryRepository';
+import { InMemoryTrackedLinkRepository } from '@api/infrastructure/repositories/InMemoryTrackedLinkRepository';
 import { InMemoryPetRepository } from '@api/infrastructure/repositories/InMemoryPetRepository';
 import { InMemoryPostRepository } from '@api/infrastructure/repositories/InMemoryPostRepository';
 import { InMemorySearchRepository } from '@api/infrastructure/repositories/InMemorySearchRepository';
@@ -48,6 +72,10 @@ export class TestContainer {
   );
   readonly starRepository = new InMemoryStarRepository(this.userRepository);
   readonly inquiryRepository = new InMemoryInquiryRepository();
+  readonly analyticsDailyRepository = new InMemoryAnalyticsDailyRepository();
+  readonly analyticsOwnerDailyRepository = new InMemoryAnalyticsOwnerDailyRepository();
+  readonly trackedLinkRepository = new InMemoryTrackedLinkRepository();
+  readonly notificationRepository = new InMemoryNotificationRepository();
   readonly searchRepository = new InMemorySearchRepository(
     this.userRepository,
     this.petRepository
@@ -57,6 +85,9 @@ export class TestContainer {
   private geoLookup: GeoLookupAdapter = new NoopGeoLookupAdapter();
   private emailAdapter: EmailAdapter = new LoggingEmailAdapter();
   private storageCapBytes = resolveStorageCapBytes();
+  private turnstileSecret: string | null = null;
+  readonly sourceTokenSecret = 'test-inquiry-source-token-secret-0123456789';
+  private turnstileVerify: TurnstileVerifier = verifyTurnstileToken;
 
   setGeoLookup(adapter: GeoLookupAdapter): void {
     this.geoLookup = adapter;
@@ -64,6 +95,12 @@ export class TestContainer {
 
   setEmailAdapter(adapter: EmailAdapter): void {
     this.emailAdapter = adapter;
+  }
+
+  /** Jest leaves the secret unset so inquiries accept a missing Turnstile token. */
+  setTurnstileSecret(secret: string | null, verify?: TurnstileVerifier): void {
+    this.turnstileSecret = secret;
+    if (verify) this.turnstileVerify = verify;
   }
 
   setStorageCapBytes(bytes: number): void {
@@ -187,16 +224,104 @@ export class TestContainer {
   }
 
   getCreateInquiryUseCase() {
+    ensureInquiryReceivedRegistered();
     return new CreateInquiryUseCase(
       this.inquiryRepository,
       this.userRepository,
       this.petRepository,
-      this.emailAdapter
+      {
+        inApp: this.notificationRepository,
+        email: new EmailChannelAdapter(this.emailAdapter),
+        preferences: this.notificationRepository,
+      },
+      this.trackedLinkRepository,
+      {
+        getSecret: () => this.turnstileSecret,
+        verify: this.turnstileVerify,
+      },
+      this.sourceTokenSecret
     );
+  }
+
+  getReportInquirySourceUseCase() {
+    return new ReportInquirySourceUseCase(this.inquiryRepository, this.sourceTokenSecret);
   }
 
   getSignUploadUseCase() {
     return new SignUploadUseCase(this.storageAdapter, this.storageCapBytes);
+  }
+
+  getCreateTrackedLinkUseCase() {
+    return new CreateTrackedLinkUseCase(this.trackedLinkRepository, this.petRepository);
+  }
+
+  getCreateOwnerLinkUseCase() {
+    return new CreateOwnerLinkUseCase(this.trackedLinkRepository, this.userRepository);
+  }
+
+  getListOwnerLinksUseCase() {
+    return new ListOwnerLinksUseCase(this.trackedLinkRepository, this.petRepository);
+  }
+
+  getListTrackedLinksUseCase() {
+    return new ListTrackedLinksUseCase(
+      this.trackedLinkRepository,
+      this.petRepository,
+      this.analyticsDailyRepository,
+      this.inquiryRepository
+    );
+  }
+
+  getUpdateTrackedLinkUseCase() {
+    return new UpdateTrackedLinkUseCase(this.trackedLinkRepository);
+  }
+
+  getResolveTrackedLinkUseCase() {
+    return new ResolveTrackedLinkUseCase(this.trackedLinkRepository);
+  }
+
+  getListChannelsUseCase() {
+    return new ListChannelsUseCase(this.trackedLinkRepository);
+  }
+
+  getGetPetAnalyticsUseCase() {
+    return new GetPetAnalyticsUseCase(
+      this.petRepository,
+      this.analyticsDailyRepository,
+      this.inquiryRepository
+    );
+  }
+
+  getGetOwnerLinkAnalyticsUseCase() {
+    return new GetOwnerLinkAnalyticsUseCase(
+      this.analyticsOwnerDailyRepository,
+      this.inquiryRepository
+    );
+  }
+
+  getListNotificationsUseCase() {
+    return new ListNotificationsUseCase(
+      this.notificationRepository,
+      this.inquiryRepository,
+      this.petRepository,
+      this.trackedLinkRepository
+    );
+  }
+
+  getUnreadNotificationCountUseCase() {
+    return new GetUnreadNotificationCountUseCase(this.notificationRepository);
+  }
+
+  getUpdateNotificationUseCase() {
+    return new UpdateNotificationUseCase(this.notificationRepository);
+  }
+
+  getNotificationPreferencesUseCase() {
+    return new GetNotificationPreferencesUseCase(this.notificationRepository);
+  }
+
+  getPutNotificationPreferenceUseCase() {
+    return new PutNotificationPreferenceUseCase(this.notificationRepository);
   }
 }
 

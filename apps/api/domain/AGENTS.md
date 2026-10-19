@@ -20,6 +20,6 @@ Pure business logic: **entities**, **value objects**, **domain services**, **rep
 
 Follow **`Pet`** end-to-end when adding a new aggregate: entity → `I*Repository` → in-memory + Supabase adapters → use cases → composition module → controller → routes → Swagger → tests (`test/api/pets.test.ts`).
 
-## Cursor
+## Agent expert
 
-The **DDD expert** rule (`.cursor/rules/ddd-expert.mdc`) applies when editing under `apps/api/domain/`, `apps/api/application/`, or `docs/adr/`.
+The **DDD expert** (`agents/prompts/ddd-expert.md`) applies when editing under `apps/api/domain/`, `apps/api/application/`, or `docs/adr/`.

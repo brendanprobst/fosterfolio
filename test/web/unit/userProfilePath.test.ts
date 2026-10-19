@@ -1,6 +1,7 @@
 import { USER_PROFILE_SENTINEL_ID } from "@client/lib/constants/userProfileSentinel";
 import {
   fosterMeHref,
+  fosterMeLinkHref,
   handleEditConfirmMessage,
   handleEditDelta,
   handleFromPathname,
@@ -17,6 +18,7 @@ describe("handle paths", () => {
     expect(handleHref("@brendan")).toBe("/@brendan");
     expect(userProfileHref("abc")).toBe("/@abc");
     expect(fosterMeHref("brendan")).toBe("/@brendan/foster-me");
+    expect(fosterMeLinkHref("brendan", "ab c")).toBe("/@brendan/foster-me?s=ab%20c");
   });
 
   it("classifies handle edits so the form can skip or confirm", () => {

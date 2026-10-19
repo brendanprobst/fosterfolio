@@ -3,6 +3,7 @@
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
+import { remarkUnderline } from "./remarkUnderline";
 
 type MarkdownProps = {
   children: string;
@@ -26,6 +27,7 @@ const components: Components = {
   p: ({ children }) => <p className="mb-2 leading-relaxed last:mb-0">{children}</p>,
   ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
   ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
+  u: ({ children }) => <u className="underline underline-offset-2">{children}</u>,
   a: ({ href, children }) => (
     <a href={href} className="text-primary underline underline-offset-2">
       {children}
@@ -34,12 +36,12 @@ const components: Components = {
 };
 
 /**
- * Plain-markdown renderer for bios and posts (no rich text / BlockNote).
+ * Read-only markdown renderer for bios and posts. Edit with `MarkdownEditor`.
  */
 export function Markdown({ children, className }: MarkdownProps) {
   return (
     <div className={className ?? "text-foreground max-w-none"}>
-      <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkBreaks, remarkUnderline]} components={components}>
         {children}
       </ReactMarkdown>
     </div>

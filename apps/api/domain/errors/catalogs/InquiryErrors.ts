@@ -18,4 +18,16 @@ export class InquiryErrors {
     'Your inquiry was saved, but we could not send the email.',
     502
   );
+
+  static readonly TURNSTILE_FAILED = ResultError.create(
+    'INQUIRY_TURNSTILE_FAILED',
+    'Could not verify that this inquiry came from a person.',
+    400
+  );
+
+  static readonly SOURCE_TOKEN_INVALID = ResultError.create(
+    'INQUIRY_SOURCE_TOKEN_INVALID',
+    'That source answer is no longer accepted.',
+    400
+  );
 }

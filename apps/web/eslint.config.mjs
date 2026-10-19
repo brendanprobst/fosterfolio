@@ -11,6 +11,28 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    files: [
+      "client/components/inbox/**/*.{ts,tsx}",
+      "client/components/charts/**/*.{ts,tsx}",
+      "client/components/qr/**/*.{ts,tsx}",
+      "client/components/markdown/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@client/features/*", "@client/pages/*"],
+              message:
+                "Harvestable component: no app/feature imports. Pass data in via props.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

@@ -8,6 +8,11 @@ apps/**/package-lock.json
 !.env.example
 !**/.env.example
 .env
+
+# Claude Code per-user settings (shared config in .claude/ stays tracked)
+.claude/settings.local.json
+CLAUDE.local.md
+
 # TypeScript build output
 **/dist/
 **/dist-lambda/
@@ -21,6 +26,8 @@ test/coverage/
 
 # Next.js (apps/web) — build/cache; env templates stay tracked via !**/.env.example above
 apps/web/.next/
+apps/web/.next-e2e/
+apps/web/.next-dev/
 apps/web/out/
 apps/web/build
 apps/web/coverage
@@ -74,3 +81,6 @@ override.tf.json
 
 # Infisical CLI project link from `infisical init` (workspace id, not a token)
 **/.infisical.json
+
+# Terraform archive_file output (rebuilt on every plan/apply)
+**/.generated/

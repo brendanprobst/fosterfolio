@@ -32,26 +32,24 @@ export function AuthBootstrapShell({ children }: { children: ReactNode }) {
 
   const { loading, configError } = auth;
 
-  if (configError) {
-    return <>{children}</>;
-  }
+  const bootstrapping = loading && !configError;
 
-  if (!loading) {
-    return <>{children}</>;
-  }
-
-  if (isSessionBootstrapNonBlocking(pathname)) {
+  if (!bootstrapping || isSessionBootstrapNonBlocking(pathname)) {
+    // Keep `children` in the same slot whether or not the banner shows: changing the sibling
+    // count shifts every `useId` below (hydration attribute mismatch) and remounts the page.
     return (
       <>
-        <div
-          className="bg-primary/15 text-foreground pointer-events-none fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 border-b py-2 text-xs shadow-sm backdrop-blur-sm"
-          aria-busy="true"
-          role="status"
-          aria-live="polite"
-        >
-          <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
-          <span>Signing you in…</span>
-        </div>
+        {bootstrapping ? (
+          <div
+            className="bg-primary/15 text-foreground pointer-events-none fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 border-b py-2 text-xs shadow-sm backdrop-blur-sm"
+            aria-busy="true"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+            <span>Signing you in…</span>
+          </div>
+        ) : null}
         {children}
       </>
     );

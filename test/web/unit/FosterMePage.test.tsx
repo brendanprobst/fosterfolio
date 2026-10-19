@@ -1,9 +1,10 @@
 import { useAuth } from "@client/auth";
-import { useOwnerPets, usePet } from "@client/features/pets";
+import { useOwnerPets } from "@client/features/pets";
 import type { PetPublic } from "@client/features/pets";
 import { useUser } from "@client/features/users";
 import type { UserPublic } from "@client/features/users";
-import { petEditorEditHref } from "@client/lib/petEditorPath";
+import { captureFosterMeViewed } from "@client/lib/analytics/initFosterfolioAnalytics";
+import { petHrefFromFosterMe } from "@client/lib/petBioPath";
 import { FosterMePage } from "@client/pages/users";
 import { screen } from "@testing-library/react";
 import { usePathname } from "next/navigation";
@@ -30,7 +31,13 @@ vi.mock("@client/features/users", async (importOriginal) => {
 
 vi.mock("@client/features/pets", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@client/features/pets")>();
-  return { ...actual, useOwnerPets: vi.fn(), usePet: vi.fn() };
+  return { ...actual, useOwnerPets: vi.fn() };
+});
+
+vi.mock("@client/lib/analytics/initFosterfolioAnalytics", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@client/lib/analytics/initFosterfolioAnalytics")>();
+  return { ...actual, captureFosterMeViewed: vi.fn() };
 });
 
 vi.mock("qrcode", () => ({
@@ -90,6 +97,7 @@ describe("FosterMePage", () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());
     vi.mocked(usePathname).mockReturnValue("/@alex/foster-me");
+    vi.mocked(captureFosterMeViewed).mockClear();
     vi.mocked(useUser).mockReturnValue({
       data: user,
       isLoading: false,
@@ -98,74 +106,79 @@ describe("FosterMePage", () => {
     } as ReturnType<typeof useUser>);
   });
 
-  it("shows an actively fostering pet with no extra messaging", () => {
-    const active = pet();
+  it("shows one active pet as a foster-me card", () => {
+    const active = pet({ ageValue: 2, ageUnit: "years", size: "12 lb" });
     vi.mocked(useOwnerPets).mockReturnValue({
       data: [active],
       isLoading: false,
       isSuccess: true,
       isError: false,
     } as ReturnType<typeof useOwnerPets>);
-    vi.mocked(usePet).mockReturnValue({
-      data: active,
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as ReturnType<typeof usePet>);
 
     renderWithQueryClient(<FosterMePage />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Mochi" })).toBeInTheDocument();
-    expect(screen.getByText("Fostered by")).toBeInTheDocument();
-    expect(screen.getByText("Actively fostering Mochi")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Meet Mochi" })).toBeInTheDocument();
+    expect(screen.getByText("fostered by Alex Foster")).toBeInTheDocument();
+    expect(screen.getByText("Weight 12 lb")).toBeInTheDocument();
+    expect(screen.getByText("Age 2 years")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mochi" })).toHaveAttribute(
+      "href",
+      petHrefFromFosterMe("alex", "pet-1"),
+    );
+    expect(screen.getByRole("link", { name: "Mochi" })).not.toHaveAttribute("target");
     expect(
       screen.queryByText(/may not be who Alex Foster is fostering/i),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Expand" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Manage links" })).not.toBeInTheDocument();
+  });
+
+  it("shows every active pet in one preview", () => {
+    const mochi = pet();
+    const biscuit = pet({ id: "pet-2", name: "Biscuit" });
+    vi.mocked(useOwnerPets).mockReturnValue({
+      data: [mochi, biscuit, pet({ id: "pet-3", name: "Past", status: "adopted" })],
+      isLoading: false,
+      isSuccess: true,
+      isError: false,
+    } as ReturnType<typeof useOwnerPets>);
+
+    renderWithQueryClient(<FosterMePage />);
+
     expect(
-      screen.queryByRole("link", { name: /see who they’re fostering now/i }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
+      screen.getByRole("heading", { name: "Meet the pets Alex Foster is fostering." }),
+    ).toBeInTheDocument();
+    const mochiLink = screen.getByRole("link", { name: "Mochi (opens in a new tab)" });
+    expect(mochiLink).toHaveAttribute("href", petHrefFromFosterMe("alex", "pet-1"));
+    expect(mochiLink).toHaveAttribute("target", "_blank");
+    // Opener keeps sessionStorage (first-touch attribution) in the new tab.
+    expect(mochiLink).toHaveAttribute("rel", "opener");
     expect(
-      screen.queryByText(/always opens whoever this foster is listing now/i),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText(/"Foster Me" Link/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/flyer QR stays on/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("Edit Mochi's bio")).not.toBeInTheDocument();
-    expect(screen.queryByText("Visible only to you")).not.toBeInTheDocument();
+      screen.getByRole("link", { name: "Biscuit (opens in a new tab)" }),
+    ).toHaveAttribute("href", petHrefFromFosterMe("alex", "pet-2"));
+    expect(screen.queryByRole("link", { name: "Past" })).not.toBeInTheDocument();
   });
 
   it("shows a fallback notice when the latest pet is not actively fostering", () => {
-    const adopted = pet({ status: "adopted" });
+    const adopted = pet({ status: "adopted", size: "8 lb" });
     vi.mocked(useOwnerPets).mockReturnValue({
       data: [adopted],
       isLoading: false,
       isSuccess: true,
       isError: false,
     } as ReturnType<typeof useOwnerPets>);
-    vi.mocked(usePet).mockReturnValue({
-      data: adopted,
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as ReturnType<typeof usePet>);
 
     renderWithQueryClient(<FosterMePage />);
 
     expect(screen.getByRole("status")).toHaveTextContent(
       /may not be who Alex Foster is fostering right now/i,
     );
-    expect(screen.getByRole("heading", { level: 1, name: "Mochi" })).toBeInTheDocument();
-    expect(screen.queryByText("Actively fostering Mochi")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: /see who they’re fostering now/i }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
-    expect(
-      screen.queryByText(/always opens whoever this foster is listing now/i),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Meet Mochi" })).toBeInTheDocument();
+    expect(screen.getByText("Weight 8 lb")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Expand" })).not.toBeInTheDocument();
   });
 
-  it("hides the inquiry form from the owning foster", () => {
+  it("shows the owner the same preview plus manage links, without capture tools", () => {
     const active = pet();
     vi.mocked(useAuth).mockReturnValue(
       authSignedIn({ id: "owner-1", email: "alex@example.com" } as User),
@@ -176,27 +189,17 @@ describe("FosterMePage", () => {
       isSuccess: true,
       isError: false,
     } as ReturnType<typeof useOwnerPets>);
-    vi.mocked(usePet).mockReturnValue({
-      data: active,
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as ReturnType<typeof usePet>);
 
     renderWithQueryClient(<FosterMePage />);
 
-    expect(screen.queryByRole("button", { name: "Expand" })).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/always opens whoever this foster is listing now/i),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("Visible only to you")).toHaveLength(2);
-    expect(screen.queryByText("Locked for you, open to visitors")).not.toBeInTheDocument();
-    expect(screen.queryByRole("form", { name: /contact the foster/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /send inquiry/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /edit mochi/i })).toHaveAttribute(
+    expect(screen.getByRole("heading", { name: "Meet Mochi" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Manage links" })).toHaveAttribute(
       "href",
-      petEditorEditHref("pet-1", "/@alex/foster-me"),
+      "/profile/links",
     );
+    expect(screen.queryByRole("button", { name: "Expand" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: /contact the foster/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/"Foster Me" Link/i)).not.toBeInTheDocument();
   });
 
   it("shows an empty state with profile and search links when there are no pets", () => {
@@ -206,13 +209,6 @@ describe("FosterMePage", () => {
       isSuccess: true,
       isError: false,
     } as ReturnType<typeof useOwnerPets>);
-    vi.mocked(usePet).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as ReturnType<typeof usePet>);
-
     renderWithQueryClient(<FosterMePage />);
 
     expect(
@@ -238,13 +234,6 @@ describe("FosterMePage", () => {
       isError: true,
       error: new Error("Pets unavailable"),
     } as ReturnType<typeof useOwnerPets>);
-    vi.mocked(usePet).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as ReturnType<typeof usePet>);
-
     renderWithQueryClient(<FosterMePage />);
 
     expect(screen.getByText("Pets unavailable")).toBeInTheDocument();
@@ -255,24 +244,54 @@ describe("FosterMePage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows a selected-pet error instead of a blank main", () => {
-    const active = pet();
+  it("shows a spinner, not a page skeleton, while loading", () => {
     vi.mocked(useOwnerPets).mockReturnValue({
-      data: [active],
-      isLoading: false,
-      isSuccess: true,
+      data: undefined,
+      isLoading: true,
+      isSuccess: false,
       isError: false,
     } as ReturnType<typeof useOwnerPets>);
-    vi.mocked(usePet).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: true,
-      error: new Error("Failed to load pet."),
-    } as ReturnType<typeof usePet>);
-
     renderWithQueryClient(<FosterMePage />);
 
-    expect(screen.getByText("Failed to load pet.")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Mochi" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Loading…");
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+  });
+
+  describe("foster_me_viewed capture", () => {
+    beforeEach(() => {
+      vi.mocked(useOwnerPets).mockReturnValue({
+        data: [pet()],
+        isLoading: false,
+        isSuccess: true,
+        isError: false,
+      } as ReturnType<typeof useOwnerPets>);
+    });
+
+    it("skips the owner's own refresh when the profile loads before the session restores", () => {
+      vi.mocked(useAuth).mockReturnValue({ ...authLoggedOut(), loading: true });
+
+      const { rerender } = renderWithQueryClient(<FosterMePage />);
+      expect(captureFosterMeViewed).not.toHaveBeenCalled();
+
+      vi.mocked(useAuth).mockReturnValue(
+        authSignedIn({ id: "owner-1", email: "alex@example.com" } as User),
+      );
+      rerender(<FosterMePage />);
+
+      expect(captureFosterMeViewed).not.toHaveBeenCalled();
+    });
+
+    it("records one view once the session resolves signed out", () => {
+      vi.mocked(useAuth).mockReturnValue({ ...authLoggedOut(), loading: true });
+
+      const { rerender } = renderWithQueryClient(<FosterMePage />);
+      vi.mocked(useAuth).mockReturnValue(authLoggedOut());
+      rerender(<FosterMePage />);
+      rerender(<FosterMePage />);
+
+      expect(vi.mocked(captureFosterMeViewed).mock.calls).toEqual([
+        [{ ownerId: "owner-1", petCount: 1 }],
+      ]);
+    });
   });
 });

@@ -38,4 +38,11 @@ describe("Markdown", () => {
     expect(paragraph).toHaveTextContent(/Line two/);
     expect(paragraph?.querySelector("br")).not.toBeNull();
   });
+
+  it("renders <u> pairs as underline without enabling other raw HTML", () => {
+    const { container } = render(<Markdown>{"I <u>love</u> naps <b>x</b>"}</Markdown>);
+
+    expect(screen.getByText("love").tagName).toBe("U");
+    expect(container.querySelector("b")).toBeNull();
+  });
 });

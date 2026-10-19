@@ -1,12 +1,15 @@
 import { ResultError } from '@api/domain/errors/ResultError';
+import { AnalyticsErrors } from '@api/domain/errors/catalogs/AnalyticsErrors';
 import { AuthErrors } from '@api/domain/errors/catalogs/AuthErrors';
 import { CommonErrors } from '@api/domain/errors/catalogs/CommonErrors';
 import { InquiryErrors } from '@api/domain/errors/catalogs/InquiryErrors';
+import { NotificationErrors } from '@api/domain/errors/catalogs/NotificationErrors';
 import { PetErrors } from '@api/domain/errors/catalogs/PetErrors';
 import { PostErrors } from '@api/domain/errors/catalogs/PostErrors';
 import { SearchErrors } from '@api/domain/errors/catalogs/SearchErrors';
 import { StarErrors } from '@api/domain/errors/catalogs/StarErrors';
 import { StorageErrors } from '@api/domain/errors/catalogs/StorageErrors';
+import { TrackedLinkErrors } from '@api/domain/errors/catalogs/TrackedLinkErrors';
 import { UserErrors } from '@api/domain/errors/catalogs/UserErrors';
 
 /**
@@ -46,6 +49,21 @@ export class ErrorCatalog {
   static readonly INQUIRY_INVALID_INPUT = InquiryErrors.INVALID_INPUT;
   static readonly INQUIRY_TARGET_NOT_FOUND = InquiryErrors.TARGET_NOT_FOUND;
   static readonly INQUIRY_EMAIL_FAILED = InquiryErrors.EMAIL_FAILED;
+  static readonly INQUIRY_TURNSTILE_FAILED = InquiryErrors.TURNSTILE_FAILED;
+  static readonly INQUIRY_SOURCE_TOKEN_INVALID = InquiryErrors.SOURCE_TOKEN_INVALID;
+
+  static readonly ANALYTICS_FORBIDDEN = AnalyticsErrors.FORBIDDEN;
+  static readonly ANALYTICS_INVALID_RANGE = AnalyticsErrors.INVALID_RANGE;
+
+  static readonly TRACKED_LINK_NOT_FOUND = TrackedLinkErrors.NOT_FOUND;
+  static readonly TRACKED_LINK_FORBIDDEN = TrackedLinkErrors.FORBIDDEN;
+  static readonly TRACKED_LINK_INVALID_INPUT = TrackedLinkErrors.INVALID_INPUT;
+  static readonly TRACKED_LINK_DEFAULT_EXISTS = TrackedLinkErrors.DEFAULT_EXISTS;
+
+  static readonly NOTIFICATION_NOT_FOUND = NotificationErrors.NOT_FOUND;
+  static readonly NOTIFICATION_INVALID_INPUT = NotificationErrors.INVALID_INPUT;
+  static readonly NOTIFICATION_INVALID_STATUS = NotificationErrors.INVALID_STATUS;
+  static readonly NOTIFICATION_UNKNOWN_TYPE = NotificationErrors.UNKNOWN_TYPE;
 
   static readonly STORAGE_INVALID_INPUT = StorageErrors.INVALID_INPUT;
   static readonly STORAGE_CONTENT_TYPE_INVALID = StorageErrors.CONTENT_TYPE_INVALID;
@@ -65,13 +83,16 @@ export class ErrorCatalog {
 }
 
 export {
+  AnalyticsErrors,
   AuthErrors,
   CommonErrors,
   InquiryErrors,
+  NotificationErrors,
   PetErrors,
   PostErrors,
   SearchErrors,
   StarErrors,
   StorageErrors,
+  TrackedLinkErrors,
   UserErrors,
 };

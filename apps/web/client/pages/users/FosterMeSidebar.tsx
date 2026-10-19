@@ -14,6 +14,7 @@ type FosterMeSidebarProps = {
   ownerAvatarUrl: string | null;
   isCurrentFoster: boolean;
   isOwner: boolean;
+  capturePetEvents?: boolean;
   fosterMePath: string;
 };
 
@@ -26,11 +27,13 @@ export function FosterMeSidebar({
   ownerAvatarUrl,
   isCurrentFoster,
   isOwner,
+  capturePetEvents = false,
   fosterMePath,
 }: FosterMeSidebarProps) {
   return (
     <PublicPetSidebar
       isOwner={isOwner}
+      capturePetEvents={capturePetEvents}
       ownerId={ownerId}
       ownerRef={ownerRef}
       ownerName={ownerName}

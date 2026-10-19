@@ -14,6 +14,11 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams("q=mochi"),
 }));
 
+// The header's inbox badge polls the API; these tests are about search results.
+vi.mock("@client/features/notifications/useUnreadNotificationCount", () => ({
+  useUnreadNotificationCount: vi.fn(() => 0),
+}));
+
 vi.mock("@client/lib/fosterfolioFeatureFlags", () => ({
   isFosterfolioFeedEnabled: () => false,
   isFosterfolioSearchEnabled: vi.fn(() => true),

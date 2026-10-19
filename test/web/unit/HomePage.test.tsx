@@ -1,8 +1,8 @@
 import { useAuth } from "@client/auth";
 import { HomePage } from "@client/pages/home";
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { authLoggedOut, authSignedIn } from "./support/renderWithProviders";
+import { authLoggedOut, authSignedIn, renderWithQueryClient } from "./support/renderWithProviders";
 
 vi.mock("@client/auth", () => ({
   useAuth: vi.fn(),
@@ -14,7 +14,7 @@ describe("HomePage", () => {
   });
 
   it("explains Fosterfolio instead of showing the feed", () => {
-    render(<HomePage />);
+    renderWithQueryClient(<HomePage />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Fosterfolio" })).toBeInTheDocument();
     expect(screen.getByText(/public pet bios and qr/i)).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe("HomePage", () => {
 
   it("sends signed-in visitors to their profile", () => {
     vi.mocked(useAuth).mockReturnValue(authSignedIn());
-    render(<HomePage />);
+    renderWithQueryClient(<HomePage />);
 
     expect(screen.getByRole("link", { name: "Your profile" })).toHaveAttribute(
       "href",

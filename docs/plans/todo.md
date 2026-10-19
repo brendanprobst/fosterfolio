@@ -65,8 +65,19 @@ Verify afterwards in **Lambda → Configuration → Environment variables**, the
 
 ## 3. Product work (not blocking, but ahead of go-live)
 
+- **Privacy policy page.** Not started; raised 2026-10-18 while setting up Turnstile (review item C1 in [`fosterfolio-v2-review.md`](fosterfolio-v2-review.md)). There is no `/privacy` route and no link to one anywhere in `apps/web`. It isn't needed for a private beta with known testers, but it is needed before the site opens to the public. Visitors' data reaches these third parties, and the policy should name each one:
+  - **Cloudflare Turnstile.** On inquiry submit it collects IP address, TLS fingerprint, User-Agent and the page origin. Link Cloudflare's [Turnstile Privacy Addendum](https://www.cloudflare.com/turnstile-privacy-policy/).
+  - **PostHog.** Cookieless analytics (`persistence: 'memory'`), page and inquiry events, and city-level GeoIP.
+  - **Supabase.** Accounts, profiles, pets, and every inquiry.
+  - **AWS** (CloudFront, Lambda, SES). Hosting, plus inquiry emails to the foster with the sender's address as Reply-To, once SES is live.
+  - **Zippopotam.us.** The API sends a user's profile ZIP to `api.zippopotam.us` to look up the city.
+  - **The inquiry itself.** Name, email, message and ZIP go to the foster parent being contacted.
+
+  Do: add a static `/privacy` page. Link it from a short line under the inquiry submit button, from sign-up, and from somewhere every page shows. There is no shared footer: only `HomePage` has a `<footer>`, so either add one to `AppShell` or put a link in `AppHeader`. Turnstile pre-clearance stays **off**: the site isn't proxied through Cloudflare, so its cookie would do nothing and would only need disclosing. Have someone qualified review the text before opening to EU visitors.
+
 - **User handles / vanity URLs.** Implemented — see [the plan](vanity_urls.plan.md). Unique `handle` on `public.users`, API lookup by id or handle, and a root-level `/@handle` route family (profile, `/foster-me`, `/pet/{id}`) replacing `/users/{id}` and `/pets/{id}`. CloudFront now rewrites the `@` prefix family; a new `terraform apply` is still required before those URLs work on the live distribution.
 - **Warn before opening a connected-site link.** Not implemented yet — deliberately deferred. `SocialLinksDialog`'s links and the "Where you share" card on `/profile` (plus the public profile's own link list) currently open `link.url` directly via a plain `<a target="_blank">`. Since these are user-entered URLs, clicking one should first show a confirmation modal warning that the destination is unverified, with the plain URL rendered underneath the label (not just the label) so the visitor can see exactly where they're headed before continuing.
+- **Animated feedback on each step of the inquiry submit flow.** Not started. The guest submit in `apps/web/client/features/inquiries/` (`InquiryForm.tsx`, `ExpandableInquiryForm.tsx`, `InquiryCta.tsx`) works but each transition is a hard swap: the form expands, the fieldset goes disabled while pending, then it collapses into a static success alert. Every successful step should get a small animation — e.g. expand/open, a sending state on the submit button, a checkmark or confetti-style success beat, then the collapse into the confirmation. No animation library is in `apps/web/package.json` today; prefer Tailwind / `tw-animate-css` transitions first and only add `motion` if that isn't enough. Respect `prefers-reduced-motion`, and keep the existing E2E selectors on pet bio, public profile, and foster-me working.
 - **Header light/dark switcher.** Decided 2026-09-26: a control in `AppHeader` that lets the visitor pick light or dark. Not a Lattice env flag — `latticeFeatureFlags.ts` only has `isLatticeE2eEnabled()` (`NEXT_PUBLIC_LATTICE_E2E`) and is the wrong seam for a per-user preference. The tokens are already painted: `globals.css` defines `:root` and `.dark` palettes, Tailwind's `@custom-variant dark (&:is(.dark *))` is wired, and [`apps/web/docs/ui-and-styling.md`](../../apps/web/docs/ui-and-styling.md) already says to toggle by putting class `dark` on `<html>`. Nothing does that today — `app/layout.tsx` renders a plain `<html lang="en">`, `app/providers.tsx` has no theme provider, and `next-themes` is not in `apps/web/package.json`. Suggested slice: add `next-themes`, wrap the tree in `ThemeProvider` (`attribute="class"`, `defaultTheme="light"`, persist to `localStorage`), put `suppressHydrationWarning` on `<html>` (already on `<body>`), and drop a compact toggle in `AppHeader`'s right-side cluster next to Sign in / Sign out. Every product page already goes through `AppShell` → `AppHeader` (home, search, profile, public profile, pet bio), so one control covers them; auth pages do not use the shell, which is fine — the stored preference still applies once they land on a shelled page. Keep it two-state (light / dark), not a third "system" option, unless that gets asked for. No `Switch` primitive exists yet — either `npx shadcn@latest add switch` or an icon `Button` (`Sun` / `Moon` from lucide). Static export (`output: "export"`) is compatible as long as the provider is client-only. Leave `PetQrDownload`'s hardcoded `#111` / `#fff` alone — those are the PNG, not the page theme. Verify `/ui` plus one product page in both modes; do not hard-code colors in the new control.
 
 ## 4. First user-demo feedback (2026-09-26)
@@ -81,16 +92,16 @@ Raised after a demo with a target-demographic user. Grounded against the current
 - ~~The vanity URL should default to the owner's most recent foster, not their profile~~ — **resolved, superseded by [`vanity_urls.plan.md`](vanity_urls.plan.md).** Rather than changing what the root vanity URL points at, the root stays the profile and gets a dedicated sibling, `/@handle/foster-me`, for this exact use case. See that plan for the selection rule (still a defaulted, not fully confirmed, decision) and why it must not redirect to a fixed pet permalink.
 - **Pets should support multiple photos, not one.** — **Write path in; public gallery still open (item 6.1).** `photos jsonb` migration + create/update + the pet editor list (add / remove / reorder, `primaryPhotoUrl` = cover / first) are in. Pet bio, cards, and search still render only `primaryPhotoUrl`. Existing single-URL pets should keep working as a one-item array.
 - **Basic page-view analytics per pet, and maybe per profile.** PostHog is already wired (`apps/web/client/lib/analytics/`, `docs/playbooks/posthog-analytics.md`), but that's third-party event/session analytics with no read path back into the product — it can't power a number shown on `/profile` today. A real "views" count needs its own counter: most likely a small table incremented on `GET /pets/:id` / `GET /users/:id` (mirroring how `profile_stars` already counts something per-user), surfaced as a number or tiny chart in the owner-only view of `PetBioPage.tsx` and somewhere on `/profile`. No existing seam covers this — it's new end-to-end work, not a wiring change.
-- **`/@handle/foster-me` and the pet bio (`/@handle/pet/{id}`) should not be the same page.** Today `FosterMePage` renders `PetBioView`, so a flyer scan and a permalink look identical. They have different jobs. Foster-me is the stable "whoever I'm fostering now" address (it must not redirect to a pet id — see [vanity URLs](vanity_urls.plan.md)). Optimize that page for the two actions a visitor should take on the spot: **submit an inquiry**, and/or **save the current pet's permalink** so they can reopen `/@handle/pet/{id}` later in the adoption process. The pet bio stays the durable detail page (gallery, bio, facts) for that one animal. A save/bookmark of the pet page is not the same as the post-MVP "add Fosterfolio to the home screen" item below — this one is "keep this pet," and it can be a copy-link / share-sheet / browser-bookmark prompt pointed at the pet URL. Do not encode the foster-me URL as the thing they save; that address will show a different animal later.
+- ~~**`/@handle/foster-me` and the pet bio (`/@handle/pet/{id}`) should not be the same page.**~~ **Done in 5b — foster-me is a preview page.** The old idea of putting the inquiry form on foster-me is superseded: the preview is intentionally minimal and inquiries happen on the pet bio. See [slice 5b](v2_slice5b_foster_me_links.plan.md).
 - **Stretch, post-MVP — a bookmark/add-to-home-screen CTA on pet bio pages.** Nothing to build on yet: no `manifest.json` or install-prompt handling exists in `apps/web` today. Browser support is uneven — the `beforeinstallprompt` event Chrome/Android uses has no equivalent on iOS Safari, which only offers a manual "Add to Home Screen" via the share sheet, so the CTA would need to degrade to an instructional prompt there.
 - **Stretch, post-MVP — a resources section (unlisted YouTube videos) for new foster parents.** No existing embed component or resources route. No architectural blocker; scopes cleanly later as a new `client/pages/resources/` page wrapping `<iframe>` embeds.
 
 ## 5. Loose ends
 
-- **Run the rewritten auth-guard E2E spec.** `test/web/e2e/auth-guard.spec.ts` was retargeted from the deleted `/things` to `/profile` and has not been executed. It needs ports 3000 and 3001 free — Playwright starts its own stack with a synthetic session rather than reusing a `npm run dev` pointed at real Supabase. Stop the dev server, then `npx playwright test --config test/web/playwright.config.ts auth-guard`.
+- **Run the rewritten auth-guard E2E spec.** `test/web/e2e/auth-guard.spec.ts` was retargeted from the deleted `/things` to `/profile` and has not been executed. Playwright starts its own stack (3100/3101, own `.next-e2e` build dir) with a synthetic session, so it can run alongside `npm run dev`: `npx playwright test --config test/web/playwright.config.ts auth-guard`.
 - **Decide on `zustand`.** Still in `apps/web/package.json` but with no consumers since `thingsStore.ts` was deleted. Kept for now because it is part of the documented state stack in [`apps/web/client/stores/AGENTS.md`](../../apps/web/client/stores/AGENTS.md); drop it if no screen needs client UI state.
 - **Investigate Supabase Advisor: "Clients can list all files in this bucket."** The warning is about `fosterfolio_media_public_read` on `storage.objects` in [`supabase/migrations/20260804031454_app_create_core_schema.sql`](../../supabase/migrations/20260804031454_app_create_core_schema.sql) — `FOR SELECT USING (bucket_id = 'fosterfolio-media')` with no path restriction. The bucket is already `public = true`, so individual objects are reachable by known URL without that policy; SELECT on `storage.objects` is what lets an anon client *list* every object via the Storage/PostgREST API. Checkpoint 4 tried to blunt enumeration by giving uploaded filenames a random suffix ([MVP plan](fosterfolio_mvp.plan.md) §4), but listing still exposes the full set. Likely fix is drop the public SELECT (or restrict it to `auth.uid()`'s folder) and confirm browsers still load `<img src="{publicUrl}">` from the public bucket. Writes already require own-folder; `user_storage_bytes` is `security definer` and granted only to `service_role`, so it should keep working. Verify in the dashboard after a new migration, and check that seed/dev picsum URLs (not storage objects) are unaffected.
-- ~~add a "visible only to you" label to info cards on pubic facing pages for content only rendered to a user~~ **Done 2026-09-30.** `OwnerOnlyLabel` on owner-only chrome: public-profile sidebar, pet-bio edit card, and `ShareLinkCard` (foster-me preview + pet-bio share).
+- ~~add a "visible only to you" label to info cards on pubic facing pages for content only rendered to a user~~ **Done 2026-09-30.** `OwnerOnlyLabel` on owner-only chrome: public-profile sidebar, pet-bio edit card, and `ShareLinkCard` (foster-me preview + pet-bio share). → Superseded by 5a-owner-shell (§7): the owner/public split becomes structural and these labels go away.
 - ~~be able to edit a pet's bio from their page, or the foster me page~~ **Done 2026-09-30.** Owner edit cards on `PetBioPage` and `FosterMePage` go to `/profile/pets/edit?petId=` with `?from=` back to the public page.
 
 ---
@@ -115,7 +126,7 @@ Do these, in this order, **before** items 1–2 (allowlist + AWS). After they la
 
 ### 6.2 Inquiry form — actually submit it, then buff UX
 
-~~**Done 2026-10-01.**~~ Guest submit still uses the existing `POST /inquiries` form. Pending disables the whole fieldset; errors keep the draft; success names the foster; expand closes after send and still shows the success alert (including on small screens). E2E covers pet bio, public profile, and foster-me. Manual inbox check is still useful locally if you want to confirm the logger/SES adapter. No captcha; API Gateway throttle is enough.
+~~**Done 2026-10-01.**~~ Guest submit still uses the existing `POST /inquiries` form. Pending disables the whole fieldset; errors keep the draft; success names the foster; expand closes after send and still shows the success alert (including on small screens). E2E covers pet bio, public profile, and foster-me. Manual inbox check is still useful locally if you want to confirm the logger/SES adapter. ~~No captcha; API Gateway throttle is enough.~~ Superseded in v2: Turnstile is on the form, and as of 2026-10-18 the deployed API refuses to start without its secret (review S1). Setup: [`docs/deploy-aws.md`](../deploy-aws.md) → "Inquiry secrets".
 
 ### 6.3 Hide feed and search behind product flags (do not delete); `/` becomes the info page
 
@@ -124,6 +135,43 @@ Do these, in this order, **before** items 1–2 (allowlist + AWS). After they la
 ### After 6.x
 
 Pre-deploy prep = item 2 (`terraform.tfvars` + `deploy:aws`) and item 1 (allowlist emails), then the browser checklist in [private-beta.md §5](../playbooks/private-beta.md). Still later, not this slice: connected-site warning modal, theme switcher, view counts, `user_shelters` table.
+
+---
+
+## 7. v2 slice 5a — UX polish
+
+Plan: [v2_slice5a_ux_polish.plan.md](v2_slice5a_ux_polish.plan.md). Implementation: [plan 1](v2_slice5a_impl_1_analytics_and_quick_wins.plan.md), [plan 2 — inbox](v2_slice5a_impl_2_inbox.plan.md), [plan 3 — layouts](v2_slice5a_impl_3_layouts.plan.md).
+
+- [x] 5a-presets — drop "Other" and "Shelter listing" presets
+- [x] 5a-qr-sizes — Web / A4 / Large print QR downloads
+- [x] 5a-charts — shared chart primitives
+- [x] 5a-analytics-page — real charts, prefetched ranges, right skeleton
+- [x] 5a-owner-widget — tiles + sparklines + week-over-week
+- [x] 5a-inbox — facelift + 4 bugs, harvest-ready (plan 2)
+- [x] 5a-owner-shell — admin hero + public preview (plan 3)
+- [x] 5a-guest-bio — single column + floating inquiry CTA (plan 3)
+- [x] 5a-profile — /profile on the owner shell (plan 3)
+
+Slice 5a complete — next: [slice 5b](v2_slice5b_foster_me_links.plan.md) (implementation plans to be written).
+
+~~Known red, still open: the 3 `test/web/unit/SearchPage.test.tsx` tests.~~ **Fixed 2026-10-18** (`433134b`). The test now stubs `useUnreadNotificationCount`, which was the hook calling `usePathname` and needing a QueryClient.
+
+Deferred, not this slice: draw `apps/web/app/icon.svg` in the center of the QR preview and all three downloads. The `qrcode` package has no logo option — raise error correction to `H`, composite the mark onto the PNG canvas and into the SVG string, keep it about 15–20% of the code width on a white pad, then scan a PNG and the SVG.
+
+---
+
+## 8. v2 slice 5b — foster-me links
+
+Plan: [v2_slice5b_foster_me_links.plan.md](v2_slice5b_foster_me_links.plan.md).
+
+- [x] 5b-todo-md — wire this section
+- [x] 5b-schema — `tracked_links.target` + nullable `pet_id`; `analytics_owner_daily`; `inquiries.via_foster_me`
+- [x] 5b-api-links — foster-me link create/list, resolve returns target, reserved `default` channel
+- [x] 5b-events-rollup — `foster_me_viewed`, via-foster-me marker, owner rollup
+- [x] 5b-owner-analytics-api — `GET /me/links/analytics`
+- [x] 5b-preview-page — foster-me preview: avatars, name/weight/age, taps go to the pet bio
+- [x] 5b-links-page — `/profile/links`: modal create, tutorial, legacy pet links read-only
+- [x] 5b-rewire — entry points, retire `/pets/[id]/links` and the summary endpoint
 
 ---
 

@@ -11,6 +11,6 @@
 - `Container` is a thin composition root. Domain wiring lives in `infrastructure/composition/*` modules; add a module and delegate getters rather than growing `container.ts` ad hoc.
 - External HTTP to PostgREST goes through `DataAdapter` (`getWithCount`, `rpc`, `insertReturning` included).
 
-## Cursor
+## Agent expert
 
-The **infra expert** rule (`.cursor/rules/infra-expert.mdc`) applies when editing under `apps/api/infrastructure/` or `apps/api/config/`.
+The **infra expert** (`agents/prompts/infra-expert.md`) applies when editing under `apps/api/infrastructure/`, `apps/api/config/`, `apps/web/client/lib/`, or root `seed.json`.

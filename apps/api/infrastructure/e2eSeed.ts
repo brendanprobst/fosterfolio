@@ -83,6 +83,7 @@ export function seedFosterfolioE2eData(input: {
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
+    analyticsStoppedAt: null,
   });
   petRepository.seed(pet, [
     {

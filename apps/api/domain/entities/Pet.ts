@@ -97,6 +97,7 @@ export type PetProps = {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  analyticsStoppedAt: Date | null;
 };
 
 export function isPetSpecies(value: string): value is PetSpecies {
@@ -137,6 +138,10 @@ export class Pet {
     return this.props.ownerId === userId;
   }
 
+  get analyticsStoppedAt(): Date | null {
+    return this.props.analyticsStoppedAt;
+  }
+
   softDelete(at = new Date()): void {
     this.props.deletedAt = at;
   }
@@ -174,7 +179,15 @@ export class Pet {
     if (input.size !== undefined) {
       this.props.size = input.size === null ? null : input.size.trim() || null;
     }
-    if (input.status !== undefined) this.props.status = input.status.trim();
+    if (input.status !== undefined) {
+      const next = input.status.trim();
+      if (next === 'adopted' && this.props.status !== 'adopted') {
+        this.props.analyticsStoppedAt = new Date();
+      } else if (next !== 'adopted' && this.props.status === 'adopted') {
+        this.props.analyticsStoppedAt = null;
+      }
+      this.props.status = next;
+    }
     if (input.subStatus !== undefined) {
       this.props.subStatus =
         input.subStatus === null ? null : input.subStatus.trim() || null;
@@ -276,6 +289,7 @@ export class Pet {
       created_at: this.props.createdAt.toISOString(),
       updated_at: this.props.updatedAt.toISOString(),
       deleted_at: this.props.deletedAt?.toISOString() ?? null,
+      analytics_stopped_at: this.props.analyticsStoppedAt?.toISOString() ?? null,
     };
   }
 }

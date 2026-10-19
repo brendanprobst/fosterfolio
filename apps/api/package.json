@@ -4,14 +4,19 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "build:lambda": "esbuild lambda.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/index.js",
+    "build:lambda": "esbuild lambda.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/index.js && esbuild analyticsRollup.ts --bundle --platform=node --target=node22 --format=cjs --tsconfig=tsconfig.json --outfile=dist-lambda/rollup.js",
     "start": "node ./dist/bin/www.js",
+    "predev": "npm run build -w @lattice/notifications",
     "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only ./bin/www.ts",
+    "predev:prod": "npm run build -w @lattice/notifications",
     "dev:prod": "FOSTERFOLIO_ENV=prod ts-node-dev -r tsconfig-paths/register --respawn --transpile-only ./bin/www.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit && tsc --noEmit -p tsconfig.rollup.json"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.1148.0",
     "@aws-sdk/client-ssm": "^3.1014.0",
+    "@lattice/analytics": "*",
+    "@lattice/notifications": "*",
     "@vendia/serverless-express": "^4.12.6",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.6",

@@ -33,7 +33,7 @@ Confirm in **AWS Console → Lambda → your API function → Configuration → 
 - **Trigger**: `enforce_allowed_email` runs `BEFORE INSERT ON auth.users` and calls the public function.
 - **API middleware**: `requireAllowedEmail` runs after `requireSupabaseAuth` on every protected route. When `EMAIL_ALLOWLIST_ENABLED` is off, the factory returns a pass-through. When on, it consults `public.allowed_emails` (with a 60s in-process cache) and returns 403 `EMAIL_NOT_APPROVED` for emails not on the list.
 
-The trigger and table are defined in `supabase/migrations/20261003120000_app_v1_schema.sql`. That file is the full v1 schema (allowlist plus product tables) and is meant for an empty database.
+The trigger and table are defined in `supabase/migrations/feature-migrations/20261003120000_app_v1_schema.sql`. That file is the v1 schema (allowlist plus product tables). `supabase/migrations/master-migration/LATEST_20261008.sql` is the full schema for an empty database.
 
 ### If the SQL Editor still rejects the trigger
 

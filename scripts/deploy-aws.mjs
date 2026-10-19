@@ -2,7 +2,8 @@
 /**
  * Deploy API (Lambda bundle) + Terraform (AWS infra) + static web build + S3 sync.
  *
- * Order: build Lambda → terraform apply → read api_url → build web (NEXT_PUBLIC_API_URL from Terraform)
+ * Order: read PostHog query credentials from Infisical → build Lambda → terraform apply
+ * → read api_url → build web (NEXT_PUBLIC_API_URL from Terraform)
  * → aws s3 sync → cloudfront invalidation. Supabase NEXT_PUBLIC_* come from Infisical or apps/web/.env.<env>.
  *
  *   npm run deploy:aws
@@ -21,11 +22,12 @@
  * Prerequisites: AWS CLI + credentials, Terraform, terraform.tfvars in the selected env
  * (or equivalent TF_VAR_*). See docs/deploy-aws.md.
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { loadWebEnv, takeEnvArg, terraformDir } from "./deploy-env.mjs";
+import { loadPosthogTfEnv } from "./posthog-infisical.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -98,6 +100,7 @@ function main() {
   const tfDir = terraformDir(root, opts.env);
   const chdir = `-chdir=${tfDir}`;
   console.log(`→ env ${opts.env} (${tfDir})\n`);
+  applyPosthogTfEnv(opts.env);
 
   if (!opts.skipApiBuild) {
     console.log("→ npm run api:build:lambda\n");
@@ -178,6 +181,51 @@ function main() {
 
   console.log("\nDeploy finished.");
   printOutputs(chdir);
+}
+
+function infisicalProjectId() {
+  const file = join(root, ".infisical.json");
+  if (!existsSync(file)) return null;
+  try {
+    const id = JSON.parse(readFileSync(file, "utf8")).workspaceId;
+    return typeof id === "string" && id.trim() ? id.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyPosthogTfEnv(envName) {
+  const projectId = infisicalProjectId();
+  if (!projectId) {
+    console.log("→ skip PostHog credentials (no .infisical.json)\n");
+    return;
+  }
+  const loaded = loadPosthogTfEnv({ envName, projectId });
+  Object.assign(process.env, loaded.env);
+  if (loaded.status === "loaded") {
+    console.log(
+      `→ PostHog project ${process.env.TF_VAR_posthog_project_id} from Infisical (ID in /fosterfolio/shared, key in /fosterfolio/sensitive)\n`,
+    );
+    return;
+  }
+  if (loaded.status === "partial") {
+    const missing = process.env.TF_VAR_posthog_project_id
+      ? "POSTHOG_PERSONAL_API_KEY in /fosterfolio/sensitive"
+      : "POSTHOG_PROJECT_ID in /fosterfolio/shared";
+    console.warn(
+      `→ Infisical is missing ${missing}. The rollup Lambda needs both, so its hourly schedule will be disabled.\n`,
+    );
+    return;
+  }
+  if (loaded.status === "missing") {
+    console.warn(
+      "→ No PostHog query credentials in Infisical (POSTHOG_PROJECT_ID in /fosterfolio/shared, POSTHOG_PERSONAL_API_KEY in /fosterfolio/sensitive). The rollup's hourly schedule will be disabled until both are set.\n",
+    );
+    return;
+  }
+  console.warn(
+    "→ Could not read Infisical /fosterfolio/shared or /fosterfolio/sensitive. The rollup uses whatever PostHog values are in tfvars, and its hourly schedule is disabled if there are none.\n",
+  );
 }
 
 function syncInfisicalOutputs(envName) {

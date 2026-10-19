@@ -7,6 +7,7 @@ type ContactFosterBlockProps = {
   targetPetId?: string | null;
   petName?: string;
   fosterName?: string;
+  capturePetEvents?: boolean;
 };
 
 /** Live inquiry for visitors. Owners do not see this form on their own pet. */
@@ -15,6 +16,7 @@ export function ContactFosterBlock({
   targetPetId,
   petName,
   fosterName,
+  capturePetEvents = false,
 }: ContactFosterBlockProps) {
   if (!petName) return null;
   return (
@@ -23,6 +25,8 @@ export function ContactFosterBlock({
       targetPetId={targetPetId}
       heading="Contact the foster"
       fosterName={fosterName}
+      petName={petName}
+      capturePetEvents={capturePetEvents}
     />
   );
 }

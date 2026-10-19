@@ -1,6 +1,5 @@
 "use client";
 
-import { OwnerOnlyLabel } from "@client/components/OwnerOnlyLabel";
 import { buttonVariants } from "@client/components/ui/button";
 import {
   Card,
@@ -30,10 +29,7 @@ export function EditPetBioCard({
   return (
     <Card size="sm">
       <CardHeader>
-        <div className="space-y-1">
-          <OwnerOnlyLabel />
-          <CardTitle>Edit {petName}&apos;s bio</CardTitle>
-        </div>
+        <CardTitle>Edit {petName}&apos;s bio</CardTitle>
         <CardDescription>
           Change what visitors and adopters see on this public page.
         </CardDescription>

@@ -1,5 +1,6 @@
 "use client";
 
+import { PhotoOpener } from "@client/components/PhotoOpener";
 import { Markdown } from "@client/components/markdown";
 import { petHref } from "@client/lib/petBioPath";
 import { publicHandle, userProfileHref } from "@client/lib/userProfilePath";
@@ -54,11 +55,9 @@ export function PostCard({ post }: PostCardProps) {
         </p>
       )}
       {post.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <PhotoOpener
           src={post.imageUrl}
-          alt=""
-          className="border-border max-h-80 w-full rounded-md border object-cover"
+          label={post.petName ? `Photo from an update on ${post.petName}` : "Photo from this post"}
         />
       ) : null}
       {post.bodyText ? <Markdown>{post.bodyText}</Markdown> : null}

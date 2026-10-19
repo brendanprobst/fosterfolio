@@ -17,3 +17,16 @@ vi.mock('next/image', () => ({
     return React.createElement('img', { src, alt, ...rest });
   },
 }));
+
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+
+// ProseMirror (Tiptap) measures text ranges when focusing/scrolling; jsdom has no layout.
+const emptyRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as unknown as DOMRectList;
+Range.prototype.getClientRects ??= emptyRects;
+Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+document.elementFromPoint ??= () => null;

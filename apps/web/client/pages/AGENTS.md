@@ -14,6 +14,7 @@
 | **`search/`** | `/search` | Name search across pets and users (`?q=`). |
 | **`ui-gallery/`** | `/ui` | Design-system smoke / QA (not product UI). |
 | **`auth/`** | `/auth/*` | Supabase sign-in, sign-up, forgot-password, reset-password (wired from **`app/auth/`**). |
+| **`links/`** | `/profile/links` | Owner-only foster-me tracked links: funnel hero, link list, create dialog with first-run tutorial. |
 | **`profile/`** | `/profile`, `/profile/pets/new`, `/profile/pets/edit?petId=` | Auth-only editor (picture + profile + pets). Pet create/edit is a **page**, not a dialog. Public view is **`/@handle`** and stays read-only. |
 
 - **Edit flows use Dialogs** — grouped fields on a page (profile cards, sidebars) stay read-only; the pencil opens a `Dialog`. Do not expand a form in place on the card. Dialogs keep the default **`max-w-2xl`** width (see [`docs/ui-and-styling.md`](../../docs/ui-and-styling.md) **Product UX**). **Exception:** pet create/edit is its own route (`/profile/pets/new`, `/profile/pets/edit?petId=`).

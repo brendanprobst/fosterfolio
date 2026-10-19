@@ -41,11 +41,10 @@ describe("ProfileEditForm", () => {
     vi.spyOn(window, "confirm").mockReset();
   });
 
-  it("omits handle when only bio changed", () => {
+  it("omits handle when only bio changed", async () => {
     render(<ProfileEditForm user={user} />);
-    fireEvent.change(screen.getByLabelText("Bio (markdown)"), {
-      target: { value: "Updated bio" },
-    });
+    await screen.findByRole("textbox", { name: "Bio" });
+    fireEvent.click(screen.getByRole("button", { name: "Title" }));
     fireEvent.submit(screen.getByRole("form", { name: "Edit name and bio" }));
 
     expect(window.confirm).not.toHaveBeenCalled();
@@ -54,7 +53,7 @@ describe("ProfileEditForm", () => {
         id: "u1",
         payload: {
           displayName: "Brendan",
-          bio: "Updated bio",
+          bio: "## Hello",
         },
       },
       expect.any(Object),

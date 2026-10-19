@@ -4,6 +4,7 @@ import { authPaths } from "@client/lib/constants/authPaths";
 import { isLatticeE2eEnabled } from "@client/lib/latticeFeatureFlags";
 import { safeNextPath } from "@client/lib/safeNextPath";
 import { getSupabaseClient } from "@client/lib/supabaseClient";
+import { clearViewerHint } from "@client/lib/viewerHint";
 import type { Provider, Session } from "@supabase/supabase-js";
 import {
   ReactNode,
@@ -70,6 +71,7 @@ function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         }
         setSession(r.session);
         setApiAuthAccepted(r.apiAuthAccepted);
+        if (!r.session) clearViewerHint();
         setLoading(false);
         clearBootstrapTimer();
       });
@@ -87,6 +89,7 @@ function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (event === "SIGNED_OUT") {
+        clearViewerHint();
         setApiAuthAccepted(false);
         setLoading(false);
         clearBootstrapTimer();

@@ -23,6 +23,8 @@
         "tsconfig.json",
         "test/api/**/*.ts",
         "apps/api/**/*.ts",
+        "packages/analytics/src/**/*.ts",
+        "packages/notifications/src/**/*.ts",
         "!apps/api/dist/**"
       ],
       "outputs": []
@@ -34,6 +36,8 @@
         "tsconfig.json",
         "test/api/**/*.ts",
         "apps/api/**/*.ts",
+        "packages/analytics/src/**/*.ts",
+        "packages/notifications/src/**/*.ts",
         "!apps/api/dist/**"
       ],
       "outputs": ["test/coverage/**"]
@@ -46,7 +50,8 @@
         "test/web/**/*.tsx",
         "apps/web/client/**/*.ts",
         "apps/web/client/**/*.tsx",
-        "apps/web/app/**/*.tsx"
+        "apps/web/app/**/*.tsx",
+        "packages/analytics/src/**/*.ts"
       ],
       "outputs": []
     },
@@ -58,7 +63,9 @@
         "test/web/**",
         "apps/web/**",
         "!apps/web/node_modules/**",
-        "!apps/web/.next/**"
+        "!apps/web/.next/**",
+        "!apps/web/.next-e2e/**",
+        "!apps/web/.next-dev/**"
       ],
       "outputs": []
     }

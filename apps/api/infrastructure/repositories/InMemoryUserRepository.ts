@@ -28,6 +28,15 @@ export class InMemoryUserRepository implements IUserRepository {
     return null;
   }
 
+  async listActiveIds(ids: string[]): Promise<Set<string>> {
+    return new Set(
+      ids.filter((id) => {
+        const user = this.users.get(id);
+        return user != null && !user.deletedAt;
+      })
+    );
+  }
+
   async isHandleTaken(handle: string, exceptUserId?: string): Promise<boolean> {
     for (const user of this.users.values()) {
       if (user.handle !== handle) continue;

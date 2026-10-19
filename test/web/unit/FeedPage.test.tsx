@@ -1,9 +1,9 @@
 import { useAuth } from "@client/auth";
 import { useFeed } from "@client/features/posts";
 import { FeedPage } from "@client/pages/feed";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { authLoggedOut, authSignedIn } from "./support/renderWithProviders";
+import { authLoggedOut, authSignedIn, renderWithQueryClient } from "./support/renderWithProviders";
 
 vi.mock("@client/auth", () => ({
   useAuth: vi.fn(),
@@ -65,13 +65,13 @@ describe("FeedPage", () => {
   });
 
   it("renders the public feed heading when the flag is on", () => {
-    render(<FeedPage />);
+    renderWithQueryClient(<FeedPage />);
     expect(screen.getByRole("heading", { level: 1, name: "Feed" })).toBeInTheDocument();
     expect(screen.getByText(/no posts yet/i)).toBeInTheDocument();
   });
 
   it("prompts signed-out visitors to sign in to post", () => {
-    render(<FeedPage />);
+    renderWithQueryClient(<FeedPage />);
     expect(screen.getByRole("link", { name: /sign in to post/i })).toHaveAttribute(
       "href",
       "/auth/sign-in?next=%2Ffeed",
@@ -80,14 +80,14 @@ describe("FeedPage", () => {
 
   it("shows the composer when signed in", () => {
     vi.mocked(useAuth).mockReturnValue(authSignedIn());
-    render(<FeedPage />);
+    renderWithQueryClient(<FeedPage />);
     expect(screen.getByRole("form", { name: "Compose post" })).toBeInTheDocument();
   });
 
   it("shows the beta shell when the flag is off", async () => {
     const flags = await import("@client/lib/fosterfolioFeatureFlags");
     vi.mocked(flags.isFosterfolioFeedEnabled).mockReturnValue(false);
-    render(<FeedPage />);
+    renderWithQueryClient(<FeedPage />);
     expect(screen.getByRole("heading", { level: 1, name: "Feed" })).toBeInTheDocument();
     expect(screen.getByText(/isn.t in this private beta/i)).toBeInTheDocument();
     expect(screen.queryByText(/no posts yet/i)).not.toBeInTheDocument();

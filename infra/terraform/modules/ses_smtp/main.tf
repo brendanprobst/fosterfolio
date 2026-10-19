@@ -46,6 +46,16 @@ resource "aws_route53_record" "mail_from_spf" {
   records = ["v=spf1 include:amazonses.com ~all"]
 }
 
+# DMARC policy for the domain: report-only for now (p=none), so failing mail is still
+# delivered. There is no rua: Gmail doesn't accept reports addressed from other domains.
+resource "aws_route53_record" "dmarc" {
+  zone_id = var.zone_id
+  name    = "_dmarc.${var.domain}"
+  type    = "TXT"
+  ttl     = 600
+  records = ["v=DMARC1; p=none"]
+}
+
 resource "aws_iam_user" "smtp" {
   name          = "${var.name_prefix}-ses-smtp"
   force_destroy = true
