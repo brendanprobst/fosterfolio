@@ -28,6 +28,11 @@ locals {
 
   budget_notification_thresholds = [50, 80, 100]
 
+  # Without both PostHog values the rollup throws on every run, so its schedule is disabled.
+  # The Lambda itself stays, so a Terraform run without Infisical pauses it instead of destroying it.
+  # Whether a key is set is not secret, so plans show ENABLED / DISABLED.
+  analytics_rollup_enabled = nonsensitive(trimspace(var.posthog_project_id) != "" && trimspace(var.posthog_personal_api_key) != "")
+
   # Notification email (SES). The identity is the From address's domain, verified in SES
   # (modules/ses_smtp, enabled in prod; the identity is account-wide in aws_region).
   notification_email_from    = trimspace(coalesce(var.notification_email_from, ""))
@@ -236,6 +241,7 @@ resource "aws_cloudwatch_event_rule" "analytics_rollup_hourly" {
   name                = "${local.name_prefix}-analytics-rollup-hourly"
   description         = "Hourly PostHog rollup into analytics_daily"
   schedule_expression = "rate(1 hour)"
+  state               = local.analytics_rollup_enabled ? "ENABLED" : "DISABLED"
 }
 
 resource "aws_cloudwatch_event_target" "analytics_rollup_hourly" {

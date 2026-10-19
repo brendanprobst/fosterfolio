@@ -66,3 +66,6 @@ api_schedule_timezone         = "UTC"
 # The address's domain must be verified in SES in aws_region (see enable_ses_smtp above).
 # notification_email_from      = "notifications@example.com"
 # notification_email_from_name = "Example"
+
+# --- Optional: email for Lambda error alarms (confirm the SNS subscription email) ---
+# alarm_email_addresses = ["you@example.com"]

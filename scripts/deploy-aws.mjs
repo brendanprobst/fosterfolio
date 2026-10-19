@@ -204,24 +204,27 @@ function applyPosthogTfEnv(envName) {
   Object.assign(process.env, loaded.env);
   if (loaded.status === "loaded") {
     console.log(
-      `→ PostHog project ${process.env.TF_VAR_posthog_project_id} from Infisical /fosterfolio/sensitive\n`,
+      `→ PostHog project ${process.env.TF_VAR_posthog_project_id} from Infisical (ID in /fosterfolio/shared, key in /fosterfolio/sensitive)\n`,
     );
     return;
   }
   if (loaded.status === "partial") {
+    const missing = process.env.TF_VAR_posthog_project_id
+      ? "POSTHOG_PERSONAL_API_KEY in /fosterfolio/sensitive"
+      : "POSTHOG_PROJECT_ID in /fosterfolio/shared";
     console.warn(
-      "→ Infisical /fosterfolio/sensitive has only one of POSTHOG_PROJECT_ID and POSTHOG_PERSONAL_API_KEY. The rollup Lambda needs both.\n",
+      `→ Infisical is missing ${missing}. The rollup Lambda needs both, so its hourly schedule will be disabled.\n`,
     );
     return;
   }
   if (loaded.status === "missing") {
     console.warn(
-      "→ No PostHog query credentials in Infisical /fosterfolio/sensitive. The rollup Lambda will be created with empty query credentials.\n",
+      "→ No PostHog query credentials in Infisical (POSTHOG_PROJECT_ID in /fosterfolio/shared, POSTHOG_PERSONAL_API_KEY in /fosterfolio/sensitive). The rollup's hourly schedule will be disabled until both are set.\n",
     );
     return;
   }
   console.warn(
-    "→ Could not read Infisical /fosterfolio/sensitive. The rollup Lambda keeps whatever PostHog values are already in tfvars.\n",
+    "→ Could not read Infisical /fosterfolio/shared or /fosterfolio/sensitive. The rollup uses whatever PostHog values are in tfvars, and its hourly schedule is disabled if there are none.\n",
   );
 }
 

@@ -204,6 +204,12 @@ variable "budget_alert_email_addresses" {
   default     = []
 }
 
+variable "alarm_email_addresses" {
+  description = "Email recipients for Lambda error alarms (each must confirm the SNS subscription)."
+  type        = list(string)
+  default     = []
+}
+
 variable "enable_api_schedule_controls" {
   description = "When true, create scheduled API pause/resume controls via EventBridge Scheduler."
   type        = bool

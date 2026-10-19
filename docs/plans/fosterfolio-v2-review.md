@@ -33,7 +33,7 @@
 | L4   | Medium   | Logic          | "Adopted freeze" is client-only; the rollup keeps rewriting numbers                                   | ✅ Fixed (dev migrated; prod at launch) |
 | L5   | Medium   | Logic/Perf     | Rollup upsert: one row per request, silent truncation, partial writes                                 | ✅ Fixed (dev migrated; prod at launch) |
 | L6   | Medium   | Logic/UX       | Turnstile client: submit does nothing silently; token not reset for retry                             | ✅ Fixed                               |
-| S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | Partly fixed (own role, via E1)        |
+| S6   | Low      | Infra          | Rollup shares the API IAM role; no alarm; deployed with empty creds it fails every hour               | ✅ Fixed (needs `deploy:aws`, confirm SNS email) |
 | S7   | Low      | Infra/Hygiene  | Lambda zip build artifacts committed to git                                                           | Open                                   |
 | S8   | Low      | Security       | Missing input bounds (label, channel name, cursor), unvalidated client `sourceChannelKey`             | ✅ Fixed (dev migrated; prod at launch) |
 | C1   | Medium   | Compliance     | No privacy policy; third-party processors (Turnstile, PostHog, Supabase, SES, Zippopotam) undisclosed | Open (blocks public launch, not merge) |
@@ -163,6 +163,34 @@
 - ~~The rollup reuses `aws_iam_role.api_lambda`. Today that role can only read SSM. When SES permissions are added for S1/email, the rollup will get them too. Give it its own role.~~ ✅ Done with E1: `analytics_rollup_lambda` reads only the two Supabase parameters.
 - There's no CloudWatch alarm on `Errors` and no DLQ. Combined with S3, the job can fail silently for weeks.
 - `deploy-aws.mjs` warns when the PostHog creds are missing, then deploys anyway. The Lambda then throws `Missing required environment variable` 24 times a day. Use `count = var.posthog_project_id == "" ? 0 : 1` instead.
+
+**Status: ✅ Fixed** (2026-10-19, not yet committed; needs `infisical run -- npm run deploy:aws`, then confirming the SNS subscription email)
+
+- **Own role:** done with E1 (`analytics_rollup_lambda`).
+- **Alarms:** new `infra/terraform/envs/{dev,prod}/alarms.tf`.
+  - SNS topic `<project>-<env>-alarms` with an email subscription per `alarm_email_addresses` (new variable, default `[]`). Both local tfvars now set it to `bprobst1029@gmail.com`.
+  - `…-analytics-rollup-errors`: Lambda `Errors` ≥ 1 in 2 of the last 3 hourly periods. **Decision: 2 of 3, not 1 failure.** One transient PostHog or Supabase error recovers on the next run and shouldn't page. A run that fails every hour still alarms within about 2 hours.
+  - `…-api-errors`: Lambda `Errors` ≥ 3 in 5 minutes. Express turns route errors into 500s, so this counts only crashes, timeouts and failed cold starts (a missing SSM parameter, the production secret checks). It's not in the original finding, but it costs the same few lines.
+  - Both alarms email on recovery too (`ok_actions`), and treat missing data as OK.
+  - Cost: 4 standard alarms across both envs, about $0.40/month. SNS email is free at this volume.
+- **Missing PostHog creds:** **decision: disable the schedule instead of `count = 0`.** With `count`, a Terraform run without the PostHog variables (no Infisical, or a by-hand `terraform apply`) would *destroy* the rollup Lambda. Now `analytics_rollup_enabled` is false when either value is empty. The hourly rule then goes `DISABLED`, and the next deploy with both values turns it back on. The flag is `nonsensitive()`, because otherwise plans hide `ENABLED`/`DISABLED` behind "(sensitive value)". The three `deploy-aws.mjs` warnings now say the schedule will be disabled. `docs/deploy-aws.md` explains this and the alarms.
+- **Found on the first dev deploy (2026-10-19): the dev rollup had been failing every hour for days.** CloudWatch showed `Missing required environment variable` on every run back to at least 2026-10-16 (72 errors a day: 24 runs × 3 attempts), so dev analytics hadn't refreshed. Nothing reported it, which is this finding's point.
+  - **Cause:** `POSTHOG_PROJECT_ID` is in Infisical `/fosterfolio/shared`, but `scripts/posthog-infisical.mjs` only read `/fosterfolio/sensitive`. Every deploy set an empty project ID.
+  - **Fix:** `loadPosthogTfEnv` exports both paths. It reads the project ID and `POSTHOG_HOST` from `/shared` (a copy in `/sensitive` still works, and `/shared` wins). It reads the personal key from `/sensitive` only, so GitHub Deploy app, which can read `/shared`, never supplies it. If one export fails, it uses the other. "Partial" warnings now name the missing value and its path. `docs/deploy-aws.md` is updated.
+  - **Tests:** `test/scripts/posthog-infisical.test.mjs` grows from 3 to 10 cases (path precedence, the key never read from `/shared`, per-path export failures, statuses). Four fail against the old code. These script tests run with `node --test test/scripts/posthog-infisical.test.mjs`. `npm run ci` doesn't include them.
+  - **Checked against the real dev Infisical:** the loader now returns `loaded` with both values.
+  - **Also found:** dev `/fosterfolio/shared` has `NEXT_PUBILC_POSTHOG_TOKEN` (typo). The web app reads `NEXT_PUBLIC_POSTHOG_TOKEN`. The deployed dev bundle still has a token, probably from `apps/web/.env.local`, so capture works. Rename the secret so it doesn't depend on that local file. **Prod has no PostHog keys in Infisical at all.** Add `POSTHOG_PROJECT_ID` (`/shared`), `POSTHOG_PERSONAL_API_KEY` (`/sensitive`) and `NEXT_PUBLIC_POSTHOG_TOKEN` before launch, or the prod rollup deploys with its schedule off.
+- **No DLQ.** EventBridge invokes asynchronously, Lambda retries a failed run twice, and the next hourly run redoes the full 14-day window. Nothing is lost that a DLQ would keep, so the alarm is enough.
+- **Plans:** `terraform validate` passes in both envs.
+  - Dev `terraform plan` with both PostHog variables set (placeholders): 4 to add (topic, subscription, 2 alarms), 1 changed (the rollup's env, from the placeholder key), no schedule change.
+  - Dev plan without them: the rule goes `ENABLED → DISABLED`.
+  - Prod plan: the same 4 resources on top of E1's and S1's pending changes (12 to add, 4 to change, 0 to destroy).
+- **Not tested:** there are no automated Terraform tests here. The alarms haven't fired yet.
+- **Manual steps:**
+  1. `infisical run -- npm run deploy:aws` for dev. Check that the deploy prints "PostHog project … from Infisical", or the schedule turns off.
+  2. Click "Confirm subscription" in the AWS Notifications email. Nothing is delivered until you do.
+  3. Optional end-to-end check: `aws cloudwatch set-alarm-state --alarm-name fosterfolio-dev-api-errors --state-value ALARM --state-reason test --region us-east-1` sends the email, and the next evaluation resets it.
+  4. Prod: the same at launch, plus confirming prod's subscription.
 
 ### S7 — Lambda zip artifacts committed · Low
 
@@ -599,7 +627,7 @@ None of this is necessarily bad, but it widens the review and the risk:
 3. ~~**S1 / S2**: Wire `TURNSTILE_SECRET_KEY` and `INQUIRY_SOURCE_TOKEN_SECRET` through SSM, fail closed in production, and add per-route rate limits.~~ ✅ Done. SES and `WEB_ORIGIN` wiring is still open (section 4).
 4. ~~**S3**: Validate and skip rollup rows, encode filter values~~ ✅ Done. The alarm is still open under S6.
 5. ~~**L2**: Gate capture on auth having resolved.~~ ✅ Done
-6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch). ~~**L4**: Freeze adopted pets in the rollup.~~ ✅ Done (dev migrated; prod at launch). ~~**L6**: Turnstile client error states, reset, and a `siteverify` timeout.~~ ✅ Done. ~~**E1**: Wire inquiry email (SES) into Terraform, log failed sends, add DMARC.~~ ✅ Done (needs the deploy).
+6. ~~**S5**: Harden email validation.~~ ✅ Done. ~~**L3**: Reserve system channel keys.~~ ✅ Done. ~~**S8**: Bound link text, validate the cursor and the client channel key.~~ ✅ Done (dev migrated; prod at launch). ~~**L5**: One-statement rollup upserts, link totals in SQL.~~ ✅ Done (dev migrated; prod at launch). ~~**L4**: Freeze adopted pets in the rollup.~~ ✅ Done (dev migrated; prod at launch). ~~**L6**: Turnstile client error states, reset, and a `siteverify` timeout.~~ ✅ Done. ~~**E1**: Wire inquiry email (SES) into Terraform, log failed sends, add DMARC.~~ ✅ Done (needs the deploy). ~~**S6**: Rollup role, error alarms, schedule off without PostHog creds.~~ ✅ Done (needs the deploy).
 7. Update `fosterfolio-v2-spec.md` to reflect 5b, then file L4–L8 and Q1–Q7 as follow-ups.
 
 **Prod schema at launch.** Prod's database is still on the v1 schema. On 2026-10-18 `npm run supabase:list -- --env prod` showed only `20261003120000` applied. When the branch ships, push the v2 schema *before* the API deploy, because the v2 API reads tables v1 doesn't have:
