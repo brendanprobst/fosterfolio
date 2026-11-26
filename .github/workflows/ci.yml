@@ -85,7 +85,8 @@ jobs:
   web-e2e:
     needs: repo-config
     if: needs.repo-config.outputs.ci_enabled == 'true' && needs.repo-config.outputs.job_web_e2e == 'true'
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, which Playwright 1.58 does not support.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
