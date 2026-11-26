@@ -6,6 +6,7 @@ import { isSelfReportedSource } from '@api/application/inquiries/selfReportedSou
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IInquiryRepository } from '@api/domain/repositories/IInquiryRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type ReportInquirySourceCommand = {
   inquiryId: string;
@@ -46,7 +47,8 @@ export class ReportInquirySourceUseCase {
         return Result.failure(ErrorCatalog.INQUIRY_SOURCE_TOKEN_INVALID);
       }
       return Result.success({ selfReportedSource: source });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('ReportInquirySourceUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

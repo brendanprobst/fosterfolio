@@ -8,6 +8,7 @@ import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
 import { isValidTrackedLinkLabel } from '@api/domain/trackedLinks/trackedLinkLabel';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type UpdateTrackedLinkCommand = {
   channelKey?: string | null;
@@ -74,7 +75,8 @@ export class UpdateTrackedLinkUseCase {
           : {}),
       });
       return Result.success(toTrackedLinkDto(updated));
-    } catch {
+    } catch (error) {
+      logUnexpectedError('UpdateTrackedLinkUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

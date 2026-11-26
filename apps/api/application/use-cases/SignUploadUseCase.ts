@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { StorageAdapter } from '@api/infrastructure/adapters/storage/StorageAdapter';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export const ALLOWED_UPLOAD_CONTENT_TYPES = [
   'image/jpeg',
@@ -93,7 +94,8 @@ export class SignUploadUseCase {
         usedBytes,
         capBytes: this.capBytes,
       });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('SignUploadUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

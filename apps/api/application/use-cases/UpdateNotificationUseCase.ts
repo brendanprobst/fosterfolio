@@ -2,6 +2,7 @@ import type { INotificationRepository } from '@api/domain/repositories/INotifica
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { NotificationRecord } from '@lattice/notifications';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type UpdateNotificationCommand = {
   read?: boolean;
@@ -44,7 +45,8 @@ export class UpdateNotificationUseCase {
         current = archived;
       }
       return Result.success(current);
-    } catch {
+    } catch (error) {
+      logUnexpectedError('UpdateNotificationUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

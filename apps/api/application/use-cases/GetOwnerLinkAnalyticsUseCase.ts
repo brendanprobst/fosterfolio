@@ -11,6 +11,7 @@ import type { IAnalyticsOwnerDailyRepository } from '@api/domain/repositories/IA
 import type { IInquiryRepository } from '@api/domain/repositories/IInquiryRepository';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class GetOwnerLinkAnalyticsUseCase {
   constructor(
@@ -33,7 +34,8 @@ export class GetOwnerLinkAnalyticsUseCase {
         this.inquiryRepository.listFosterMeSourcesByOwner(actorId, sinceIsoForDay(sinceDay)),
       ]);
       return Result.success(buildOwnerLinkAnalytics(daily, inquiries));
-    } catch {
+    } catch (error) {
+      logUnexpectedError('GetOwnerLinkAnalyticsUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

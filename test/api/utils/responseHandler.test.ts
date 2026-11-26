@@ -221,8 +221,7 @@ describe('ResponseHandler', () => {
 
       ResponseHandler.handleError(error, mockResponse as any);
 
-      expect(loggerErrorSpy).toHaveBeenCalledWith('Unexpected error: Test error');
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error stack:', error.stack);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[ResponseHandler] unexpected error', error.stack);
       expect(statusSpy).toHaveBeenCalledWith(500);
       expect(jsonSpy).toHaveBeenCalledWith({
         error: {
@@ -239,8 +238,7 @@ describe('ResponseHandler', () => {
 
       ResponseHandler.handleError(error, mockResponse as any);
 
-      expect(loggerErrorSpy).toHaveBeenCalledWith('Unexpected error: Test error');
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[ResponseHandler] unexpected error', 'Test error');
       expect(statusSpy).toHaveBeenCalledWith(500);
       expect(jsonSpy).toHaveBeenCalledWith({
         error: {
@@ -256,7 +254,7 @@ describe('ResponseHandler', () => {
 
       ResponseHandler.handleError(error, mockResponse as any);
 
-      expect(loggerErrorSpy).toHaveBeenCalledWith('Unexpected error: String error');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[ResponseHandler] unexpected error', 'String error');
       expect(statusSpy).toHaveBeenCalledWith(500);
       expect(jsonSpy).toHaveBeenCalledWith({
         error: {
@@ -270,7 +268,7 @@ describe('ResponseHandler', () => {
     it('should handle null values', () => {
       ResponseHandler.handleError(null, mockResponse as any);
 
-      expect(loggerErrorSpy).toHaveBeenCalledWith('Unexpected error: null');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[ResponseHandler] unexpected error', 'null');
       expect(statusSpy).toHaveBeenCalledWith(500);
       expect(jsonSpy).toHaveBeenCalledWith({
         error: {
@@ -284,7 +282,7 @@ describe('ResponseHandler', () => {
     it('should handle undefined values', () => {
       ResponseHandler.handleError(undefined, mockResponse as any);
 
-      expect(loggerErrorSpy).toHaveBeenCalledWith('Unexpected error: undefined');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[ResponseHandler] unexpected error', 'undefined');
       expect(statusSpy).toHaveBeenCalledWith(500);
       expect(jsonSpy).toHaveBeenCalledWith({
         error: {

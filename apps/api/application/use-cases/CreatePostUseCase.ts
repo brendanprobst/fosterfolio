@@ -4,6 +4,7 @@ import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
 import type { IPostRepository } from '@api/domain/repositories/IPostRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type CreatePostCommand = {
   postType?: string;
@@ -59,7 +60,8 @@ export class CreatePostUseCase {
         ...(input.geoLock !== undefined ? { geoLock: input.geoLock } : {}),
       });
       return Result.success(post.toOwnerDto(petMeta));
-    } catch {
+    } catch (error) {
+      logUnexpectedError('CreatePostUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

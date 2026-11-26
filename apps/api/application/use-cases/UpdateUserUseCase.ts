@@ -6,6 +6,7 @@ import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
 import { UserHandle } from '@api/domain/value-objects/UserHandle';
 import type { GeoLookupAdapter } from '@api/infrastructure/adapters/geo/GeoLookupAdapter';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type UpdateUserInput = {
   displayName?: string | null;
@@ -92,6 +93,7 @@ export class UpdateUserUseCase {
       if (isHandleUniqueViolation(error)) {
         return Result.failure(ErrorCatalog.HANDLE_TAKEN);
       }
+      logUnexpectedError('UpdateUserUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

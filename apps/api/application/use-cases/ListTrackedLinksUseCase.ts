@@ -5,6 +5,7 @@ import type { IAnalyticsDailyRepository } from '@api/domain/repositories/IAnalyt
 import type { IInquiryRepository } from '@api/domain/repositories/IInquiryRepository';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class ListTrackedLinksUseCase {
   constructor(
@@ -40,7 +41,8 @@ export class ListTrackedLinksUseCase {
           })
         )
       );
-    } catch {
+    } catch (error) {
+      logUnexpectedError('ListTrackedLinksUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

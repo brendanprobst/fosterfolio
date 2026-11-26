@@ -5,6 +5,7 @@ import type {
   FeedCursor,
   IPostRepository,
 } from '@api/domain/repositories/IPostRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type FeedPageDto = {
   items: PostPublicDto[];
@@ -57,7 +58,8 @@ export class ListFeedUseCase {
         nextCursor = encodeFeedCursor(last.post.createdAt, last.post.id);
       }
       return Result.success({ items, nextCursor });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('ListFeedUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

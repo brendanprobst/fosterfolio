@@ -2,6 +2,7 @@ import type { PostPublicDto } from '@api/domain/entities/Post';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IPostRepository } from '@api/domain/repositories/IPostRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class GetPostUseCase {
   constructor(private readonly postRepository: IPostRepository) {}
@@ -19,7 +20,8 @@ export class GetPostUseCase {
           authorHandle: row.authorHandle,
         })
       );
-    } catch {
+    } catch (error) {
+      logUnexpectedError('GetPostUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

@@ -2,6 +2,7 @@ import type { PostOwnerDto } from '@api/domain/entities/Post';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IPostRepository } from '@api/domain/repositories/IPostRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type UpdatePostCommand = {
   bodyText?: string | null;
@@ -38,7 +39,8 @@ export class UpdatePostUseCase {
           primaryPhotoUrl: row.petPrimaryPhotoUrl,
         })
       );
-    } catch {
+    } catch (error) {
+      logUnexpectedError('UpdatePostUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

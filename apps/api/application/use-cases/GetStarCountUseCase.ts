@@ -3,6 +3,7 @@ import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IStarRepository } from '@api/domain/repositories/IStarRepository';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class GetStarCountUseCase {
   constructor(
@@ -20,7 +21,8 @@ export class GetStarCountUseCase {
       }
       const starCount = await this.starRepository.countStars(user.id);
       return Result.success({ starCount });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('GetStarCountUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

@@ -244,6 +244,27 @@ describe("FosterMePage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows a shared error message once when profile and pets both fail", () => {
+    vi.mocked(useUser).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error("Something went wrong on our end. Please try again later."),
+    } as unknown as ReturnType<typeof useUser>);
+    vi.mocked(useOwnerPets).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isSuccess: false,
+      isError: true,
+      error: new Error("Something went wrong on our end. Please try again later."),
+    } as ReturnType<typeof useOwnerPets>);
+    renderWithQueryClient(<FosterMePage />);
+
+    expect(
+      screen.getAllByText("Something went wrong on our end. Please try again later."),
+    ).toHaveLength(1);
+  });
+
   it("shows a spinner, not a page skeleton, while loading", () => {
     vi.mocked(useOwnerPets).mockReturnValue({
       data: undefined,

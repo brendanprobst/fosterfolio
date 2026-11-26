@@ -3,6 +3,7 @@ import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class ListOwnerLinksUseCase {
   constructor(
@@ -29,7 +30,8 @@ export class ListOwnerLinksUseCase {
           )
         )
       );
-    } catch {
+    } catch (error) {
+      logUnexpectedError('ListOwnerLinksUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

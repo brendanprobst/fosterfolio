@@ -12,6 +12,7 @@ import {
   parseNotificationStatus,
 } from '@api/application/notifications/notificationQuery';
 import type { NotificationRecord } from '@lattice/notifications';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type InboxPetDto = {
   id: string;
@@ -74,7 +75,8 @@ export class ListNotificationsUseCase {
         items,
         nextCursor: page.nextCursor ? encodeNotificationCursor(page.nextCursor) : null,
       });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('ListNotificationsUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

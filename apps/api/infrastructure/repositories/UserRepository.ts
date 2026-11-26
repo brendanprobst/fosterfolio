@@ -1,5 +1,6 @@
 import { User, type SocialLink } from '@api/domain/entities/User';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
+import { isUuid } from '@api/domain/value-objects/UserHandle';
 import type { DataAdapter } from '@api/infrastructure/adapters/dataAdapter/DataAdapter';
 import { chunk, inList } from '@api/infrastructure/adapters/dataAdapter/postgrestFilters';
 
@@ -54,6 +55,8 @@ export class UserRepository implements IUserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
+    // The id column is uuid; a non-uuid (e.g. a mistyped handle) can never match and would make Postgres error.
+    if (!isUuid(id)) return null;
     const rows = await this.dataAdapter.get<UserRecord[]>(
       `${this.table}?select=${USER_SELECT}&id=eq.${encodeURIComponent(id)}&deleted_at=is.null&limit=1`
     );

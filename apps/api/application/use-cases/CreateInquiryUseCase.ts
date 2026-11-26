@@ -21,6 +21,7 @@ import { isUuid } from '@api/domain/value-objects/UserHandle';
 import type { TurnstileVerifier } from '@api/infrastructure/adapters/turnstile/verifyTurnstileToken';
 import { Logger } from '@api/utils/logger';
 import { dispatch, type DispatchDependencies } from '@lattice/notifications';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type CreateInquiryCommand = {
   targetUserId: string;
@@ -166,7 +167,8 @@ export class CreateInquiryUseCase {
         createdAt: created.createdAt,
         sourceToken: signInquirySourceToken(created.id, this.sourceTokenSecret),
       });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('CreateInquiryUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

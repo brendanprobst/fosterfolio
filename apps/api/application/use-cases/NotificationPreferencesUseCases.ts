@@ -3,6 +3,7 @@ import type { INotificationRepository } from '@api/domain/repositories/INotifica
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import { getNotificationType, listNotificationTypes } from '@lattice/notifications';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type NotificationPreferenceDto = {
   type: string;
@@ -27,7 +28,8 @@ export class GetNotificationPreferencesUseCase {
         preferences.push({ type: INQUIRY_RECEIVED_TYPE, emailEnabled: true });
       }
       return Result.success({ preferences });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('GetNotificationPreferencesUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }
@@ -51,7 +53,8 @@ export class PutNotificationPreferenceUseCase {
     try {
       const saved = await this.notificationRepository.upsertPreference(userId, type, emailEnabled);
       return Result.success({ type: saved.type, emailEnabled: saved.emailEnabled });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('GetNotificationPreferencesUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }
