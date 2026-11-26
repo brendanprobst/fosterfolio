@@ -82,7 +82,7 @@
     "supabase": "2.111.0",
     "supertest": "^7.0.0",
     "ts-jest": "^29.1.2",
-    "turbo": "^2.4.4",
+    "turbo": "^2.11.13",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
