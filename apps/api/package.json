@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.1148.0",
-    "@aws-sdk/client-ssm": "^3.1014.0",
+    "@aws-sdk/client-ssm": "^3.1176.0",
     "@lattice/analytics": "*",
     "@lattice/notifications": "*",
     "@vendia/serverless-express": "^4.12.6",
