@@ -11,6 +11,7 @@ import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
 import { generateTrackedLinkCode } from '@api/domain/trackedLinks/generateTrackedLinkCode';
 import { isValidTrackedLinkLabel } from '@api/domain/trackedLinks/trackedLinkLabel';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type CreateTrackedLinkCommand = {
   channelKey?: string | null;
@@ -71,7 +72,8 @@ export class CreateTrackedLinkUseCase {
         return Result.success(toTrackedLinkDto(created));
       }
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
-    } catch {
+    } catch (error) {
+      logUnexpectedError('CreateTrackedLinkUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

@@ -7,6 +7,7 @@ import logger from 'morgan';
 import { Container } from '@api/infrastructure/container';
 import { registerRoutes } from '@api/routes/registerRoutes';
 import { Logger } from '@api/utils/logger';
+import { logServerErrorResponses } from '@api/utils/serverErrorLog';
 
 /**
  * Creates an Express app instance with the given container.
@@ -26,6 +27,7 @@ export function createApp(container?: Container): Express {
     credentials: true,
   }));
   app.use(logger('dev'));
+  app.use(logServerErrorResponses);
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());

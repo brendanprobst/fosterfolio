@@ -52,3 +52,34 @@ resource "aws_cloudwatch_metric_alarm" "api_errors" {
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
 }
+
+# Handled 5xx responses (route returns 500 without throwing) never bump Lambda's Errors metric.
+# The API logs one "API_5XX status=..." line per 5xx response (apps/api/utils/serverErrorLog.ts);
+# this filter turns each line into a metric the alarm below can watch.
+resource "aws_cloudwatch_log_metric_filter" "api_5xx" {
+  name           = "${local.name_prefix}-api-5xx"
+  log_group_name = "/aws/lambda/${aws_lambda_function.api.function_name}"
+  pattern        = "\"API_5XX\""
+
+  metric_transformation {
+    name          = "Api5xxCount"
+    namespace     = "Fosterfolio/API"
+    value         = "1"
+    default_value = "0"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "api_5xx" {
+  alarm_name          = "${local.name_prefix}-api-5xx"
+  alarm_description   = "The API returned a 5xx response, including handled errors. Search the API log group for API_5XX, then check the stack trace logged just before it."
+  namespace           = "Fosterfolio/API"
+  metric_name         = "Api5xxCount"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+}

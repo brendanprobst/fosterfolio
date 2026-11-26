@@ -2,6 +2,7 @@ import type { ResolvedTrackedLinkDto } from '@api/application/dtos/trackedLink';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { ITrackedLinkRepository } from '@api/domain/repositories/ITrackedLinkRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class ResolveTrackedLinkUseCase {
   constructor(private readonly trackedLinkRepository: ITrackedLinkRepository) {}
@@ -22,7 +23,8 @@ export class ResolveTrackedLinkUseCase {
         target: link.target,
         petId: link.petId,
       });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('ResolveTrackedLinkUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

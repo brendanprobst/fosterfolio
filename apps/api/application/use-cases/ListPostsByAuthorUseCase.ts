@@ -4,6 +4,7 @@ import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IPostRepository } from '@api/domain/repositories/IPostRepository';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 /** Public profile posts: general only (excludes pet_update). */
 export class ListPostsByAuthorUseCase {
@@ -30,7 +31,8 @@ export class ListPostsByAuthorUseCase {
           })
         )
       );
-    } catch {
+    } catch (error) {
+      logUnexpectedError('ListPostsByAuthorUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

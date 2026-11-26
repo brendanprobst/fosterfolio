@@ -1,6 +1,7 @@
 import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class SoftDeletePetUseCase {
   constructor(private readonly petRepository: IPetRepository) {}
@@ -17,7 +18,8 @@ export class SoftDeletePetUseCase {
       pet.softDelete();
       await this.petRepository.save(pet);
       return Result.success(undefined);
-    } catch {
+    } catch (error) {
+      logUnexpectedError('SoftDeletePetUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

@@ -2,6 +2,7 @@ import type { PetUpdateSummaryDto } from '@api/domain/entities/Pet';
 import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class GetPetUpdatesUseCase {
   constructor(private readonly petRepository: IPetRepository) {}
@@ -14,7 +15,8 @@ export class GetPetUpdatesUseCase {
       }
       const updates = await this.petRepository.listPetUpdates(petId);
       return Result.success(updates);
-    } catch {
+    } catch (error) {
+      logUnexpectedError('GetPetUpdatesUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

@@ -1,6 +1,7 @@
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import { Result } from '@api/domain/errors/Result';
 import type { IPostRepository } from '@api/domain/repositories/IPostRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class SoftDeletePostUseCase {
   constructor(private readonly postRepository: IPostRepository) {}
@@ -17,7 +18,8 @@ export class SoftDeletePostUseCase {
       row.post.softDelete();
       await this.postRepository.save(row.post);
       return Result.success(undefined);
-    } catch {
+    } catch (error) {
+      logUnexpectedError('SoftDeletePostUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

@@ -3,6 +3,7 @@ import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class GetPetUseCase {
   constructor(
@@ -29,7 +30,8 @@ export class GetPetUseCase {
         };
       }
       return Result.success(pet.toPublicDto(updates, owner));
-    } catch {
+    } catch (error) {
+      logUnexpectedError('GetPetUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

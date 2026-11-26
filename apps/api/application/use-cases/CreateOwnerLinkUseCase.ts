@@ -18,6 +18,7 @@ import {
   defaultLinkLabel,
   isValidTrackedLinkLabel,
 } from '@api/domain/trackedLinks/trackedLinkLabel';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type CreateOwnerLinkCommand = {
   channelKey?: string | null;
@@ -94,7 +95,8 @@ export class CreateOwnerLinkUseCase {
         return Result.success(toTrackedLinkDto(created));
       }
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
-    } catch {
+    } catch (error) {
+      logUnexpectedError('CreateOwnerLinkUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

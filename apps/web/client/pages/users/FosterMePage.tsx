@@ -94,18 +94,15 @@ export function FosterMePage() {
             <p className="text-sm">Loading…</p>
           </div>
         ) : null}
-        {handle && userQuery.isError ? (
+        {handle && (userQuery.isError || petsQuery.isError) ? (
           <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
-            {userQuery.error instanceof Error
-              ? userQuery.error.message
-              : "Failed to load profile."}
-          </p>
-        ) : null}
-        {handle && petsQuery.isError ? (
-          <p className="text-destructive mx-auto max-w-5xl px-4 py-8 text-sm">
-            {petsQuery.error instanceof Error
-              ? petsQuery.error.message
-              : "Failed to load pets."}
+            {userQuery.isError
+              ? userQuery.error instanceof Error
+                ? userQuery.error.message
+                : "Failed to load profile."
+              : petsQuery.error instanceof Error
+                ? petsQuery.error.message
+                : "Failed to load pets."}
           </p>
         ) : null}
         {handle && user && petsQuery.isSuccess && selection.kind === "empty" ? (

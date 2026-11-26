@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { Result } from '@api/domain/errors/Result';
 import { HttpErrorMapper } from '@api/utils/httpErrorMapper';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
-import { Logger } from '@api/utils/logger';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 /**
  * ResponseHandler - Utility functions for handling HTTP responses
@@ -48,11 +48,7 @@ export class ResponseHandler {
    */
   static handleError(error: unknown, res: Response): void {
     // Log error for debugging (in production, use proper logging service)
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    Logger.error(`Unexpected error: ${errorMessage}`);
-    if (error instanceof Error && error.stack) {
-      console.error('Error stack:', error.stack);
-    }
+    logUnexpectedError('ResponseHandler', error);
 
     res.status(500).json({
       error: {

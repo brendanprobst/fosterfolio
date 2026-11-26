@@ -3,6 +3,7 @@ import { isPetSpecies, normalizePetPhotos } from '@api/domain/entities/Pet';
 import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import type { IPetRepository } from '@api/domain/repositories/IPetRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type UpdatePetCommand = {
   name?: string;
@@ -92,7 +93,8 @@ export class UpdatePetUseCase {
       await this.petRepository.save(pet);
       const updates = await this.petRepository.listPetUpdates(petId);
       return Result.success(pet.toOwnerDto(updates));
-    } catch {
+    } catch (error) {
+      logUnexpectedError('UpdatePetUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
+import { HANDLE_CHANGE_TIP_TEXT, markHandleChangeTipSeen, shouldShowHandleChangeTip } from "@client/lib/handleChangeTip";
 import { MarkdownEditor } from "@client/components/markdown";
 import { Button } from "@client/components/ui/button";
 import { Input } from "@client/components/ui/input";
@@ -30,6 +31,7 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
   const [displayName, setDisplayName] = useState(user.displayName ?? "");
   const [handle, setHandle] = useState(user.handle ?? "");
   const [bio, setBio] = useState(user.bio ?? "");
+  const [handleChanged, setHandleChanged] = useState<{ handle: string; showTip: boolean } | null>(null);
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -51,7 +53,43 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
           ...(delta.changed ? { handle: delta.next } : {}),
         },
       },
-      { onSuccess: () => onSaved?.() },
+      {
+        onSuccess: () => {
+          // Only an existing handle changing counts; setting a first handle does not.
+          if (delta.changed && user.handle) {
+            const showTip = shouldShowHandleChangeTip();
+            if (showTip) markHandleChangeTipSeen();
+            setHandleChanged({ handle: delta.next ?? "", showTip });
+            return;
+          }
+          onSaved?.();
+        },
+      },
+    );
+  }
+
+  if (handleChanged) {
+    return (
+      <div className="space-y-4" role="status">
+        <Alert>
+          <AlertTitle>Handle updated</AlertTitle>
+          <AlertDescription>
+            Your public URL is now /@{handleChanged.handle}.
+          </AlertDescription>
+        </Alert>
+        {handleChanged.showTip ? (
+          <Alert>
+            <AlertTitle>Good to know</AlertTitle>
+            <AlertDescription>{HANDLE_CHANGE_TIP_TEXT}</AlertDescription>
+          </Alert>
+        ) : null}
+        <Button
+          onClick={() => {
+            setHandleChanged(null);
+            onSaved?.();
+          }}
+        >{handleChanged.showTip ? "Got it" : "Done"}</Button>
+      </div>
     );
   }
 

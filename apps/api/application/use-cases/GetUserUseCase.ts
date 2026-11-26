@@ -3,6 +3,7 @@ import type { UserOwnerDto, UserPublicDto } from '@api/domain/entities/User';
 import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
 import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class GetUserUseCase {
   constructor(private readonly userRepository: IUserRepository) {}
@@ -21,7 +22,8 @@ export class GetUserUseCase {
         return Result.success(user.toOwnerDto(starCount));
       }
       return Result.success(user.toPublicDto(starCount));
-    } catch {
+    } catch (error) {
+      logUnexpectedError('GetUserUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

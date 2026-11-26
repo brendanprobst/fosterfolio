@@ -5,6 +5,7 @@ import type {
   SearchPetHit,
   SearchUserHit,
 } from '@api/domain/repositories/ISearchRepository';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export type SearchResultDto = {
   pets: SearchPetHit[];
@@ -26,7 +27,8 @@ export class SearchUseCase {
         this.searchRepository.searchUsers(q, 20),
       ]);
       return Result.success({ pets, users });
-    } catch {
+    } catch (error) {
+      logUnexpectedError('SearchUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }

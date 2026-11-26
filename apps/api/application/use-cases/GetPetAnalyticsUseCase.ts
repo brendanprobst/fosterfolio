@@ -10,6 +10,7 @@ import {
   startDayForRange,
   type PetAnalyticsDto,
 } from '@api/application/analytics/petAnalytics';
+import { logUnexpectedError } from '@api/utils/logUnexpectedError';
 
 export class GetPetAnalyticsUseCase {
   constructor(
@@ -44,7 +45,8 @@ export class GetPetAnalyticsUseCase {
         this.inquiryRepository.listSourcesByPetId(petId, sinceIsoForDay(sinceDay)),
       ]);
       return Result.success(buildPetAnalytics(daily, inquiries));
-    } catch {
+    } catch (error) {
+      logUnexpectedError('GetPetAnalyticsUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);
     }
   }
