@@ -117,10 +117,8 @@ export function FosterMePreview({
   return (
     <section className="mx-auto flex max-w-5xl flex-col items-center gap-6 px-4 py-10">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">{heading}</h1>
-        {single ? (
-          <p className="text-muted-foreground text-sm">fostered by {displayName}</p>
-        ) : null}
+        {/* Single pet: the card's button is the headline, so keep the h1 for screen readers only. */}
+        <h1 className={single ? "sr-only" : "text-3xl font-semibold tracking-tight"}>{heading}</h1>
         {fallback && pets[0] ? (
           <p className="border-border bg-muted/40 rounded-lg border px-3 py-2 text-sm" role="status">
             This may not be who {displayName} is fostering right now. Ask if {pets[0].name} is

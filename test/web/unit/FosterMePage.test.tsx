@@ -123,7 +123,7 @@ describe("FosterMePage", () => {
     renderWithQueryClient(<FosterMePage />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Meet Mochi" })).toBeInTheDocument();
-    expect(screen.getByText("fostered by Alex Foster")).toBeInTheDocument();
+    expect(screen.queryByText(/fostered by/i)).not.toBeInTheDocument();
     expect(screen.getByText("Meet Mochi, he is a 2 year old Corgi")).toBeInTheDocument();
     expect(screen.queryByText(/Weight/)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mochi" })).toHaveAttribute(
