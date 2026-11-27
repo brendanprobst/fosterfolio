@@ -5,7 +5,7 @@ import { useUser } from "@client/features/users";
 import type { UserPublic } from "@client/features/users";
 import { PublicProfilePage } from "@client/pages/users";
 import { fireEvent, screen } from "@testing-library/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "@supabase/supabase-js";
 import { authSignedIn, renderWithQueryClient } from "./support/renderWithProviders";
@@ -16,6 +16,7 @@ vi.mock("@client/auth", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(),
+  useRouter: vi.fn(),
 }));
 
 vi.mock("@client/features/users", async (importOriginal) => {
@@ -47,10 +48,14 @@ const user: UserPublic = {
   createdAt: "2026-08-01T00:00:00.000Z",
 };
 
+const replace = vi.fn();
+
 describe("PublicProfilePage", () => {
   beforeEach(() => {
+    replace.mockReset();
     // Signed in: the owner's own picture controls still must not appear here.
     vi.mocked(useAuth).mockReturnValue(authSignedIn());
+    vi.mocked(useRouter).mockReturnValue({ replace } as unknown as ReturnType<typeof useRouter>);
     vi.mocked(usePathname).mockReturnValue("/@alex");
     vi.mocked(useUser).mockReturnValue({
       data: user,
@@ -163,5 +168,28 @@ describe("PublicProfilePage", () => {
     expect(screen.getByRole("region", { name: "Bio" })).toHaveClass("ml-20");
     fireEvent.click(screen.getByRole("button", { name: "Read more..." }));
     expect(screen.getByRole("dialog")).toHaveTextContent("That's the work.");
+  });
+
+  describe("former handle (alias) URLs", () => {
+    it("replaces the URL with the canonical handle, keeping the sub-path", () => {
+      vi.mocked(usePathname).mockReturnValue("/@elisa-probst");
+      vi.mocked(useUser).mockReturnValue({
+        data: { ...user, handle: "elisa", canonicalHandle: "elisa" },
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as ReturnType<typeof useUser>);
+
+      renderWithQueryClient(<PublicProfilePage />);
+
+      expect(replace).toHaveBeenCalledTimes(1);
+      expect(replace).toHaveBeenCalledWith("/@elisa");
+    });
+
+    it("does not redirect when the response has no canonicalHandle", () => {
+      renderWithQueryClient(<PublicProfilePage />);
+
+      expect(replace).not.toHaveBeenCalled();
+    });
   });
 });

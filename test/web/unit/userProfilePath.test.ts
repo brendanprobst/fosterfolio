@@ -1,5 +1,6 @@
 import { USER_PROFILE_SENTINEL_ID } from "@client/lib/constants/userProfileSentinel";
 import {
+  canonicalProfilePath,
   fosterMeHref,
   fosterMeLinkHref,
   handleEditConfirmMessage,
@@ -43,7 +44,7 @@ describe("handle paths", () => {
       kind: "rename",
     });
     expect(handleEditConfirmMessage("clear", "brendan", null)).toMatch(
-      /\/@brendan will stop working/,
+      /\/@brendan will still open your profile/,
     );
     expect(handleEditConfirmMessage("rename", "brendan", "brendan_p")).toMatch(
       /\/@brendan_p/,
@@ -72,5 +73,26 @@ describe("handle paths", () => {
 
   it("returns null for the sentinel placeholder", () => {
     expect(handleFromPathname(`/@${USER_PROFILE_SENTINEL_ID}`)).toBeNull();
+  });
+
+  it("builds the canonical path for a former handle, keeping the sub-path and query", () => {
+    expect(canonicalProfilePath("/@elisa-probst", "elisa")).toBe("/@elisa");
+    expect(canonicalProfilePath("/@elisa-probst/foster-me", "elisa")).toBe(
+      "/@elisa/foster-me",
+    );
+    expect(canonicalProfilePath("/@elisa-probst/foster-me", "elisa", "?s=ab12")).toBe(
+      "/@elisa/foster-me?s=ab12",
+    );
+    expect(canonicalProfilePath("/@elisa-probst/pet/pet-1.html", "elisa")).toBe(
+      "/@elisa/pet/pet-1",
+    );
+  });
+
+  it("does not redirect when the handle is already canonical or unknown", () => {
+    expect(canonicalProfilePath("/@elisa", "elisa")).toBeNull();
+    expect(canonicalProfilePath("/@elisa", undefined)).toBeNull();
+    expect(canonicalProfilePath("/@elisa", null)).toBeNull();
+    expect(canonicalProfilePath("/feed", "elisa")).toBeNull();
+    expect(canonicalProfilePath(`/@${USER_PROFILE_SENTINEL_ID}`, "elisa")).toBeNull();
   });
 });

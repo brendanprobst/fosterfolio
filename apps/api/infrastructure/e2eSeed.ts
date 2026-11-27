@@ -21,6 +21,12 @@ export const E2E_SEED = {
   petName: 'Mochi',
   generalPostBody: 'Hello from the foster feed',
   petUpdateBody: 'Mochi learned a new trick today.',
+  /** A user who renamed their handle; the former handle is an alias. */
+  renamedUserId: 'e2e-renamed-user',
+  renamedUserEmail: 'e2e-renamed@example.com',
+  renamedUserDisplayName: 'Casey Renamed',
+  renamedUserHandle: 'casey-now',
+  renamedUserFormerHandle: 'casey-before',
 } as const;
 
 export function isE2eSeedEnabled(): boolean {
@@ -61,6 +67,27 @@ export function seedFosterfolioE2eData(input: {
     deletedAt: null,
   });
   userRepository.seed(user, 2);
+
+  userRepository.seed(
+    new User({
+      id: E2E_SEED.renamedUserId,
+      email: E2E_SEED.renamedUserEmail,
+      handle: E2E_SEED.renamedUserHandle,
+      displayName: E2E_SEED.renamedUserDisplayName,
+      avatarUrl: null,
+      bio: null,
+      zipCode: null,
+      city: null,
+      state: null,
+      lat: null,
+      lng: null,
+      socialLinks: [],
+      sheltersText: null,
+      createdAt: now,
+      deletedAt: null,
+    })
+  );
+  void userRepository.recordAlias(E2E_SEED.renamedUserFormerHandle, E2E_SEED.renamedUserId);
 
   const pet = new Pet({
     id: E2E_SEED.petId,

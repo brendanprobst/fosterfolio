@@ -36,4 +36,10 @@ export class UserErrors {
     'That handle is already taken.',
     409
   );
+
+  static readonly HANDLE_CHANGE_LIMIT = ResultError.create(
+    'HANDLE_CHANGE_LIMIT',
+    'You can change your handle 2 times every 30 days. Try again later.',
+    409
+  );
 }

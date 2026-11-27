@@ -7,6 +7,7 @@ import { useUser } from "@client/features/users";
 import { useFosterMeViewCapture } from "@client/lib/analytics/usePetViewCapture";
 import { isFosterfolioSearchEnabled } from "@client/lib/fosterfolioFeatureFlags";
 import { selectActiveFosters, selectFosterMePet } from "@client/lib/selectFosterMePet";
+import { useCanonicalHandleRedirect } from "@client/lib/useCanonicalHandleRedirect";
 import {
   fosterMeHref,
   handleFromPathname,
@@ -32,6 +33,7 @@ export function FosterMePage() {
   const userQuery = useUser(handle);
   const petsQuery = useOwnerPets(handle);
   const user = userQuery.data;
+  useCanonicalHandleRedirect(pathname, user?.canonicalHandle);
   const pets = petsQuery.data ?? [];
   const active = useMemo(
     () => (petsQuery.isSuccess ? selectActiveFosters(pets) : []),

@@ -8,6 +8,7 @@ import { useOwnerPets } from "@client/features/pets";
 import { PostCard, useAuthorPosts } from "@client/features/posts";
 import { useUser } from "@client/features/users";
 import { petHref } from "@client/lib/petBioPath";
+import { useCanonicalHandleRedirect } from "@client/lib/useCanonicalHandleRedirect";
 import {
   handleFromPathname,
   publicHandle,
@@ -28,6 +29,7 @@ export function PublicProfilePage() {
   const petsQuery = useOwnerPets(userId);
   const postsQuery = useAuthorPosts(userId);
   const user = userQuery.data;
+  useCanonicalHandleRedirect(pathname, user?.canonicalHandle);
   const isOwner = Boolean(viewer && user && viewer.id === user.id);
   const shareRef = user ? publicHandle(user) : "";
 

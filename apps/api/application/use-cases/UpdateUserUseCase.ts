@@ -18,6 +18,9 @@ export type UpdateUserInput = {
   handle?: string | null;
 };
 
+const HANDLE_CHANGE_LIMIT = 2;
+const HANDLE_CHANGE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
 export class UpdateUserUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
@@ -40,10 +43,13 @@ export class UpdateUserUseCase {
 
       const { handle: nextHandle, ...profileInput } = input;
 
+      // Set when an existing handle is replaced or cleared; persisted with the save below.
+      let formerHandle: string | null = null;
+      const now = new Date();
+
       if (nextHandle !== undefined) {
-        if (nextHandle === null || nextHandle.trim() === '') {
-          user.applyProfileUpdate({ handle: null });
-        } else {
+        let next: string | null = null;
+        if (nextHandle !== null && nextHandle.trim() !== '') {
           const parsed = UserHandle.parse(nextHandle);
           if (!parsed.ok) {
             return Result.failure(
@@ -52,14 +58,39 @@ export class UpdateUserUseCase {
                 : ErrorCatalog.HANDLE_INVALID
             );
           }
-          const taken = await this.userRepository.isHandleTaken(
-            parsed.handle.value,
-            user.id
-          );
-          if (taken) {
-            return Result.failure(ErrorCatalog.HANDLE_TAKEN);
+          next = parsed.handle.value;
+        }
+
+        const previous = user.handle;
+        if (next !== previous) {
+          // Setting a first handle is free; replacing or clearing one is rate limited.
+          if (previous) {
+            const since = new Date(now.getTime() - HANDLE_CHANGE_WINDOW_MS);
+            const recent = await this.userRepository.countHandleChangesSince(user.id, since);
+            if (recent >= HANDLE_CHANGE_LIMIT) {
+              const oldest =
+                (await this.userRepository.oldestHandleChangeSince(user.id, since)) ?? now;
+              const nextChangeAt = new Date(oldest.getTime() + HANDLE_CHANGE_WINDOW_MS);
+              return Result.failure(
+                ErrorCatalog.HANDLE_CHANGE_LIMIT.withMetadata({
+                  nextChangeAt: nextChangeAt.toISOString(),
+                })
+              );
+            }
           }
-          user.applyProfileUpdate({ handle: parsed.handle.value });
+          if (next) {
+            const taken = await this.userRepository.isHandleTaken(next, user.id);
+            if (taken) {
+              return Result.failure(ErrorCatalog.HANDLE_TAKEN);
+            }
+            // Former handles are reserved for their original owner forever.
+            const aliasOwnerId = await this.userRepository.findAliasOwner(next);
+            if (aliasOwnerId && aliasOwnerId !== user.id) {
+              return Result.failure(ErrorCatalog.HANDLE_TAKEN);
+            }
+          }
+          formerHandle = previous;
+          user.applyProfileUpdate({ handle: next });
         }
       }
 
@@ -86,7 +117,18 @@ export class UpdateUserUseCase {
         }
       }
 
+      if (formerHandle) {
+        await this.userRepository.recordAlias(formerHandle, user.id);
+      }
       await this.userRepository.save(user);
+      if (formerHandle) {
+        try {
+          await this.userRepository.recordHandleChange(user.id, now);
+        } catch (error) {
+          // The handle already changed. Losing one cooldown row must not fail the save.
+          logUnexpectedError('UpdateUserUseCase.recordHandleChange', error);
+        }
+      }
       const starCount = await this.userRepository.countStars(user.id);
       return Result.success(user.toOwnerDto(starCount));
     } catch (error) {
