@@ -48,10 +48,15 @@ function toUser(row: UserRecord): User {
 export class UserRepository implements IUserRepository {
   private readonly table: string;
   private readonly starsTable: string;
+  private readonly aliasesTable: string;
+  private readonly handleChangesTable: string;
 
   constructor(private readonly dataAdapter: DataAdapter) {
     this.table = process.env.SUPABASE_USERS_TABLE?.trim() || 'users';
     this.starsTable = process.env.SUPABASE_PROFILE_STARS_TABLE?.trim() || 'profile_stars';
+    this.aliasesTable = process.env.SUPABASE_USER_HANDLE_ALIASES_TABLE?.trim() || 'user_handle_aliases';
+    this.handleChangesTable =
+      process.env.SUPABASE_USER_HANDLE_CHANGES_TABLE?.trim() || 'user_handle_changes';
   }
 
   async findById(id: string): Promise<User | null> {
@@ -90,6 +95,43 @@ export class UserRepository implements IUserRepository {
     }
     const rows = await this.dataAdapter.get<Array<{ id: string }>>(path);
     return rows.length > 0;
+  }
+
+  async findAliasOwner(handle: string): Promise<string | null> {
+    const rows = await this.dataAdapter.get<Array<{ user_id: string }>>(
+      `${this.aliasesTable}?select=user_id&handle=eq.${encodeURIComponent(handle)}&limit=1`
+    );
+    return rows[0]?.user_id ?? null;
+  }
+
+  async recordAlias(handle: string, userId: string): Promise<void> {
+    await this.dataAdapter.post(
+      `${this.aliasesTable}?on_conflict=handle`,
+      [{ handle, user_id: userId }],
+      { headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' } }
+    );
+  }
+
+  async countHandleChangesSince(userId: string, since: Date): Promise<number> {
+    const { count } = await this.dataAdapter.getWithCount<unknown[]>(
+      `${this.handleChangesTable}?select=user_id&user_id=eq.${encodeURIComponent(userId)}&changed_at=gte.${encodeURIComponent(since.toISOString())}`
+    );
+    return count ?? 0;
+  }
+
+  async oldestHandleChangeSince(userId: string, since: Date): Promise<Date | null> {
+    const rows = await this.dataAdapter.get<Array<{ changed_at: string }>>(
+      `${this.handleChangesTable}?select=changed_at&user_id=eq.${encodeURIComponent(userId)}&changed_at=gte.${encodeURIComponent(since.toISOString())}&order=changed_at.asc&limit=1`
+    );
+    return rows[0] ? new Date(rows[0].changed_at) : null;
+  }
+
+  async recordHandleChange(userId: string, at: Date): Promise<void> {
+    await this.dataAdapter.post(
+      this.handleChangesTable,
+      [{ user_id: userId, changed_at: at.toISOString() }],
+      { headers: { Prefer: 'return=minimal' } }
+    );
   }
 
   async save(user: User): Promise<void> {

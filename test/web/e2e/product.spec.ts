@@ -144,6 +144,31 @@ test.describe("Fosterfolio product smoke", () => {
     });
   });
 
+  test.describe("guest following a former handle", () => {
+    test.beforeEach(async ({ page }) => {
+      await browseAsGuest(page);
+    });
+
+    test("a former handle's profile URL lands on the current handle", async ({ page }) => {
+      await page.goto(`/@${E2E_SEED.renamedUserFormerHandle}`);
+
+      await expect(page).toHaveURL(new RegExp(`/@${E2E_SEED.renamedUserHandle}/?$`));
+      await expect(
+        page.getByRole("heading", { level: 1, name: E2E_SEED.renamedUserDisplayName }),
+      ).toBeVisible();
+    });
+
+    test("a former handle's foster-me URL lands on the same page under the current handle", async ({
+      page,
+    }) => {
+      await page.goto(`/@${E2E_SEED.renamedUserFormerHandle}/foster-me`);
+
+      await expect(page).toHaveURL(
+        new RegExp(`/@${E2E_SEED.renamedUserHandle}/foster-me/?$`),
+      );
+    });
+  });
+
   test.describe("guest on a phone", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 

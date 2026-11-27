@@ -10,4 +10,9 @@ export const E2E_SEED = {
   petName: "Mochi",
   generalPostBody: "Hello from the foster feed",
   petUpdateBody: "Mochi learned a new trick today.",
+  renamedUserId: "e2e-renamed-user",
+  renamedUserEmail: "e2e-renamed@example.com",
+  renamedUserDisplayName: "Casey Renamed",
+  renamedUserHandle: "casey-now",
+  renamedUserFormerHandle: "casey-before",
 } as const;

@@ -29,6 +29,12 @@ describe('e2e seed fixtures', () => {
       expect.arrayContaining([E2E_SEED.generalPostBody, E2E_SEED.petUpdateBody])
     );
 
+    const renamed = await userRepository.findByHandle(E2E_SEED.renamedUserHandle);
+    expect(renamed?.id).toBe(E2E_SEED.renamedUserId);
+    expect(await userRepository.findAliasOwner(E2E_SEED.renamedUserFormerHandle)).toBe(
+      E2E_SEED.renamedUserId
+    );
+
     const search = new InMemorySearchRepository(userRepository, petRepository);
     const pets = await search.searchPets('mochi', 10);
     const users = await search.searchUsers('alex', 10);

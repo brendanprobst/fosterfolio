@@ -34,10 +34,10 @@ export function handleEditConfirmMessage(
   next: string | null,
 ): string | null {
   if (kind === "clear" && current) {
-    return `/@${current} will stop working. Clear this handle?`;
+    return `/@${current} will still open your profile, but you won't have a public handle. Clear this handle?`;
   }
   if (kind === "rename" && current && next) {
-    return `/@${current} will stop working. Change it to /@${next}?`;
+    return `/@${current} will keep redirecting to your profile, and no one else can claim it. Change it to /@${next}?`;
   }
   return null;
 }
@@ -87,4 +87,20 @@ export function userIdFromPathname(
   pathname: string | null | undefined,
 ): string | null {
   return handleFromPathname(pathname);
+}
+
+/**
+ * Where to send the browser when a profile URL used a former handle: the same
+ * sub-path and query under the canonical handle. Null when no redirect is needed.
+ */
+export function canonicalProfilePath(
+  pathname: string | null | undefined,
+  canonicalHandle: string | null | undefined,
+  search = "",
+): string | null {
+  if (!canonicalHandle) return null;
+  const current = handleFromPathname(pathname);
+  if (!current || current === canonicalHandle) return null;
+  const path = normalizeAppPathname(pathname);
+  return `/@${canonicalHandle}${path.slice(`/@${current}`.length)}${search}`;
 }

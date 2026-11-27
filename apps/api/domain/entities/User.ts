@@ -12,6 +12,11 @@ export type UserPublicDto = {
   socialLinks: SocialLink[];
   starCount: number;
   createdAt: string;
+  /**
+   * Set only when the lookup used a former handle (alias). Clients redirect to this
+   * handle. Absent for current handles, ids, and users who cleared their handle.
+   */
+  canonicalHandle?: string;
 };
 
 export type UserOwnerDto = UserPublicDto & {

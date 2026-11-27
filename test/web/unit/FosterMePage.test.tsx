@@ -7,7 +7,7 @@ import { captureFosterMeViewed } from "@client/lib/analytics/initFosterfolioAnal
 import { petHrefFromFosterMe } from "@client/lib/petBioPath";
 import { FosterMePage } from "@client/pages/users";
 import { screen } from "@testing-library/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "@supabase/supabase-js";
 import {
@@ -22,6 +22,7 @@ vi.mock("@client/auth", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(),
+  useRouter: vi.fn(),
 }));
 
 vi.mock("@client/features/users", async (importOriginal) => {
@@ -93,9 +94,13 @@ function pet(overrides: Partial<PetPublic> = {}): PetPublic {
   };
 }
 
+const replace = vi.fn();
+
 describe("FosterMePage", () => {
   beforeEach(() => {
+    replace.mockReset();
     vi.mocked(useAuth).mockReturnValue(authLoggedOut());
+    vi.mocked(useRouter).mockReturnValue({ replace } as unknown as ReturnType<typeof useRouter>);
     vi.mocked(usePathname).mockReturnValue("/@alex/foster-me");
     vi.mocked(captureFosterMeViewed).mockClear();
     vi.mocked(useUser).mockReturnValue({
@@ -313,6 +318,29 @@ describe("FosterMePage", () => {
       expect(vi.mocked(captureFosterMeViewed).mock.calls).toEqual([
         [{ ownerId: "owner-1", petCount: 1 }],
       ]);
+    });
+  });
+
+  describe("former handle (alias) URLs", () => {
+    it("replaces the URL with the canonical handle, keeping the sub-path", () => {
+      vi.mocked(usePathname).mockReturnValue("/@elisa-probst/foster-me");
+      vi.mocked(useUser).mockReturnValue({
+        data: { ...user, handle: "elisa", canonicalHandle: "elisa" },
+        isLoading: false,
+        isError: false,
+        error: null,
+      } as ReturnType<typeof useUser>);
+
+      renderWithQueryClient(<FosterMePage />);
+
+      expect(replace).toHaveBeenCalledTimes(1);
+      expect(replace).toHaveBeenCalledWith("/@elisa/foster-me");
+    });
+
+    it("does not redirect when the response has no canonicalHandle", () => {
+      renderWithQueryClient(<FosterMePage />);
+
+      expect(replace).not.toHaveBeenCalled();
     });
   });
 });

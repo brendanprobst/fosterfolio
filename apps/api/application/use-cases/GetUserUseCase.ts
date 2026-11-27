@@ -1,4 +1,4 @@
-import { resolveUser } from '@api/application/resolveUser';
+import { canonicalHandleFor, resolveUser } from '@api/application/resolveUser';
 import type { UserOwnerDto, UserPublicDto } from '@api/domain/entities/User';
 import { Result } from '@api/domain/errors/Result';
 import { ErrorCatalog } from '@api/domain/errors/ErrorCatalog';
@@ -18,10 +18,12 @@ export class GetUserUseCase {
         return Result.failure(ErrorCatalog.USER_NOT_FOUND);
       }
       const starCount = await this.userRepository.countStars(user.id);
-      if (actorId && actorId === user.id) {
-        return Result.success(user.toOwnerDto(starCount));
-      }
-      return Result.success(user.toPublicDto(starCount));
+      const canonicalHandle = canonicalHandleFor(id, user);
+      const dto =
+        actorId && actorId === user.id
+          ? user.toOwnerDto(starCount)
+          : user.toPublicDto(starCount);
+      return Result.success(canonicalHandle ? { ...dto, canonicalHandle } : dto);
     } catch (error) {
       logUnexpectedError('GetUserUseCase', error);
       return Result.failure(ErrorCatalog.INTERNAL_SERVER_ERROR);

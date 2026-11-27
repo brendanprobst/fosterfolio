@@ -2,6 +2,7 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@client/components/ui/alert";
 import { HANDLE_CHANGE_TIP_TEXT, markHandleChangeTipSeen, shouldShowHandleChangeTip } from "@client/lib/handleChangeTip";
+import { ApiRequestError } from "@client/lib/readApiError";
 import { MarkdownEditor } from "@client/components/markdown";
 import { Button } from "@client/components/ui/button";
 import { Input } from "@client/components/ui/input";
@@ -20,6 +21,20 @@ type ProfileEditFormProps = {
   /** Called after a successful save so the host dialog can close itself. */
   onSaved?: () => void;
 };
+
+const HANDLE_LIMIT_TEXT = "You can change your handle 2 times every 30 days.";
+
+/** The server message, or for the handle cooldown the date the next change opens up. */
+function saveErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError && error.code === "HANDLE_CHANGE_LIMIT") {
+    const raw = error.metadata?.nextChangeAt;
+    const date = typeof raw === "string" ? new Date(raw) : null;
+    if (date && !Number.isNaN(date.getTime())) {
+      return `You can change your handle again on ${date.toLocaleDateString(undefined, { dateStyle: "long" })}.`;
+    }
+  }
+  return error instanceof Error ? error.message : "Failed to save profile.";
+}
 
 /**
  * Name, handle, and bio. The picture is `AvatarEditor`, embedded beside this
@@ -99,9 +114,7 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
         <Alert variant="destructive">
           <AlertTitle>Could not save</AlertTitle>
           <AlertDescription>
-            {mutation.error instanceof Error
-              ? mutation.error.message
-              : "Failed to save profile."}
+            {saveErrorMessage(mutation.error)}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -128,6 +141,7 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
         <p className="text-muted-foreground text-xs">
           Public URL: /@{normalizeHandleInput(handle) || "your-name"}
         </p>
+        <p className="text-muted-foreground text-xs">{HANDLE_LIMIT_TEXT}</p>
       </div>
       <div className="space-y-1.5">
         <Label id="profile-bio-label">Bio</Label>

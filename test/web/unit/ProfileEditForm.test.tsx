@@ -1,5 +1,6 @@
 import type { UserOwner } from "@client/features/users";
 import { useUpdateUserMutation } from "@client/features/users";
+import { ApiRequestError } from "@client/lib/readApiError";
 import { ProfileEditForm } from "@client/pages/profile";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -67,7 +68,7 @@ describe("ProfileEditForm", () => {
     fireEvent.submit(screen.getByRole("form", { name: "Edit name and bio" }));
 
     expect(window.confirm).toHaveBeenCalledWith(
-      expect.stringMatching(/\/@brendan will stop working/),
+      expect.stringMatching(/\/@brendan will still open your profile/),
     );
     expect(mutate).toHaveBeenCalledWith(
       {
@@ -113,5 +114,48 @@ describe("ProfileEditForm", () => {
     fireEvent.submit(screen.getByRole("form", { name: "Edit name and bio" }));
 
     expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it("tells the user how often the handle can change", () => {
+    render(<ProfileEditForm user={user} />);
+
+    expect(
+      screen.getByText("You can change your handle 2 times every 30 days."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows when the handle can change again after hitting the limit", () => {
+    const nextChangeAt = "2026-12-20T15:30:00.000Z";
+    vi.mocked(useUpdateUserMutation).mockReturnValue({
+      mutate,
+      isPending: false,
+      isError: true,
+      error: new ApiRequestError(
+        "You can change your handle 2 times every 30 days. Try again later.",
+        409,
+        "HANDLE_CHANGE_LIMIT",
+        { nextChangeAt },
+      ),
+    } as unknown as ReturnType<typeof useUpdateUserMutation>);
+
+    render(<ProfileEditForm user={user} />);
+
+    const date = new Date(nextChangeAt).toLocaleDateString(undefined, {
+      dateStyle: "long",
+    });
+    expect(screen.getByText(`You can change your handle again on ${date}.`)).toBeInTheDocument();
+  });
+
+  it("shows the plain server message for other save errors", () => {
+    vi.mocked(useUpdateUserMutation).mockReturnValue({
+      mutate,
+      isPending: false,
+      isError: true,
+      error: new ApiRequestError("That handle is already taken.", 409, "HANDLE_TAKEN"),
+    } as unknown as ReturnType<typeof useUpdateUserMutation>);
+
+    render(<ProfileEditForm user={user} />);
+
+    expect(screen.getByText("That handle is already taken.")).toBeInTheDocument();
   });
 });

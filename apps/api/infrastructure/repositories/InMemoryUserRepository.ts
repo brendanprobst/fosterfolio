@@ -4,6 +4,8 @@ import type { IUserRepository } from '@api/domain/repositories/IUserRepository';
 export class InMemoryUserRepository implements IUserRepository {
   private readonly users = new Map<string, User>();
   private readonly starCounts = new Map<string, number>();
+  private readonly aliases = new Map<string, string>();
+  private readonly handleChanges: Array<{ userId: string; changedAt: Date }> = [];
 
   seed(user: User, starCount = 0): void {
     this.users.set(user.id, user);
@@ -44,6 +46,31 @@ export class InMemoryUserRepository implements IUserRepository {
       return true;
     }
     return false;
+  }
+
+  async findAliasOwner(handle: string): Promise<string | null> {
+    return this.aliases.get(handle) ?? null;
+  }
+
+  async recordAlias(handle: string, userId: string): Promise<void> {
+    if (!this.aliases.has(handle)) this.aliases.set(handle, userId);
+  }
+
+  async countHandleChangesSince(userId: string, since: Date): Promise<number> {
+    return this.handleChanges.filter(
+      (c) => c.userId === userId && c.changedAt.getTime() >= since.getTime()
+    ).length;
+  }
+
+  async oldestHandleChangeSince(userId: string, since: Date): Promise<Date | null> {
+    const times = this.handleChanges
+      .filter((c) => c.userId === userId && c.changedAt.getTime() >= since.getTime())
+      .map((c) => c.changedAt.getTime());
+    return times.length > 0 ? new Date(Math.min(...times)) : null;
+  }
+
+  async recordHandleChange(userId: string, at: Date): Promise<void> {
+    this.handleChanges.push({ userId, changedAt: at });
   }
 
   async save(user: User): Promise<void> {
