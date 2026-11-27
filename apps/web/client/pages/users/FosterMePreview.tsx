@@ -11,18 +11,40 @@ export type FosterMePreviewPet = {
   ageValue: number | null;
   ageUnit: string | null;
   breed?: string | null;
+  species?: string | null;
+  sex?: string | null;
   primaryPhotoUrl: string | null;
 };
 
-function ageUnitWord(value: number, unit: string): string {
-  if (value !== 1) return unit;
+function singularUnit(unit: string): string {
   return unit.endsWith("s") ? unit.slice(0, -1) : unit;
 }
 
-function ageLabel(pet: FosterMePreviewPet): string | null {
-  if (pet.ageValue == null) return null;
-  const unit = pet.ageUnit ?? "years";
-  return `${pet.ageValue} ${ageUnitWord(pet.ageValue, unit)}`;
+function pronoun(sex: string | null | undefined): { subject: string; be: string } {
+  const key = sex?.trim().toLowerCase();
+  if (key === "male") return { subject: "he", be: "is" };
+  if (key === "female") return { subject: "she", be: "is" };
+  return { subject: "they", be: "are" };
+}
+
+function article(next: string): string {
+  return /^(8|11|18|[aeiou])/i.test(next) ? "an" : "a";
+}
+
+/** "Meet Frankie, he is a 5 year old Lab Mix". Falls back gracefully on sparse data. */
+export function meetSentence(pet: FosterMePreviewPet): string {
+  const breed = pet.breed?.trim() || null;
+  const noun = breed ?? (pet.species?.trim() || null);
+  const age =
+    pet.ageValue == null
+      ? null
+      : `${pet.ageValue} ${singularUnit(pet.ageUnit ?? "years")} old`;
+  const description = [age, noun].filter(Boolean).join(" ");
+  if (!description) return `Meet ${pet.name}`;
+  const { subject, be } = pronoun(pet.sex);
+  const finalNoun = noun ?? "pet";
+  const full = age && !noun ? `${age} ${finalNoun}` : description;
+  return `Meet ${pet.name}, ${subject} ${be} ${article(full)} ${full}`;
 }
 
 function PreviewCard({
@@ -37,8 +59,6 @@ function PreviewCard({
   /** Several pets: open each bio in a new tab so the visitor keeps the grid. */
   newTab: boolean;
 }) {
-  const age = ageLabel(pet);
-  const breed = pet.breed?.trim() || null;
   const Arrow = newTab ? ArrowUpRight : ArrowRight;
   return (
     <Link
@@ -62,15 +82,15 @@ function PreviewCard({
           large ? "size-56 text-4xl" : "size-40 text-3xl sm:size-44",
         )}
       />
-      <span className="text-xl font-semibold tracking-tight">{pet.name}</span>
-      {breed ? <span className="text-muted-foreground text-sm">Breed {breed}</span> : null}
-      {age ? <span className="text-muted-foreground text-sm">Age {age}</span> : null}
       <span
         aria-hidden
-        className="text-muted-foreground group-hover:text-primary inline-flex items-center gap-1 text-xs font-medium transition-colors"
+        className={cn(
+          buttonVariants({ size: "lg" }),
+          "group-hover:bg-primary/90 h-auto max-w-full whitespace-normal py-2.5 text-center text-base leading-snug font-semibold shadow-sm",
+        )}
       >
-        Meet {pet.name}
-        <Arrow className="size-3.5 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />
+        <span>{meetSentence(pet)}</span>
+        <Arrow className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />
       </span>
     </Link>
   );
