@@ -131,7 +131,7 @@ test.describe("Fosterfolio product smoke", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: `Meet ${E2E_SEED.petName}` }),
       ).toBeVisible();
-      await expect(page.getByText(`fostered by ${E2E_SEED.userDisplayName}`)).toBeVisible();
+      await expect(page.getByText(/fostered by/i)).toHaveCount(0);
       await expect(page.getByRole("link", { name: E2E_SEED.petName })).toHaveAttribute(
         "href",
         `/@${E2E_PATHS.userRef}/pet/${E2E_SEED.petId}?via=foster-me`,
