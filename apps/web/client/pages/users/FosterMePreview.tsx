@@ -10,7 +10,7 @@ export type FosterMePreviewPet = {
   name: string;
   ageValue: number | null;
   ageUnit: string | null;
-  size: string | null;
+  breed?: string | null;
   primaryPhotoUrl: string | null;
 };
 
@@ -23,12 +23,6 @@ function ageLabel(pet: FosterMePreviewPet): string | null {
   if (pet.ageValue == null) return null;
   const unit = pet.ageUnit ?? "years";
   return `${pet.ageValue} ${ageUnitWord(pet.ageValue, unit)}`;
-}
-
-function weightLabel(size: string | null): string | null {
-  const trimmed = size?.trim();
-  if (!trimmed) return null;
-  return trimmed.replaceAll("_", " ");
 }
 
 function PreviewCard({
@@ -44,7 +38,7 @@ function PreviewCard({
   newTab: boolean;
 }) {
   const age = ageLabel(pet);
-  const weight = weightLabel(pet.size);
+  const breed = pet.breed?.trim() || null;
   const Arrow = newTab ? ArrowUpRight : ArrowRight;
   return (
     <Link
@@ -69,7 +63,7 @@ function PreviewCard({
         )}
       />
       <span className="text-xl font-semibold tracking-tight">{pet.name}</span>
-      {weight ? <span className="text-muted-foreground text-sm">Weight {weight}</span> : null}
+      {breed ? <span className="text-muted-foreground text-sm">Breed {breed}</span> : null}
       {age ? <span className="text-muted-foreground text-sm">Age {age}</span> : null}
       <span
         aria-hidden

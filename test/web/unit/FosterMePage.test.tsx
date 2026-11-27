@@ -112,7 +112,7 @@ describe("FosterMePage", () => {
   });
 
   it("shows one active pet as a foster-me card", () => {
-    const active = pet({ ageValue: 2, ageUnit: "years", size: "12 lb" });
+    const active = pet({ ageValue: 2, ageUnit: "years", size: "12 lb", breed: "Corgi" });
     vi.mocked(useOwnerPets).mockReturnValue({
       data: [active],
       isLoading: false,
@@ -124,7 +124,8 @@ describe("FosterMePage", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Meet Mochi" })).toBeInTheDocument();
     expect(screen.getByText("fostered by Alex Foster")).toBeInTheDocument();
-    expect(screen.getByText("Weight 12 lb")).toBeInTheDocument();
+    expect(screen.getByText("Breed Corgi")).toBeInTheDocument();
+    expect(screen.queryByText(/Weight/)).not.toBeInTheDocument();
     expect(screen.getByText("Age 2 years")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Mochi" })).toHaveAttribute(
       "href",
@@ -179,7 +180,7 @@ describe("FosterMePage", () => {
       /may not be who Alex Foster is fostering right now/i,
     );
     expect(screen.getByRole("heading", { level: 1, name: "Meet Mochi" })).toBeInTheDocument();
-    expect(screen.getByText("Weight 8 lb")).toBeInTheDocument();
+    expect(screen.queryByText(/Weight/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Expand" })).not.toBeInTheDocument();
   });
 
