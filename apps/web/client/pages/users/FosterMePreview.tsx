@@ -47,6 +47,10 @@ export function meetSentence(pet: FosterMePreviewPet): string {
   return `Meet ${pet.name}, ${subject} ${be} ${article(full)} ${full}`;
 }
 
+function firstName(displayName: string): string {
+  return displayName.trim().split(/\s+/)[0] || displayName;
+}
+
 function PreviewCard({
   pet,
   ownerRef,
@@ -143,6 +147,9 @@ export function FosterMePreview({
           <PreviewCard key={pet.id} pet={pet} ownerRef={ownerRef} large={single} newTab={!single} />
         ))}
       </div>
+      {single ? (
+        <p className="text-muted-foreground text-sm italic">fostered by {firstName(displayName)}</p>
+      ) : null}
     </section>
   );
 }
